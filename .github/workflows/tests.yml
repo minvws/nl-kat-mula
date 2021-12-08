@@ -11,11 +11,41 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
+      - name: Configure git
+        env:
+          TOKEN: ${{ secrets.RDO_REPO_RO }}
+        run: git config --global url."https://${{ secrets.RDO_REPO_RO }}@github.com/".insteadOf "ssh://git@github.com/"
+
       - name: Checkout code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
+        with:
+          path: nl-rt-tim-abang-mula
+
+      - name: Checkout bytes
+        uses: actions/checkout@v2
+        with:
+          repository: minvws/nl-rt-tim-abang-bytes
+          path: nl-rt-tim-abang-bytes
+          token: ${{ secrets.RDO_REPO_RO }}
+
+      - name: Checkout octopoes
+        uses: actions/checkout@v2
+        with:
+          repository: minvws/nl-rt-tim-abang-octopoes
+          path: nl-rt-tim-abang-octopoes
+          token: ${{ secrets.RDO_REPO_RO }}
+
+      - name: Checkout boefjes
+        uses: actions/checkout@v2
+        with:
+          repository: minvws/nl-rt-tim-abang-boefjes
+          path: nl-rt-tim-abang-boefjes
+          token: ${{ secrets.RDO_REPO_RO }}
 
       - name: Run unit tests
         run: make utest
+        working-directory: nl-rt-tim-abang-mula
 
       - name: Run integration tests
         run: make itest
+        working-directory: nl-rt-tim-abang-mula

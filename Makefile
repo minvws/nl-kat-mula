@@ -76,6 +76,8 @@ done: ## Prepare for a commit.
 
 env: ## Setup your environment.
 	pipenv install --dev
+	pipenv run pip install ../nl-rt-tim-abang-bytes
+	pipenv run pip install ../nl-rt-tim-abang-octopoes
 
 ##
 ##|------------------------------------------------------------------------|
