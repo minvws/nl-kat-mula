@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  mula_unit:
+    build:
+      context: ..
+      dockerfile: nl-rt-tim-abang-mula/Dockerfile
+    command: pipenv run python -m pytest -v tests/unit
+    env_file:
+      - .ci/.env.test
+    volumes:
+      - .:/app/scheduler
+
+  scheduler_integration:
+    depends_on:
+      - ci_katalogus
+    build:
+      context: ..
+      dockerfile: nl-rt-tim-abang-mula/Dockerfile
+    command: pipenv run python -m pytest -v tests/integration
+    env_file:
+      - .ci/.env.test
+    volumes:
+      - .:/app/scheduler
+
+  ci_katalogus:
+    build:
+      context: ..
+      dockerfile: nl-rt-tim-abang-boefjes/Dockerfile
+    command: [ "python", "-m", "uvicorn", "--host", "0.0.0.0", "katalogus.api:app" ]
