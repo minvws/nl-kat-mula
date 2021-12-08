@@ -11,7 +11,7 @@ services:
     volumes:
       - .:/app/scheduler
 
-  scheduler_integration:
+  mula_integration:
     depends_on:
       - ci_katalogus
     build:

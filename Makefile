@@ -83,15 +83,15 @@ env: ## Setup your environment.
 ##|------------------------------------------------------------------------|
 utest: ## Run the unit tests.
 ifneq ($(build),)
-	docker-compose -f base.yml -f .ci/docker-compose.yml build scheduler_unit
+	docker-compose -f base.yml -f .ci/docker-compose.yml build mula_unit
 endif
-	docker-compose -f base.yml  -f .ci/docker-compose.yml run --rm scheduler_unit; docker-compose -f base.yml  -f .ci/docker-compose.yml down
+	docker-compose -f base.yml  -f .ci/docker-compose.yml run --rm mula_unit; docker-compose -f base.yml  -f .ci/docker-compose.yml down
 
 itest: ## Run the integration tests.
 ifneq ($(build),)
-	docker-compose -f base.yml -f .ci/docker-compose.yml build scheduler_integration
+	docker-compose -f base.yml -f .ci/docker-compose.yml build mula_integration
 endif
-	docker-compose -f base.yml  -f .ci/docker-compose.yml run --rm scheduler_integration; docker-compose -f base.yml  -f .ci/docker-compose.yml down
+	docker-compose -f base.yml  -f .ci/docker-compose.yml run --rm mula_integration; docker-compose -f base.yml  -f .ci/docker-compose.yml down
 
 test: ## Run all tests.
 	make utest
