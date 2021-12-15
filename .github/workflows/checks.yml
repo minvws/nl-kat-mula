@@ -1,0 +1,41 @@
+name: Check the coding style
+
+
+on:
+  pull_request:
+    branches:
+      - '**'
+  push:
+    branches:
+      - 'develop'
+      - 'master'
+
+jobs:
+  Check:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Configure git
+        env:
+          TOKEN: ${{ secrets.RDO_REPO_RO }}
+        run: git config --global url."https://${{ secrets.RDO_REPO_RO }}@github.com/".insteadOf "ssh://git@github.com/"
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - uses: actions/checkout@v1
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Setup environment and install KAT packages
+        run: |
+          pip install --user pipenv
+          pipenv install --dev
+          grep "nl-rt-tim-abang" requirements.txt | xargs -L 1 pipenv run pip install
+
+      - name: Run black and mypy checks
+        run: make check

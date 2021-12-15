@@ -1,0 +1,16 @@
+[MASTER]
+
+disable=
+    C0114, # missing-module-docstring
+    C0115, # missing-class-docstring
+    C0116, # missing-function-docstring
+
+fail-under=8.0
+
+[FORMAT]
+
+max-line-length=120
+
+[STRING]
+
+check-quote-consistency=yes
