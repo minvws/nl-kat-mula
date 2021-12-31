@@ -60,8 +60,9 @@ limited to ... (TODO: expand on this, what, and how)
 
 ## Design decisions / Open questions
 
-* Now boefjes pop tasks from the centralized job queue, the intention is to
-  replace this queue with the priority queue of the scheduler.
+* Now boefjes pop tasks from the centralized job queue (rabbitmq `boefjes`),
+  the intention is to replace this queue with the priority queue of the
+  scheduler.
 
 * Do we maintain the priority queue within the scheduler or do we leverage
   other services (e.g. redis) to maintain the queue?
@@ -82,5 +83,44 @@ limited to ... (TODO: expand on this, what, and how)
 
 * Will the scheduler also schedule normalization jobs?
 
-* TODO: investigate boefjes cron jobs in rocky
+* investigate boefjes cron jobs in rocky (done every minute)
 
+  schedule new boefjes > start job
+    > fill master list
+      > get ooi's from queue "create events", from that get org, use org
+        to create scan profile
+    > get all scan profiles that are new, exclude L0
+    > schedule boefjes for scan profiles
+      > schedule boefje
+        > run boefje pipeline
+          > check indemnification
+          > run boefje
+          > create boefje
+      > set scan profile attr new to false
+
+* When is a scan profile new? When created how is it picked up by a boefje?
+  Why are we check for new scan profiles in the cron job, shouldn't those
+  already be picked up by the boefjes?
+
+  ScanProfile is a model in app `/tools`
+
+* Does the scheduler need to know what boefje to use?
+
+  Does not seem likely if we create a priority queue from which boefjes can
+  pop of tasks.
+
+* What services create scans for boefjes at the moment and how are they created?
+
+  - creating a scan in rocky  `scans.scan_create()` > `boefjes.boefjes.run_boefje` >
+    `create_job_from_boefje` > `run_boefje_job` > sends task on queue `boefjes`
+
+  - octopoes finds objects (TODO: finds how? what process? who listens to this
+    channel? > The cron job in rocky) and adds them to the queue `create_events`
+
+    Posts create events on `create_events` queue. Located in`api.py`,
+    `dispatch_create_events`
+
+  - cron job within rocky, runs every minute, checks in "create_events" queue
+    creates tasks for boefjes
+
+* When and by what is `POST /{client}` used, in octopoes?
