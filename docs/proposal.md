@@ -83,11 +83,14 @@ limited to ... (TODO: expand on this, what, and how)
 
 * Will the scheduler also schedule normalization jobs?
 
+  This is because it seems that the scheduler's current function is to do
+  just that.
+
 * investigate boefjes cron jobs in rocky (done every minute)
 
   schedule new boefjes > start job
     > fill master list
-      > get ooi's from queue "create events", from that get org, use org
+      > get ooi's from queue `create_events`, from that get org, use org
         to create scan profile
     > get all scan profiles that are new, exclude L0
     > schedule boefjes for scan profiles
@@ -99,7 +102,7 @@ limited to ... (TODO: expand on this, what, and how)
       > set scan profile attr new to false
 
 * When is a scan profile new? When created how is it picked up by a boefje?
-  Why are we check for new scan profiles in the cron job, shouldn't those
+  Why are we checking for new scan profiles in the cron job, shouldn't those
   already be picked up by the boefjes?
 
   ScanProfile is a model in app `/tools`
@@ -107,12 +110,18 @@ limited to ... (TODO: expand on this, what, and how)
 * Does the scheduler need to know what boefje to use?
 
   Does not seem likely if we create a priority queue from which boefjes can
-  pop of tasks.
+  pop off tasks.
 
 * What services create scans for boefjes at the moment and how are they created?
 
-  - creating a scan in rocky  `scans.scan_create()` > `boefjes.boefjes.run_boefje` >
-    `create_job_from_boefje` > `run_boefje_job` > sends task on queue `boefjes`
+  - creating a scan in rocky
+    > `views.scans.scan_create()`
+      > `boefjes.boefjes.run_boefje`
+        > `create_job_from_boefje`
+          > Creates `Job` model
+        > `run_boefje_job`
+          > sends task on queue `boefjes`
+        > `set_scan_profiles`
 
   - octopoes finds objects (TODO: finds how? what process? who listens to this
     channel? > The cron job in rocky) and adds them to the queue `create_events`
@@ -120,7 +129,37 @@ limited to ... (TODO: expand on this, what, and how)
     Posts create events on `create_events` queue. Located in`api.py`,
     `dispatch_create_events`
 
-  - cron job within rocky, runs every minute, checks in "create_events" queue
+  - cron job within rocky, runs every minute, checks in `create_events` queue
     creates tasks for boefjes
+
+* What is the flow in rocky when starting a scan?
+
+  - creating a scan in rocky
+    > `views.scans.scan_create()`
+      > `boefjes.boefjes.run_boefje`
+        > `create_job_from_boefje`
+          > Creates `Job` model
+        > `run_boefje_job`
+          > sends task on queue `boefjes`
+        > `set_scan_profiles`
+
+  `PerformScanForm`, creates a `ScanProfile`
+
+  - Listed as "tasks" list view at `/tasks` `views/tasks.py`, get the list
+    from flower `tasks.handle_boefje` finds the associated `Job` models,
+    (NOTE: queue is not specified btw)
+
+    tasks are pushed on the `tasks.handle_boefje` in `boefje/boefje.py`
+
+```python
+app.send_task(
+"tasks.handle_boefje", (job_meta,), queue="boefjes", task_id=job_meta.id
+)
+```
+
+* How does octopoes find new objects?
+
+  New found objects are pushed on the `create_events` queue.
+
 
 * When and by what is `POST /{client}` used, in octopoes?
