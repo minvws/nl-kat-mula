@@ -3,14 +3,16 @@
 ## Purpose
 
 The *scheduler* maintains a priority queue for discovery tasks to be performed
-by the ... workers (*boefjes*). The scheduler is tasked with maintaining and
-updating the priority queue with jobs that can be picked up by the workers.
+by the workers (*boefjes* and *normalizers*). The scheduler is tasked with
+maintaining and updating the priority queue with jobs that can be picked up by
+the workers.
 
 A priority queue is used, in as such, that it allows us to determine what jobs
-(TODO: OOI's?) should be checked first, or more regularly. Because of the use
-of a priority queue we can differentiate between jobs that are to be executed
-first. E.g. job's created by the user get precedence over jobs that are created
-by the internal rescheduling processes within the scheduler.
+should be checked first, or more regularly. Because of the use of a priority
+queue we can differentiate between jobs that are to be executed first. E.g.
+job's created by the user get precedence over jobs that are created by the
+internal rescheduling processes within the scheduler. (TODO: correct
+assumption?)
 
 Calculations in order to determine the priority of a job is performed by logic
 that can/will leverage information from multiple sources, including but not
@@ -21,6 +23,9 @@ limited to ... (TODO: expand on this, what, and how)
 **Input**
 
 * Expose API for new findings to be posted for scheduling
+
+  TODO: determine whether or not this is necessary, since we have a channel
+  `create_events` that is used to post new events to the scheduler.
 
 * Listen on channels (TODO: determine what channels) for new findings to be
   posted for scheduling
@@ -46,17 +51,24 @@ limited to ... (TODO: expand on this, what, and how)
 
 * Take into account organization's scan profile level
 
+* Accesses multiple 'external' services to determine the priority of a task
+
 **Output**
 
 * Expose API for tasks to be popped of the priority queue
 
-* Accesses multiple 'external' services to determine
-
 ## Architecture
 
-* Continual process that updates and maintains the priority queue
+* `listener` process that listens on a channel for objects (TODO: right term?)
+  (at the moment this is `create_events`), and persists those objects into
+  the database table `frontier`.
 
-* TODO: internal state
+* `GetFromFrontier` process, takes objects from the `frontier` table and
+  schedules them for execution. This pushes objects onto the priority queue.
+  `AddToQueue`.
+
+* `NextCheck` process or call, for finished jobs it calculates the next time
+  the job should be checked.
 
 ## Design decisions / Open questions
 
@@ -69,6 +81,9 @@ limited to ... (TODO: expand on this, what, and how)
 
   Suggested is that we keep the priority queue within the scheduler in memory.
 
+  We can also program it generalized enough that other backends can be used
+  of swapped with minimal effort.
+
 * What types of channels does the scheduler maintain to receive/input new tasks
   to be pushed onto the priority queue? E.g. and API to post jobs to the
   scheduler, a listener on to a message queue channel, and active process that
@@ -79,11 +94,29 @@ limited to ... (TODO: expand on this, what, and how)
   check if it has been processed by the workers, or do we wait for
   confirmation?
 
+* Do we want a mechanism to override the priority of a task?
+
+* Can we use the same data structure that are used for the boefjes in the
+  `test/examples/` directory, for the objects that are on the priority queue?
+
+* For the queue `create_events` is there a offset available?
+
+* Decide what the priority score for object on the priority queue should be.
+  E.g. the scan level?
+
+* For call to calculate the `NextCheck`, do we want to let the scheduler listen
+  to a channel to check when a job is finished, and then update the object?
+  Or do we want to expose an API (e.g. rpc) to update it, so that the
+  responsibility lies with the workers?
+
+* What external services are available and do we want to use in order to 
+  calculate the `NextCheck`?
+
 ## Scratchpad
 
 * Will the scheduler also schedule normalization jobs?
 
-  This is because it seems that the scheduler's current function is to do
+  This because, it seems that the scheduler's current function is to do
   just that.
 
 * investigate boefjes cron jobs in rocky (done every minute)
@@ -129,6 +162,15 @@ limited to ... (TODO: expand on this, what, and how)
     Posts create events on `create_events` queue. Located in`api.py`,
     `dispatch_create_events`
 
+    New found objects (TODO: is this true, are these new found objects? when
+    a scan job is created by rocky, the newly created object in octopoes is
+    picked up and posted on the `create_events` queue) are pushed on the
+    `create_events` queue, these are created by the normalizers.
+
+    `octopoes/api.py`
+    `post_combination_report`
+      > `dispatch_create_events`
+
   - cron job within rocky, runs every minute, checks in `create_events` queue
     creates tasks for boefjes
 
@@ -153,13 +195,25 @@ limited to ... (TODO: expand on this, what, and how)
 
 ```python
 app.send_task(
-"tasks.handle_boefje", (job_meta,), queue="boefjes", task_id=job_meta.id
+    "tasks.handle_boefje", (job_meta,), queue="boefjes", task_id=job_meta.id
 )
 ```
 
-* How does octopoes find new objects?
+* What is a combination report?
 
-  New found objects are pushed on the `create_events` queue.
-
+  results in a diff
 
 * When and by what is `POST /{client}` used, in octopoes?
+
+  used as module in other services as:
+  `octopoes.connector.octopoes.OctopoesAPIConnector` using the `save()` method
+
+  `def save(self, report: CombinationReport) -> List[Change]:`
+
+   `CombinationReport`: Serializable object to send a Combination to Octopoes API
+   `Combination`: XTDB object to store a Combination output
+
+* Do we have centralized metrics? Are we keeping track of metrics for boefjes
+  for instance? Do we want to track metrics like the size of the queue?
+
+* Do we have centralized logging? Log-based metrics.
