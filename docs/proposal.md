@@ -63,12 +63,13 @@ limited to ... (TODO: expand on this, what, and how)
   (at the moment this is `create_events`), and persists those objects into
   the database table `frontier`.
 
+* `NextCheck` process or call, for finished jobs it calculates the next time
+  the job should be checked. For new jobs that haven't been checked the
+  `NextCheck` will be set to the current time.
+
 * `GetFromFrontier` process, takes objects from the `frontier` table and
   schedules them for execution. This pushes objects onto the priority queue.
   `AddToQueue`.
-
-* `NextCheck` process or call, for finished jobs it calculates the next time
-  the job should be checked.
 
 ## Design decisions / Open questions
 
