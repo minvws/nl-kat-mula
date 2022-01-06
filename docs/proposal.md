@@ -124,7 +124,7 @@ Following describes main processes of the scheduler:
    their worker type.
 
 See the [C4 model](https://c4model.com/) overview of the scheduler system
-below, with their level of abstraction.
+below, with their respective level of abstraction.
 
 C2 Container level:
 
