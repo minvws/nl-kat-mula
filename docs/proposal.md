@@ -22,6 +22,9 @@ limited to octopoes, bytes, ... (TODO: expand on this, what, and how)
 
 **Input**
 
+Describes how we get initial state of the scheduler system, and how we add,
+update, delete objects.
+
 * The input of new jobs can be done by 2 processes:
 
   1. Cold start; in order to make sure that we are current and we have
@@ -29,6 +32,9 @@ limited to octopoes, bytes, ... (TODO: expand on this, what, and how)
      to have a process that gathers all the data and persist them in the
      internal state of the scheduler. This can then be run as a sanity check,
      or as a part of the initial start of the scheduler.
+
+     TODO: other name, since it will be executed to make sure the internal
+     state is correct.
 
   2. Event subscription; the scheduler will listen to add, delete, update
      events to update the internal state of the scheduler, as such update
@@ -98,13 +104,17 @@ limited to octopoes, bytes, ... (TODO: expand on this, what, and how)
 
 ## Architecture
 
-* `ColdStart`
+Following describes main processes of the scheduler:
 
-* `listener` process that listens on a channel for objects (TODO: right term?)
+* `ColdStart` - process that gathers all object and persist them in the
+  internal state (the `frontier`) of the scheduler ready for scheduling.
+
+* `Listener` - process that listens on a channel for object changes 
   (at the moment this is `create_events`), and persists those objects into
   the database table `frontier`.
 
-* `CalculateScore`
+* `CalculateScore` - process that calculates the score of an object based on
+  the change in findings and other factors.
 
 * `GetObjectsFromFrontier` process, takes objects from the `frontier` table and
   schedules them for execution. This pushes objects onto the priority queue
@@ -119,8 +129,8 @@ limited to octopoes, bytes, ... (TODO: expand on this, what, and how)
   `boefjes` channel by rocky, leveraging celery, the intention is to replace
   this with by the scheduler.
 
-* Rocky cron jobs that are checking the `create_events` channel
-
+* Rocky cron jobs that are checking the `create_events` channel need to be
+  replaced by the scheduler.
 
 * Do we maintain the priority queue within the scheduler or do we leverage
   other services (e.g. redis) to maintain the queue?
@@ -137,98 +147,73 @@ limited to octopoes, bytes, ... (TODO: expand on this, what, and how)
   looks for interesting findings to be posted to the scheduler? A combination
   of these, or all of them?
 
-maken van info, parsen van info
+  Suggested is to have a event stream channel(s) to which the scheduler
+  subscribes to. Significant event types are:
 
-  - pull aan octopoes aan wat voor ooi's er zijn, katalogus welke boefje staan er aan
-  bytes api, wanneer of is er al iets gedaan met een boefje op dit ooi (cold start)
+  **Boefjes**:
 
-  - normalizer deel, aan bytes vragen welke raw filesen welke normalizers 
-    aan de katalogus. nog te parsen input files op
+  * Add OOI events by boefjes
+  * Indemnification events
+  * Scan events
 
-    cold start
-    rabbitmq event streams add events uit bytes, add events uit octopoes,
-    nog wat events bij, kataloguse events (enablen en disablen van boefjes off
-    herconfifureren, dan meot je queue aanpassen)
-
-
-    toevoegprocessen van jobs :
-
-    1. voeg een ooi toe in rocky, triggered in octo een create event (niet gevrijwaard)
-    niet gevrijwaard geen boefjes mag je niets doen, wanneer gevrijwaard er
-    zijn geen boefjes die dan niet passen
-    
-    add event en vrijwaring event
-
-    2. zelf boefje aftrappen, wordt dan direct aangesproken, word er een job
-    gemaakt, dan gaat dat object zijn vrijwaring omhoog, naast dat
-
+  TODO: incomplete, what normalizer events?
 
 * How do we keep track of the status of job, meaning do we need to poll to
   check if it has been processed by the workers, or do we wait for
-  confirmation?
+  confirmation, will this be posted on a event channel?
 
-  elke job moet reactie geven
-
-  niet behandel age bepaald de plek in de queue
-
-  timeout opnieuw proberen op andere worker? none process moet een event voor
-  zijn
-
-  weten wanneer een boefje binnen de tijd gedaan is. info moet in bytes
-  zijn. in bytes is info aanwezig of boefje is gelukt of niet. niet gelukt?
-  hogere prio. je checkt op de raw file wanneer je de prio queue update
-  dat hij dan weer op de lijst staat
+  When a scan job has been completed is known by `bytes`. Suggested is to
+  check outstanding jobs that have been done in a specific time frame, when
+  the job failed it should get a higher priority. (TODO: is this correct?)
 
 * Do we want a mechanism to override the priority of a task?
 
-  Oplossen met deduplication en highest priority bewaren
+  Suggested is to solve this with deduplication and save highest priority
+  (TODO: unsure)
 
 * Can we use the same data structure that are used for the boefjes in the
   `test/examples/` directory, for the objects that are on the priority queue?
 
-  json, jobmeta api voor een apikey
+  Suggested is to use `JobMeta` model, the object that is popped off the
+  queue would be json serializable and should contain:
 
-  bestaat uit input ooi, boefje image, settings env.
-
-  http api, json
+  * the input OOI
+  * boefje container image
+  * environment settings
 
 * For the queue `create_events` is there a offset available?
 
-  see coldstart need to reference octopoes, and that is your offset
+  See coldstart need to reference octopoes, and that is your offset
 
 * Decide what the priority score for object on the priority queue should be.
   E.g. the scan level?
 
-  vraag aan boefje een random set of ooi's ga voor elke ooi's beijken welke
-  jobs er mogelijk zijn, en bepaal wat de verwachting is dat je die opnieuw
-  wil scannen. Hoelang geleden dat hij gescand is, dat getal 
+  Priority is based on delta of change of an OOI
 
-  random lost probleem op ooi's 
-  priority is based on delta of change of an ooi
-
-* For call to calculate the `NextCheck`, do we want to let the scheduler listen
-  to a channel to check when a job is finished, and then update the object?
-  Or do we want to expose an API (e.g. rpc) to update it, so that the
+* For call to calculate the `CalculateScore`, do we want to let the scheduler
+  listen to a channel to check when a job is finished, and then update the
+  object? Or do we want to expose an API (e.g. rpc) to update it, so that the
   responsibility lies with the workers?
 
+  The scheduler will listen to an event stream (or additionally get info
+  from `bytes` when a scan job is completed) update the internal state of an
+  object, and update the priority of the object.
+
 * What external services are available and do we want to use in order to 
-  calculate the `NextCheck`?
+  calculate the `CalculateScore`?
 
-  bytes historische info over wanneer een boefje op een bepaald oois gedraaid
-  heeft, katalogus welke wel boefje biuj welk ooi mogen (permutatie set)
-  vrijwaring set 'pichu' tijdstippen tussen te scannen die geefft aan welke
-  boefjes niveau, octopoes vertelt wat er aan wat er aan findings gevonden
-  zijn achter ooi's
-
+  * Bytes; historical information of when a boefje has run, on a specific OOI
+  * Katalogus; what boefje can be used with what OOI (TODO: permutation set?)
+  * Pichu; indemnification set
+  * Octopoes; tells what findings there are found with every OOI
 
 ## Scratchpad
 
 * Will the scheduler also schedule normalization jobs?
 
   This because, it seems that the scheduler's current function is to do
-  just that.
-
-  Losse priority queue, heeft andere informatie nodig
+  just that. Yes, this will be a separate priority and needs different
+  information.
 
 * investigate boefjes cron jobs in rocky (done every minute)
 
@@ -254,7 +239,8 @@ maken van info, parsen van info
 * Does the scheduler need to know what boefje to use?
 
   Does not seem likely if we create a priority queue from which boefjes can
-  pop off tasks.
+  pop off tasks. The scheduler does not specifically need to know this,
+  but will get this information from other services.
 
 * What services create scans for boefjes at the moment and how are they created?
 
@@ -312,12 +298,10 @@ app.send_task(
 
 * What is a combination report?
 
-  results in a diff
-
-  de graph veranderd, en dat heeft weerslag, boefje gerund, en dan moeten
-  er potentieel objecten verwijderd worden.
-
-  event stream van add, delete events om pq up te daten
+  The graph changes, that has repercussions on the graph. It could mean that
+  nodes need to be removed. The scheduler needs to subscribe to an event
+  stream to listen to these changes and update the priority queue as a
+  result.
 
 * When and by what is `POST /{client}` used, in octopoes?
 
@@ -332,6 +316,8 @@ app.send_task(
 * Do we have centralized metrics? Are we keeping track of metrics for boefjes
   for instance? Do we want to track metrics like the size of the queue?
 
-  heartbeat
+  Future
 
 * Do we have centralized logging? Log-based metrics.
+
+  Future
