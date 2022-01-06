@@ -123,6 +123,17 @@ Following describes main processes of the scheduler:
 * `API` allows worker to pop off jobs from the priority queue, filtered by
    their worker type.
 
+See the [C4 model](https://c4model.com/) overview of the scheduler system
+below, with their level of abstraction.
+
+C2 Container level:
+
+![C2_Container](./c2_container_diagram.png)
+
+C3 Component level:
+
+![C3_Component](./c3_component_diagram.png)
+
 ## Design decisions / Open questions
 
 * Boefjes scan jobs are now being called directly through the rabbitmq
