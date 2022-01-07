@@ -13,7 +13,7 @@ System_Boundary(c1, "Scheduler") {
   ContainerDb(scheduler_db, "Scheduler Database", "PostgreSQL", "Persistence layer for internal state for the scheduler service", $tags = "storage")
 }
 
-Container(message_bus, "Message Bus", "RabbitMQ", "event stream")
+ContainerQueue(message_bus, "Message Bus", "RabbitMQ", "event stream")
 Container(boefjes, "Boefjes", "micro service", "", $tags = "micro_service")
 Container(normalizers, "Normalizers", "micro service", "", $tags = "micro_service")
 

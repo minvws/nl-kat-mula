@@ -8,7 +8,7 @@ AddElementTag("storage", $shape=RoundedBoxShape(), $bgColor="lightSkyBlue", $fon
 
 Title [WIP] C3 Component diagram for Scheduler System - Scheduler
 
-Container(message_bus, "Message Bus", "RabbitMQ", "event stream")
+ContainerQueue(message_bus, "Message Bus", "RabbitMQ", "event stream")
 
 Container_Boundary(scheduler, "Scheduler") {
   Component(listener, "Listener", "Socket", "Subscribes to event stream")
