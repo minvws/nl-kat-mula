@@ -11,12 +11,11 @@ A priority queue is used, in as such, that it allows us to determine what jobs
 should be checked first, or more regularly. Because of the use of a priority
 queue we can differentiate between jobs that are to be executed first. E.g.
 job's created by the user get precedence over jobs that are created by the
-internal rescheduling processes within the scheduler. (TODO: correct
-assumption?)
+internal rescheduling processes within the scheduler.
 
 Calculations in order to determine the priority of a job is performed by logic
 that can/will leverage information from multiple sources, including but not
-limited to octopoes, bytes, ... (TODO: expand on this, what, and how)
+limited to octopoes, bytes, katalogus, pichu.
 
 ### Requirements
 
@@ -33,8 +32,9 @@ update, delete objects.
      internal state of the scheduler. This can then be run as a sanity check,
      or as a part of the initial start of the scheduler.
 
-     TODO: other name, since it will be executed to make sure the internal
-     state is correct.
+     TODO: rename this, since it will be executed to make sure the internal
+     state is correct, e.g. `RestoreInternalState`, `CheckInternalState`, 
+     `RestoreObjects`.
 
   2. Event subscription; the scheduler will listen to add, delete, update
      events to update the internal state of the scheduler, as such update
@@ -57,17 +57,21 @@ update, delete objects.
 
   **Normalizers**
 
-  1. **TODO**
+  1. Reference Bytes for Boefjes jobs that are done (TODO: is this the way to
+     go?)
 
-  2. **TODO**
+  2. Subscribe to events channel that publishes finished Boefjes jobs
+
+  NOTE: the scheduler now references the rabbitmq queue (FIXME: what one?)
+  to listen for boefjes jobs that are done.
 
 **Scheduling and Rescheduling**
 
 * Scheduling of objects onto the priority queue
 
-  Suggested is to take a random set of objects and schedule them onto the
+  Suggested is to take a random set of objects, and schedule them onto the
   priority queue. However, that process needs to make sure that newly issued
-  scan from the webapp takes precedence and are pushed onto the queue.
+  scan from the webapp (rocky) takes precedence and are pushed onto the queue.
 
 * Process of rescheduling of tasks that already have been completed
 
@@ -82,6 +86,8 @@ update, delete objects.
 * Priority queue is implemented as a heap and maintained in memory 
 
 * Recreate state of priority queue from persistent storage
+
+* Two queues need to be implemented, one for boefjes, and one for normalizers
 
 **Calculation**
 
@@ -140,7 +146,7 @@ C3 Component level:
   `boefjes` channel by rocky, leveraging celery, the intention is to replace
   this with by the scheduler.
 
-* Rocky cron jobs that are checking the `create_events` channel need to be
+* Rocky cron jobs, that are checking the `create_events` channel, need to be
   replaced by the scheduler.
 
 * Do we maintain the priority queue within the scheduler or do we leverage
