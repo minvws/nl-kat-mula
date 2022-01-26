@@ -51,7 +51,7 @@ def first_log_event(handler: Callable) -> Callable[[Dict], Callable]:
 
 
 def handle_boefje_finished(event: Dict, katalogus: Katalogus) -> None:
-    schedule_normalizers(event["fields"]["job_meta"], katalogus)
+    schedule_normalizers(event["event"]["job_meta"], katalogus)
 
 
 def schedule_normalizers(job_meta: Dict, katalogus: Katalogus) -> None:
