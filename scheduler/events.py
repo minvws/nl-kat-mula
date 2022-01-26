@@ -21,10 +21,9 @@ class Event(BaseModel, ABC):
         use_enum_values = True
 
 
-# FIXME: is the event structure going to be the same, or like https://github.com/minvws/nl-rt-tim-abang-boefjes/blob/develop/tasks.py#L17? which is a BoefjeMeta https://github.com/minvws/nl-rt-tim-abang-boefjes/blob/51a0ed399261fd2d8dad63dcd1583e7e3702dcf9/job.py#L42
 class BoefjeFinishedEvent(Event):
     type = EventType.BOEFJE_FINISHED
-    job_meta: Dict
+    job_meta: Dict  # BoefjeMeta https://github.com/minvws/nl-rt-tim-abang-boefjes/blob/51a0ed399261fd2d8dad63dcd1583e7e3702dcf9/job.py#L42
 
 
 def dispatch(event: Event) -> None:
