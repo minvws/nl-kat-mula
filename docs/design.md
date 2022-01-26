@@ -1,4 +1,4 @@
-# Proposal: design scheduler
+# Design scheduler
 
 ## Purpose
 
