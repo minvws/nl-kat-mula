@@ -1,18 +1,10 @@
 FROM python:3.8
 
-WORKDIR /app/scheduler
+WORKDIR /app
 
-# Install the pipenv package in pip.
-RUN pip install pipenv
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-# Copy over our Pipfiles so we can install our env
-COPY nl-rt-tim-abang-mula/Pipfile ./
-COPY nl-rt-tim-abang-mula/Pipfile.lock ./
+COPY scheduler/ scheduler/
 
-# Install dependencies
-RUN pipenv install --dev --deploy --verbose
-
-COPY nl-rt-tim-abang-bytes/ /app/bytes
-RUN pipenv install /app/bytes
-
-COPY nl-rt-tim-abang-mula/ .
+CMD ["python", "-m", "scheduler"]
