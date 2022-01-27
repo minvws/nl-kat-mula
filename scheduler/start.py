@@ -35,10 +35,7 @@ def start() -> None:
 def make_handlers_first_log_event(
     handler_mapping: Dict[str, Callable[[Dict], None]]
 ) -> Dict[str, Callable]:
-    return {
-        key: first_log_event(handler)
-        for key, handler in handler_mapping.items()
-    }
+    return {key: first_log_event(handler) for key, handler in handler_mapping.items()}
 
 
 def first_log_event(handler: Callable) -> Callable[[Dict], Callable]:
