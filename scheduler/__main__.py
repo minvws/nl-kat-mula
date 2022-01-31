@@ -1,7 +1,10 @@
+import logging
+
 from scheduler import context
+
+logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     ctx = context.AppContext()
 
-    print(ctx.config)
-    print("hello, world")
+    logger.info("Starting scheduler...")

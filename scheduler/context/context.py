@@ -1,9 +1,15 @@
-import logging
-from dataclasses import dataclass
+import json
+import logging.config
 
 from scheduler.config import settings
 
 
-@dataclass
 class AppContext:
-    config: settings.Settings = settings.Settings()
+    config: settings.Settings
+    logger: logging.Logger = logging.getLogger(__name__)
+
+    def __init__(self):
+        self.config = settings.Settings()
+
+        with open(self.config.logging, "rt") as f:
+            logging.config.dictConfig(json.load(f))
