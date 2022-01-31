@@ -1,7 +1,6 @@
-from functools import wraps, partial
+from functools import partial, wraps
 from logging import getLogger
-from typing import Dict, Callable
-from uuid import uuid4
+from typing import Callable, Dict
 
 import click
 
@@ -23,14 +22,18 @@ def start() -> None:
             connection,
             handlers=make_handlers_first_log_event(
                 {
-                    EventType.BOEFJE_FINISHED.value: partial(handle_boefje_finished, katalogus=katalogus),
+                    EventType.BOEFJE_FINISHED.value: partial(
+                        handle_boefje_finished, katalogus=katalogus
+                    ),
                 }
             ),
         )
         event_receiver.capture()
 
 
-def make_handlers_first_log_event(handler_mapping: Dict[str, Callable[[Dict], None]]) -> Dict[str, Callable]:
+def make_handlers_first_log_event(
+    handler_mapping: Dict[str, Callable[[Dict], None]]
+) -> Dict[str, Callable]:
     return {key: first_log_event(handler) for key, handler in handler_mapping.items()}
 
 
@@ -48,14 +51,14 @@ def handle_boefje_finished(event: Dict, katalogus: Katalogus) -> None:
 
 
 def schedule_normalizers(job_meta: Dict, katalogus: Katalogus) -> None:
-    logger.info("Scheduling normalizers")
+    normalizers_by_boefje = katalogus.get_normalizer_modules_by_boefje_module()
+    normalizer_modules = normalizers_by_boefje.get(job_meta["boefje"]["name"], [])
 
-    dispatches = job_meta["dispatches"]
-    for normalizer in dispatches:
+    for module in normalizer_modules:
         normalizer_job_meta = dict(
             id=job_meta["id"],
-            normalizer=normalizer,
             boefje_meta=job_meta,
+            normalizer=module,
         )
 
         logger.info("Scheduling job: %s", normalizer_job_meta)

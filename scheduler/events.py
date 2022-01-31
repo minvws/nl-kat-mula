@@ -23,7 +23,7 @@ class Event(BaseModel, ABC):
 
 class BoefjeFinishedEvent(Event):
     type = EventType.BOEFJE_FINISHED
-    job_meta: Dict  # BoefjeMeta https://github.com/minvws/nl-rt-tim-abang-boefjes/blob/51a0ed399261fd2d8dad63dcd1583e7e3702dcf9/job.py#L42
+    job_meta: Dict
 
 
 def dispatch(event: Event) -> None:
