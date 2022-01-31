@@ -22,18 +22,14 @@ def start() -> None:
             connection,
             handlers=make_handlers_first_log_event(
                 {
-                    EventType.BOEFJE_FINISHED.value: partial(
-                        handle_boefje_finished, katalogus=katalogus
-                    ),
+                    EventType.BOEFJE_FINISHED.value: partial(handle_boefje_finished, katalogus=katalogus),
                 }
             ),
         )
         event_receiver.capture()
 
 
-def make_handlers_first_log_event(
-    handler_mapping: Dict[str, Callable[[Dict], None]]
-) -> Dict[str, Callable]:
+def make_handlers_first_log_event(handler_mapping: Dict[str, Callable[[Dict], None]]) -> Dict[str, Callable]:
     return {key: first_log_event(handler) for key, handler in handler_mapping.items()}
 
 
