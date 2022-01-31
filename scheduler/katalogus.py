@@ -22,4 +22,4 @@ class Katalogus:
     def get_normalizer_modules_by_boefje_module(self) -> Dict[str, List[str]]:
         boefjes = self.get_boefjes()
 
-        return {boefje["name"]: boefje["dispatches"]["normalizers"] for boefje in boefjes}
+        return {boefje["id"]: boefje["dispatches"]["normalizers"] for boefje in boef
