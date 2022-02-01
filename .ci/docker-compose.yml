@@ -3,25 +3,23 @@ version: "3.9"
 services:
   mula_unit:
     build:
-      context: ..
-      dockerfile: nl-rt-tim-abang-mula/Dockerfile
-    command: pipenv run python -m pytest -v tests/unit
+      context: .
+    command: python -m unittest discover scheduler/tests/unit
     env_file:
       - .ci/.env.test
     volumes:
       - .:/app/scheduler
 
   mula_integration:
-    depends_on:
-      - ci_katalogus
     build:
-      context: ..
-      dockerfile: nl-rt-tim-abang-mula/Dockerfile
-    command: pipenv run python -m pytest -v tests/integration
+      context: .
+    command: python -m unittest discover scheduler/tests/integration
     env_file:
       - .ci/.env.test
     volumes:
       - .:/app/scheduler
+    depends_on:
+      - ci_katalogus
 
   ci_katalogus:
     build:
