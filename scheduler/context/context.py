@@ -11,5 +11,5 @@ class AppContext:
     def __init__(self):
         self.config = settings.Settings()
 
-        with open(self.config.logging, "rt") as f:
+        with open(self.config.logging_cfg, "rt") as f:
             logging.config.dictConfig(json.load(f))
