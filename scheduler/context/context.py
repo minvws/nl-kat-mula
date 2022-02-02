@@ -6,7 +6,6 @@ from scheduler.config import settings
 
 class AppContext:
     config: settings.Settings
-    logger: logging.Logger = logging.getLogger(__name__)
 
     def __init__(self):
         self.config = settings.Settings()
