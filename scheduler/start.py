@@ -48,9 +48,9 @@ def handle_boefje_finished(event: Dict, katalogus: Katalogus) -> None:
 
 def schedule_normalizers(job_meta: Dict, katalogus: Katalogus) -> None:
     normalizers_by_boefje = katalogus.get_normalizer_modules_by_boefje_module()
-    normalizer_modules = normalizers_by_boefje.get(job_meta["boefje"]["id"], [])
+    normalizers = normalizers_by_boefje.get(job_meta["boefje"]["id"], [])
 
-    for module in normalizer_modules:
+    for module in normalizers:
         normalizer_job_meta = dict(
             id=job_meta["id"],
             boefje_meta=job_meta,
