@@ -74,15 +74,36 @@ done: ## Prepare for a commit.
 	make req
 	make test
 
-env: ## Setup your environment.
-	pipenv install --dev
-	pipenv run pip install ../nl-rt-tim-abang-bytes
-	pipenv run pip install ../nl-rt-tim-abang-octopoes
+sql: ## Generate raw sql for the migrations.
+	docker-compose exec scheduler \
+		alembic \
+		--config /app/scheduler/alembic.ini \
+		upgrade $(rev1):$(rev2) --sql
+
+migration: ## Create migration.
+ifeq ($(m),)
+	$(HIDE) (echo "Specify a message with m={message} and a rev-id with revid={revid} (e.g. 0001 etc.)"; exit 1)
+else ifeq ($(revid),)
+	$(HIDE) (echo "Specify a message with m={message} and a rev-id with revid={revid} (e.g. 0001 etc.)"; exit 1)
+else
+	docker-compose exec scheduler \
+		alembic \
+		--config /app/scheduler/alembic.ini \
+		revision \
+		--autogenerate -m "$(m)" --rev-id="$(revid)"
+endif
+
+migrate: ## Run migrations using alembic.
+	docker-compose exec scheduler \
+		alembic \
+		--config /app/scheduler/alembic.ini \
+		upgrade head
 
 ##
 ##|------------------------------------------------------------------------|
 ##			Tests
 ##|------------------------------------------------------------------------|
+
 utest: ## Run the unit tests.
 ifneq ($(build),)
 	docker-compose -f base.yml -f .ci/docker-compose.yml build mula_unit
