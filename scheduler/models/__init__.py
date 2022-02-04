@@ -1,5 +1,4 @@
-from sqlalchemy.ext.declarative import declarative_base
-
+from .base import Base
 from .health import ServiceHealth
-
-Base = declarative_base()
+from .job import Job, JobORM
+from .ooi import OOI, OOIORM

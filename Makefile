@@ -86,11 +86,15 @@ ifeq ($(m),)
 else ifeq ($(revid),)
 	$(HIDE) (echo "Specify a message with m={message} and a rev-id with revid={revid} (e.g. 0001 etc.)"; exit 1)
 else
-	docker-compose exec scheduler \
+	docker-compose \
+		exec \
+		scheduler \
 		alembic \
 		--config /app/scheduler/alembic.ini \
 		revision \
-		--autogenerate -m "$(m)" --rev-id="$(revid)"
+		--autogenerate \
+		-m "$(m)" \
+		--rev-id "$(revid)"
 endif
 
 migrate: ## Run migrations using alembic.

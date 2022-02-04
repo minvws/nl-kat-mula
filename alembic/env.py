@@ -1,15 +1,15 @@
+import sys
 from logging.config import fileConfig
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
 from scheduler.config import settings
 from scheduler.models import Base
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
-cfg = settings.Settings()
-
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+scheduler_cfg = settings.Settings()
 config = context.config
 
 # Interpret the config file for Python logging.
@@ -21,12 +21,13 @@ fileConfig(config.config_file_name)
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
+print(target_metadata)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-config.set_main_option("sqlalchemy.url", cfg.db_dsn)
+config.set_main_option("sqlalchemy.url", scheduler_cfg.db_dsn)
 
 
 def run_migrations_offline():

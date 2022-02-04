@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from scheduler.models import Base
 from sqlalchemy import Column, Integer
 
 
