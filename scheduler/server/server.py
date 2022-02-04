@@ -19,7 +19,7 @@ class Server:
         self.logger = logging.getLogger(__name__)
         self.ctx = ctx
         self.api = fastapi.FastAPI()
-        self.db = db.Database(dsn=self.ctx.config.db_dsn)
+        self.db = db.Database(dsn=self.ctx.config.scheduler_db_dsn)
 
         self.api.include_router(router)
 
