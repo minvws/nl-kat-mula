@@ -24,4 +24,8 @@ class RabbitMQ(Listener):
         channel.start_consuming()
 
     def callback(self, channel, method_frame, header_frame, body):
-        print(" [x] Received %r" % body)
+        self.logger.info(" [x] Received %r" % body)
+
+        # TODO: do something, pass in function
+
+        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
