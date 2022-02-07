@@ -3,6 +3,7 @@ import logging.config
 from types import SimpleNamespace
 from typing import Dict
 
+import scheduler
 from scheduler.config import settings
 from scheduler.connector import service
 
@@ -23,6 +24,17 @@ class AppContext:
         # Register external services
         self.services = SimpleNamespace(
             **{
-                service.Katalogus.name: service.Katalogus(self.config.katalogus_api),
+                service.Katalogus.name: service.Katalogus(
+                    host=self.config.katalogus_api,
+                    source=f"scheduler/{scheduler.__version__}",
+                ),
+                service.Bytes.name: service.Bytes(
+                    host=self.config.bytes_api,
+                    source=f"scheduler/{scheduler.__version__}",
+                ),
+                service.Octopoes.name: service.Octopoes(
+                    host=self.config.octopoes_api,
+                    source=f"scheduler/{scheduler.__version__}",
+                ),
             }
         )

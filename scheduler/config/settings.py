@@ -20,7 +20,9 @@ class Settings(BaseSettings):
 
     # External services settings
     katalogus_api: str
+    bytes_api: str
     queue_uri: str
+    octopoes_api: str
 
     # class Config:
     #     env_prefix = "SCHEDULER_"
