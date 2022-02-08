@@ -5,20 +5,28 @@ import urllib.parse
 from typing import Dict
 
 import requests
+import scheduler
 
 
 class Service:
-    logger: logging.Logger
+    logger: logging.Logger = logging.getLogger(__name__)
     name: str
-    source: Dict[str, str]
+    source: str
     host: str
+    headers: Dict[str, str] = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+    health_endpoint: str = "/health"
     timeout: int
 
-    def __init__(self, source: str, host: str, timeout: int = 5):
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.source = {"User-Agent": f"{source}"}
+    def __init__(self, host: str, source: str, timeout: int = 5):
         self.host = host
+        self.source = source
         self.timeout = timeout
+
+        if self.source:
+            self.headers["User-Agent"] = self.source
 
         if self._retry(self._check_host) is False:
             raise RuntimeError(f"Host {self.host} is not reachable.")
@@ -27,24 +35,23 @@ class Service:
             raise RuntimeError(f"Service {self.name} is not running.")
 
     def make_request(self, url: str) -> requests.Response:
-        response = requests.get(url, headers=self.source, timeout=self.timeout)
+        response = requests.get(url, headers=self.headers, timeout=self.timeout)
         self.logger.debug(f"Made request to {url}. [name={self.name} url={url}]")
 
         self._verify_response(response)
 
         return response
 
-    # FIXME: use request urllib3 retry
     def _retry(self, func: callable) -> bool:
         """Retry a function until it returns True."""
         i = 0
         while i < 10:
             if func() is True:
-                self.logger.debug(f"Connected to {self.host}. [name={self.name} host={self.host}]")
+                self.logger.info(f"Connected to {self.host}. [name={self.name} host={self.host} func={func.__name__}]")
                 return True
             else:
                 self.logger.warning(
-                    f"Not able to reach host, retrying in {self.timeout} seconds. [name={self.name} host={self.host}]"
+                    f"Not able to reach host, retrying in {self.timeout} seconds. [name={self.name} host={self.host} func={func.__name__}]"
                 )
 
                 i += 1
@@ -70,7 +77,7 @@ class Service:
     def _check_health(self) -> bool:
         """Check if host is reachable and if the service is running."""
         try:
-            self.make_request(f"{self.host}/health")
+            self.make_request(f"{self.host}{self.health_endpoint}")
             return True
         except requests.exceptions.RequestException:
             return False
@@ -95,6 +102,7 @@ class Bytes(Service):
 
 class Octopoes(Service):
     name = "octopoes"
+    health_endpoint = "/_dev/health"
 
 
 class Rocky(Service):
