@@ -29,3 +29,7 @@ class RabbitMQ(Listener):
         # TODO: do something, pass in function
 
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+
+
+class Kafka(Listener):
+    pass

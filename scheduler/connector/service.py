@@ -8,8 +8,8 @@ import requests
 import scheduler
 
 
-class Service:
-    logger: logging.Logger = logging.getLogger(__name__)
+class HTTPService:
+    logger: logging.Logger
     name: str
     source: str
     host: str
@@ -21,6 +21,7 @@ class Service:
     timeout: int
 
     def __init__(self, host: str, source: str, timeout: int = 5):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.host = host
         self.source = source
         self.timeout = timeout
@@ -28,11 +29,7 @@ class Service:
         if self.source:
             self.headers["User-Agent"] = self.source
 
-        if self._retry(self._check_host) is False:
-            raise RuntimeError(f"Host {self.host} is not reachable.")
-
-        if self._retry(self._check_health) is False:
-            raise RuntimeError(f"Service {self.name} is not running.")
+        self._do_checks()
 
     def make_request(self, url: str) -> requests.Response:
         response = requests.get(url, headers=self.headers, timeout=self.timeout)
@@ -42,22 +39,12 @@ class Service:
 
         return response
 
-    def _retry(self, func: callable) -> bool:
-        """Retry a function until it returns True."""
-        i = 0
-        while i < 10:
-            if func() is True:
-                self.logger.info(f"Connected to {self.host}. [name={self.name} host={self.host} func={func.__name__}]")
-                return True
-            else:
-                self.logger.warning(
-                    f"Not able to reach host, retrying in {self.timeout} seconds. [name={self.name} host={self.host} func={func.__name__}]"
-                )
+    def _do_checks(self) -> None:
+        if self.host is not None and self._retry(self._check_host) is False:
+            raise RuntimeError(f"Host {self.host} is not reachable.")
 
-                i += 1
-                time.sleep(self.timeout)
-
-        return False
+        if self.health_endpoint is not None and self._retry(self._check_health) is False:
+            raise RuntimeError(f"Service {self.name} is not running.")
 
     def _check_host(self) -> bool:
         """Check if the host is reachable."""
@@ -82,12 +69,29 @@ class Service:
         except requests.exceptions.RequestException:
             return False
 
+    def _retry(self, func: callable) -> bool:
+        """Retry a function until it returns True."""
+        i = 0
+        while i < 10:
+            if func() is True:
+                self.logger.info(f"Connected to {self.host}. [name={self.name} host={self.host} func={func.__name__}]")
+                return True
+            else:
+                self.logger.warning(
+                    f"Not able to reach host, retrying in {self.timeout} seconds. [name={self.name} host={self.host} func={func.__name__}]"
+                )
+
+                i += 1
+                time.sleep(self.timeout)
+
+        return False
+
     @staticmethod
     def _verify_response(response: requests.Response) -> None:
         response.raise_for_status()
 
 
-class Katalogus(Service):
+class Katalogus(HTTPService):
     name = "katalogus"
 
     def get_boefjes(self) -> Dict:
@@ -96,14 +100,19 @@ class Katalogus(Service):
         return response.json()
 
 
-class Bytes(Service):
+class Bytes(HTTPService):
     name = "bytes"
 
 
-class Octopoes(Service):
+class Octopoes(HTTPService):
     name = "octopoes"
     health_endpoint = "/_dev/health"
 
 
-class Rocky(Service):
+class Rocky(HTTPService):
     name = "rocky"
+
+
+class XTDB(HTTPService):
+    name = "xtdb"
+    health_endpoint = None

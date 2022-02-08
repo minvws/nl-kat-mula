@@ -2,7 +2,7 @@ import logging
 
 import fastapi
 import uvicorn
-from scheduler import context, db
+from scheduler import context, datastore
 
 from .router import router
 
@@ -12,14 +12,14 @@ class Server:
 
     logger: logging.Logger
     api: fastapi.FastAPI
-    db: db.Database
+    db: datastore.PostgreSQL
     ctx: context.AppContext
 
     def __init__(self, ctx: context.AppContext):
         self.logger = logging.getLogger(__name__)
         self.ctx = ctx
         self.api = fastapi.FastAPI()
-        self.db = db.Database(dsn=self.ctx.config.scheduler_db_dsn)
+        self.db = datastore.PostgreSQL(dsn=self.ctx.config.scheduler_db_dsn)
 
         self.api.include_router(router)
 

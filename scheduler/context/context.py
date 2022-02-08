@@ -12,7 +12,7 @@ class AppContext:
     """AppContext allows shared data between modules"""
 
     config: settings.Settings
-    services: Dict[str, service.Service]
+    services: Dict[str, service.HTTPService]
 
     def __init__(self):
         self.config = settings.Settings()
@@ -34,6 +34,10 @@ class AppContext:
                 ),
                 service.Octopoes.name: service.Octopoes(
                     host=self.config.octopoes_api,
+                    source=f"scheduler/{scheduler.__version__}",
+                ),
+                service.XTDB.name: service.XTDB(
+                    host=self.config.xtdb_uri,
                     source=f"scheduler/{scheduler.__version__}",
                 ),
             }

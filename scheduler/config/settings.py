@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     bytes_api: str
     queue_uri: str
     octopoes_api: str
+    xtdb_uri: str
 
     # class Config:
     #     env_prefix = "SCHEDULER_"
