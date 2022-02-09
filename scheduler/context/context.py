@@ -21,7 +21,7 @@ class AppContext:
         with open(self.config.log_cfg, "rt") as f:
             logging.config.dictConfig(json.load(f))
 
-        # Register external services
+        # Register external services, SimpleNamespace allows us to use dot notation
         self.services = SimpleNamespace(
             **{
                 service.Katalogus.name: service.Katalogus(

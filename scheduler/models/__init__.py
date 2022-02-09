@@ -1,4 +1,4 @@
 from .base import Base
+from .boefje import BoefjeMeta
 from .health import ServiceHealth
-from .job import Job, JobORM
-from .ooi import OOI, OOIORM
+from .ooi import OOI, OOIDB

@@ -2,7 +2,7 @@ import logging
 import socket
 import time
 import urllib.parse
-from typing import Dict
+from typing import Dict, List
 
 import requests
 import scheduler
@@ -106,7 +106,13 @@ class Bytes(HTTPService):
 
 class Octopoes(HTTPService):
     name = "octopoes"
-    health_endpoint = "/_dev/health"
+    health_endpoint = "/_dev/health"  # FIXME: _dev
+
+    # TODO: now return all the objects
+    def get_random_oois(self) -> List:
+        url = f"{self.host}/_dev/objects"  # FIXME: _dev
+        response = self.make_request(url)
+        return response.json()
 
 
 class Rocky(HTTPService):
