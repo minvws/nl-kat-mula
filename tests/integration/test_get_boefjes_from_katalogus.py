@@ -1,7 +1,6 @@
 import pytest
-
-from scheduler.katalogus import Katalogus
 from scheduler import settings
+from scheduler.katalogus import Katalogus
 
 
 @pytest.fixture
@@ -18,6 +17,6 @@ def test_get_boefjes(katalogus):
 def test_match_normalizer(katalogus: Katalogus):
     boefje_to_normalizer = katalogus.get_normalizer_modules_by_boefje_module()
 
-    assert boefje_to_normalizer["kat_dns.resolve"] == ["kat_dns.normalize"]
-    assert boefje_to_normalizer["kat_nmap.scan"] == ["kat_nmap.normalize"]
-    assert boefje_to_normalizer["kat_ssl_scan.scan"] == ["kat_ssl_scan.normalize"]
+    assert boefje_to_normalizer["dns-records"] == ["kat_dns_normalize"]
+    assert boefje_to_normalizer["nmap-tcp-full"] == ["kat_nmap_normalize"]
+    assert boefje_to_normalizer["ssl-version"] == ["kat_ssl_scan_normalize"]

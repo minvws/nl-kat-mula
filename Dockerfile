@@ -12,7 +12,4 @@ COPY nl-rt-tim-abang-mula/Pipfile.lock ./
 # Install dependencies
 RUN pipenv install --dev --deploy --verbose
 
-COPY nl-rt-tim-abang-bytes/ /app/bytes
-RUN pipenv install /app/bytes
-
 COPY nl-rt-tim-abang-mula/ .

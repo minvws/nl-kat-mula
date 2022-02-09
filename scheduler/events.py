@@ -1,8 +1,7 @@
 from abc import ABC
-
 from enum import Enum
+from typing import Dict
 
-from bytes import JobMeta
 from pydantic import BaseModel
 
 from scheduler.app import app
@@ -24,7 +23,7 @@ class Event(BaseModel, ABC):
 
 class BoefjeFinishedEvent(Event):
     type = EventType.BOEFJE_FINISHED
-    job_meta: JobMeta
+    job_meta: Dict
 
 
 def dispatch(event: Event) -> None:
