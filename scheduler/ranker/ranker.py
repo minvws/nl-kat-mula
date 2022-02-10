@@ -1,4 +1,6 @@
-from scheduler import models
+import logging
+
+from scheduler import context, models
 
 
 class Ranker:
@@ -10,7 +12,7 @@ class Ranker:
         self.ctx = ctx
 
     def rank(self, ooi: models.OOI) -> int:
-        pass
+        return 1
 
 
 class BoefjeRanker(Ranker):
