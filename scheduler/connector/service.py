@@ -1,14 +1,19 @@
+import datetime
 import logging
 import socket
 import time
 import urllib.parse
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import requests
 import scheduler
 
 
 class HTTPService:
+    """HTTPService exposes methods to make http requests to services that
+    typically expose rest api endpoints
+    """
+
     logger: logging.Logger
     name: str
     source: str
@@ -31,9 +36,17 @@ class HTTPService:
 
         self._do_checks()
 
-    def make_request(self, url: str) -> requests.Response:
-        response = requests.get(url, headers=self.headers, timeout=self.timeout)
-        self.logger.debug(f"Made request to {url}. [name={self.name} url={url}]")
+    def get(self, url: str, params: Dict = None) -> requests.Response:
+        response = requests.get(url, headers=self.headers, params=params, timeout=self.timeout)
+        self.logger.debug(f"Made GET request to {url}. [name={self.name} url={url}]")
+
+        self._verify_response(response)
+
+        return response
+
+    def post(self, url: str, payload: str, params: Dict = None) -> requests.Response:
+        response = requests.post(url, headers=self.headers, data=payload, timeout=self.timeout)
+        self.logger.debug(f"Made POST request to {url}. [name={self.name} url={url} data={payload}]")
 
         self._verify_response(response)
 
@@ -64,7 +77,7 @@ class HTTPService:
     def _check_health(self) -> bool:
         """Check if host is reachable and if the service is running."""
         try:
-            self.make_request(f"{self.host}{self.health_endpoint}")
+            self.get(f"{self.host}{self.health_endpoint}")
             return True
         except requests.exceptions.RequestException:
             return False
@@ -86,9 +99,14 @@ class HTTPService:
 
         return False
 
-    @staticmethod
-    def _verify_response(response: requests.Response) -> None:
-        response.raise_for_status()
+    def _verify_response(self, response: requests.Response) -> None:
+        # FIXME: handle the exception, we don't want to stop threads because
+        # of a bad response
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            self.logger.error(f"HTTPError: {e} [name={self.name} url={response.url} response={response.content}]")
+            raise (e)
 
 
 class Katalogus(HTTPService):
@@ -96,7 +114,7 @@ class Katalogus(HTTPService):
 
     def get_boefjes(self) -> Dict:
         url = f"{self.host}/boefjes"
-        response = self.make_request(url)
+        response = self.get(url)
         return response.json()
 
 
@@ -109,9 +127,9 @@ class Octopoes(HTTPService):
     health_endpoint = "/_dev/health"  # FIXME: _dev
 
     # TODO: now return all the objects
-    def get_random_oois(self) -> List:
+    def get_objects(self) -> List:
         url = f"{self.host}/_dev/objects"  # FIXME: _dev
-        response = self.make_request(url)
+        response = self.get(url)
         return response.json()
 
 
@@ -122,3 +140,20 @@ class Rocky(HTTPService):
 class XTDB(HTTPService):
     name = "xtdb"
     health_endpoint = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.headers["Content-Type"] = "application/edn"
+
+    # FIXME: what about org access?
+    def get_random_oois(self, n: int) -> List:
+        """Get `n` random oois from xtdb."""
+        now = datetime.datetime.utcnow().isoformat(timespec="minutes")
+        url = f"{self.host}/_crux/query?valid-time={now}"
+
+        # FIXME: do we want to create a querybuilder?
+        payload = f"{{:query {{:find [(rand {n} id)], :where [[?e :crux.db/id id] [?e :ooi_type]]}}}}"
+
+        response = self.post(url=url, payload=payload)
+
+        return response.json()

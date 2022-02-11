@@ -48,7 +48,7 @@ class Scheduler:
         # TODO: get random set of OOI's, choice needs to be made to get this
         # from octopoes, xtb, or from internal storage
 
-        oois = self.ctx.services.octopoes.get_random_oois()
+        oois = self.ctx.services.xtdb.get_random_oois(n=3)  # FIXME: configurable
         self.logger.info(oois)
 
         # TODO: decide if it is necessary to create models from the data, since
