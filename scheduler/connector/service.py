@@ -117,6 +117,11 @@ class Katalogus(HTTPService):
         response = self.get(url)
         return response.json()
 
+    def get_boefje(self, boefje_id: str) -> Dict:
+        url = f"{self.host}/boefjes/{boefje_id}"
+        response = self.get(url)
+        return response.json()
+
 
 class Bytes(HTTPService):
     name = "bytes"
@@ -126,10 +131,19 @@ class Octopoes(HTTPService):
     name = "octopoes"
     health_endpoint = "/_dev/health"  # FIXME: _dev
 
-    # TODO: now return all the objects
     def get_objects(self) -> List:
         url = f"{self.host}/_dev/objects"  # FIXME: _dev
         response = self.get(url)
+        return response.json()
+
+    def get_random_objects(self, n: int):
+        url = f"{self.host}/_dev/objects/random"  # FIXME: _dev
+        response = self.get(url, params={"n": str(n)})
+        return response.json()
+
+    def get_object(self, reference: str) -> Dict:
+        url = f"{self.host}/_dev"  # FIXME: _dev
+        response = self.get(url, params={"reference": reference})
         return response.json()
 
 
@@ -146,7 +160,7 @@ class XTDB(HTTPService):
         self.headers["Content-Type"] = "application/edn"
 
     # FIXME: what about org access?
-    def get_random_oois(self, n: int) -> List:
+    def get_random_objects(self, n: int) -> List:
         """Get `n` random oois from xtdb."""
         now = datetime.datetime.utcnow().isoformat(timespec="minutes")
         url = f"{self.host}/_crux/query?valid-time={now}"

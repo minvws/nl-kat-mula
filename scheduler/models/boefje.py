@@ -14,11 +14,13 @@ class Normalizer(BaseModel):
     version: Optional[str] = Field(default=None)
 
 
-class BoefjeMeta(BaseModel):
-    """BoefjeMeta represent data needed for a Boefje to run."""
+# TODO: this definition should only be the minimal information for
+# a boefje in order to run a task
+class BoefjeTask(BaseModel):
+    """BoefjeTask represent data needed for a Boefje to run."""
 
     boefje: Boefje
-    input__ooi: str
+    input_ooi: str
     arguments: Dict[str, str]
     organization: str
 

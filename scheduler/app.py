@@ -4,7 +4,7 @@ from typing import Dict
 
 from scheduler import connector, context, queue, ranker, server
 from scheduler.connector import listener
-from scheduler.models import OOI, BoefjeMeta
+from scheduler.models import OOI, BoefjeTask
 
 
 class Scheduler:
@@ -43,27 +43,35 @@ class Scheduler:
 
     # TODO: add shutdown hook for graceful shutdown of threads, when exceptions
     # occur
+    def shutdown(self):
+        pass
 
     def _populate_boefjes_queue(self):
         # TODO: get random set of OOI's, choice needs to be made to get this
         # from octopoes, xtb, or from internal storage
 
-        oois = self.ctx.services.xtdb.get_random_oois(n=3)  # FIXME: configurable
+        oois = self.ctx.services.xtdb.get_random_objects(n=3)  # FIXME: configurable
         self.logger.info(oois)
 
         # TODO: decide if it is necessary to create models from the data, since
         # now it is O(n) and we can use the data directly
         # oois = [OOI.parse_obj(o) for o in objects]
 
-        # TODO: rank the OOI's (or create jobs (oois*boefjes=tasks) and then
+        # TODO: rank the OOI's (or create jobs (ooi*boefje=tasks) and then
         # rank?)
         # TODO: make concurrent, since ranker will be doing I/O using external
         # services
         for ooi in oois:
             score = self.boefjes_ranker.rank(ooi)
-            # boefje_meta = BoefjeMeta()
-            boefje_meta = ooi
-            self.boefjes_queue.push(item=boefje_meta, priority=score)
+
+            # TODO: get boefjes for ooi, active boefjes depend on organization
+            # TODO: boefje filtering on ooi type?
+
+            # TODO: Create tasks for ooi, reference katalogus. Resolve task from OOI
+            # task = BoefjeTask()
+            task = ooi
+
+            self.boefjes_queue.push(item=task, priority=score)
 
     def run(self):
         th_server = threading.Thread(target=self.server.run)
