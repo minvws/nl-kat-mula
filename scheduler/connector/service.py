@@ -112,6 +112,22 @@ class HTTPService:
 class Katalogus(HTTPService):
     name = "katalogus"
 
+    cache_ooi_type: Dict = {}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._warm_cache_ooi_type()
+
+    # FIXME
+    def _warm_cache_ooi_type(self) -> None:
+        boefjes = self.get_boefjes()
+        for boefje in boefjes:
+            for ooi_type in boefje["consumes"]:
+                if ooi_type not in self.cache_ooi_type:
+                    self.cache_ooi_type[ooi_type] = [boefje["id"]]
+                else:
+                    self.cache_ooi_type[ooi_type].append(boefje["id"])
+
     def get_boefjes(self) -> Dict:
         url = f"{self.host}/boefjes"
         response = self.get(url)

@@ -52,6 +52,7 @@ class Scheduler:
 
         oois = self.ctx.services.xtdb.get_random_objects(n=3)  # FIXME: configurable
         self.logger.info(oois)
+        self.logger.info(self.ctx.services.katalogus.cache_ooi_type)
 
         # TODO: decide if it is necessary to create models from the data, since
         # now it is O(n) and we can use the data directly
