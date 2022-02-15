@@ -4,7 +4,7 @@ from typing import Dict
 
 from scheduler import connector, context, queue, ranker, server
 from scheduler.connector import listener
-from scheduler.models import OOI, BoefjeTask
+from scheduler.models import OOI, Boefje, BoefjeTask
 
 
 class Scheduler:
@@ -47,17 +47,14 @@ class Scheduler:
         pass
 
     def _populate_boefjes_queue(self):
-        # TODO: get random set of OOI's, choice needs to be made to get this
-        # from octopoes, xtb, or from internal storage
 
-        oois = self.ctx.services.xtdb.get_random_objects(n=3)  # FIXME: configurable
-        self.logger.info(oois)
-        self.logger.info(self.ctx.services.katalogus.cache_ooi_type)
+        # TODO: get n from config file
+        # oois = self.ctx.services.octopoes.get_random_objects(n=3)
+        oois = self.ctx.services.octopoes.get_objects()
 
         # TODO: decide if it is necessary to create models from the data, since
         # now it is O(n) and we can use the data directly
         # oois = [OOI.parse_obj(o) for o in objects]
-
         # TODO: rank the OOI's (or create jobs (ooi*boefje=tasks) and then
         # rank?)
         # TODO: make concurrent, since ranker will be doing I/O using external
@@ -67,12 +64,32 @@ class Scheduler:
 
             # TODO: get boefjes for ooi, active boefjes depend on organization
             # TODO: boefje filtering on ooi type?
+            ooi_type = ooi.get("ooi_type")
+            if ooi_type is None:
+                self.logger.warning(f"No type for ooi [ooi={ooi}]")
+                continue
 
-            # TODO: Create tasks for ooi, reference katalogus. Resolve task from OOI
-            # task = BoefjeTask()
-            task = ooi
+            # Get available boefjes based on ooi type
+            boefjes = self.ctx.services.katalogus.cache_ooi_type.get(ooi_type, None)
+            if boefjes is None:
+                self.logger.warning(f"No boefjes found for type {ooi_type} [ooi={ooi}]")
+                continue
 
-            self.boefjes_queue.push(item=task, priority=score)
+            self.logger.info(
+                f"Found {len(boefjes)} boefjes for ooi_type {ooi_type} [ooi={ooi} boefjes={[boefje.get('id') for boefje in boefjes]}"
+            )
+
+            for boefje in boefjes:
+                task = BoefjeTask(
+                    boefje=Boefje(
+                        name=boefje.get("name"),
+                        # version=boefje.get("version"),
+                    ),
+                    input_ooi="derp",  # FIXME
+                    arguments={},  # FIXME
+                    organization="_dev",  # FIXME
+                )
+                self.boefjes_queue.push(item=task, priority=score)
 
     def run(self):
         th_server = threading.Thread(target=self.server.run)

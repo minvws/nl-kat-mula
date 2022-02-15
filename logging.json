@@ -22,8 +22,15 @@
         ]
     },
     "loggers": {
-        "uvicorn": {
-            "level": "INFO",
+        "uvicorn.error": {
+            "level": "WARNING",
+            "handlers": [
+                "console"
+            ],
+            "propagate": 0
+        },
+        "pika": {
+            "level": "WARNING",
             "handlers": [
                 "console"
             ],

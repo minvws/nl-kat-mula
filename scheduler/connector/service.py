@@ -118,15 +118,15 @@ class Katalogus(HTTPService):
         super().__init__(*args, **kwargs)
         self._warm_cache_ooi_type()
 
-    # FIXME
+    # FIXME:
     def _warm_cache_ooi_type(self) -> None:
         boefjes = self.get_boefjes()
         for boefje in boefjes:
             for ooi_type in boefje["consumes"]:
                 if ooi_type not in self.cache_ooi_type:
-                    self.cache_ooi_type[ooi_type] = [boefje["id"]]
+                    self.cache_ooi_type[ooi_type] = [boefje]
                 else:
-                    self.cache_ooi_type[ooi_type].append(boefje["id"])
+                    self.cache_ooi_type[ooi_type].append(boefje)
 
     def get_boefjes(self) -> Dict:
         url = f"{self.host}/boefjes"
@@ -180,8 +180,6 @@ class XTDB(HTTPService):
         """Get `n` random oois from xtdb."""
         now = datetime.datetime.utcnow().isoformat(timespec="minutes")
         url = f"{self.host}/_crux/query?valid-time={now}"
-
-        # FIXME: do we want to create a querybuilder?
         payload = f"{{:query {{:find [(rand {n} id)], :where [[?e :crux.db/id id] [?e :ooi_type]]}}}}"
 
         response = self.post(url=url, payload=payload)
