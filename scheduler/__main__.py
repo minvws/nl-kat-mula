@@ -1,7 +1,5 @@
 import logging
 
-from scheduler import server
-
 from . import Scheduler
 
 if __name__ == "__main__":

@@ -1,29 +1,31 @@
 import os
 from pathlib import Path
 
-from pydantic import BaseSettings
+from pydantic import BaseSettings, Field
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # Application settings
-    debug: bool = False
-    log_cfg: str = os.path.join(Path(__file__).parent.parent.parent, "logging.json")
-
-    # Database settings
-    scheduler_db_dsn: str = "postgresql://postgres:postgres@scheduler-db:5432/scheduler"
+    debug: bool = Field(False, env="SCHEDULER_DEBUG")
+    log_cfg: str = Field(
+        os.path.join(Path(__file__).parent.parent.parent, "logging.json"),
+        env="SCHEDULER_LOG_CFG",
+    )
 
     # Server settings
-    api_host: str = "0.0.0.0"
-    api_port: int = 8004
+    api_host: str = Field("0.0.0.0", env="SCHEDULER_API_HOST")
+    api_port: int = Field(8004, env="SCHEDULER_API_PORT")
 
     # External services settings
-    katalogus_api: str
-    bytes_api: str
-    queue_uri: str
-    octopoes_api: str
-    xtdb_uri: str
+    host_katalogus: str = Field(..., env="KATALOGUS_API")
+    host_bytes: str = Field(..., env="BYTES_API")
+    host_xtdb: str = Field(..., env="XTDB_URI")
+    host_octopoes: str = Field(..., env="OCTOPOES_API")
+
+    # Listener settings
+    lst_octopoes: str = Field(..., env="QUEUE_URI")
 
     # class Config:
     #     env_prefix = "SCHEDULER_"

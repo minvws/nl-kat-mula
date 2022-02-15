@@ -28,7 +28,7 @@ class Scheduler:
         self.listeners = {
             "octopoes_listener": listener.RabbitMQ(
                 func=hello,
-                dsn=self.ctx.config.queue_uri,
+                dsn=self.ctx.config.lst_octopoes,
                 queue="create_events",  # FIXME: queue name should be configurable
             ),
         }

@@ -25,19 +25,19 @@ class AppContext:
         self.services = SimpleNamespace(
             **{
                 service.Katalogus.name: service.Katalogus(
-                    host=self.config.katalogus_api,
+                    host=self.config.host_katalogus,
                     source=f"scheduler/{scheduler.__version__}",
                 ),
                 service.Bytes.name: service.Bytes(
-                    host=self.config.bytes_api,
+                    host=self.config.host_bytes,
                     source=f"scheduler/{scheduler.__version__}",
                 ),
                 service.Octopoes.name: service.Octopoes(
-                    host=self.config.octopoes_api,
+                    host=self.config.host_octopoes,
                     source=f"scheduler/{scheduler.__version__}",
                 ),
                 service.XTDB.name: service.XTDB(
-                    host=self.config.xtdb_uri,
+                    host=self.config.host_xtdb,
                     source=f"scheduler/{scheduler.__version__}",
                 ),
             }
