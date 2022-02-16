@@ -59,6 +59,9 @@ class Scheduler:
         # rank?)
         # TODO: make concurrent, since ranker will be doing I/O using external
         # services
+        import pdb
+
+        pdb.set_trace()
         for ooi in oois:
             score = self.boefjes_ranker.rank(ooi)
 
