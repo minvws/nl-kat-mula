@@ -15,6 +15,9 @@ class PriorityQueue:
     def push(self, item: Dict, priority: int):
         heapq.heappush(self.pq, PrioritizedItem(priority, item))
 
+    def __len__(self):
+        return len(self.pq)
+
 
 @dataclass(order=True)
 class PrioritizedItem:

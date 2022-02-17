@@ -5,8 +5,14 @@ from scheduler.models import Base
 
 
 class Boefje(BaseModel):
+    id: str
     name: str
+    description: str
     version: Optional[str] = Field(default=None)
+    scan_level: int
+    consumes: List[str]
+    produces: List[str]
+    dispatches: Optional[Dict[str, List[str]]] = Field(default=None)
 
 
 class Normalizer(BaseModel):

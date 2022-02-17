@@ -52,42 +52,30 @@ class Scheduler:
         # oois = self.ctx.services.octopoes.get_random_objects(n=3)
         oois = self.ctx.services.octopoes.get_objects()
 
-        # TODO: decide if it is necessary to create models from the data, since
-        # now it is O(n) and we can use the data directly
-        # oois = [OOI.parse_obj(o) for o in objects]
         # TODO: rank the OOI's (or create jobs (ooi*boefje=tasks) and then
         # rank?)
         # TODO: make concurrent, since ranker will be doing I/O using external
         # services
-        import pdb
-
-        pdb.set_trace()
         for ooi in oois:
             score = self.boefjes_ranker.rank(ooi)
 
             # TODO: get boefjes for ooi, active boefjes depend on organization
-            # TODO: boefje filtering on ooi type?
-            ooi_type = ooi.get("ooi_type")
-            if ooi_type is None:
-                self.logger.warning(f"No type for ooi [ooi={ooi}]")
-                continue
-
             # Get available boefjes based on ooi type
-            boefjes = self.ctx.services.katalogus.cache_ooi_type.get(ooi_type, None)
+            boefjes = self.ctx.services.katalogus.cache_ooi_type.get(
+                ooi.ooi_type,
+                None,
+            )
             if boefjes is None:
-                self.logger.warning(f"No boefjes found for type {ooi_type} [ooi={ooi}]")
+                self.logger.warning(f"No boefjes found for type {ooi.ooi_type} [ooi={ooi}]")
                 continue
 
             self.logger.info(
-                f"Found {len(boefjes)} boefjes for ooi_type {ooi_type} [ooi={ooi} boefjes={[boefje.get('id') for boefje in boefjes]}"
+                f"Found {len(boefjes)} boefjes for ooi_type {ooi.ooi_type} [ooi={ooi} boefjes={[boefje.id for boefje in boefjes]}"
             )
 
             for boefje in boefjes:
                 task = BoefjeTask(
-                    boefje=Boefje(
-                        name=boefje.get("name"),
-                        # version=boefje.get("version"),
-                    ),
+                    boefje=boefje,
                     input_ooi="derp",  # FIXME
                     arguments={},  # FIXME
                     organization="_dev",  # FIXME

@@ -6,7 +6,7 @@ import urllib.parse
 from typing import Any, Dict, List
 
 import requests
-import scheduler
+from scheduler.models import OOI, Boefje
 
 
 class HTTPService:
@@ -107,81 +107,3 @@ class HTTPService:
         except requests.exceptions.HTTPError as e:
             self.logger.error(f"HTTPError: {e} [name={self.name} url={response.url} response={response.content}]")
             raise (e)
-
-
-class Katalogus(HTTPService):
-    name = "katalogus"
-
-    cache_ooi_type: Dict = {}
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._warm_cache_ooi_type()
-
-    # FIXME:
-    def _warm_cache_ooi_type(self) -> None:
-        boefjes = self.get_boefjes()
-        for boefje in boefjes:
-            for ooi_type in boefje["consumes"]:
-                if ooi_type not in self.cache_ooi_type:
-                    self.cache_ooi_type[ooi_type] = [boefje]
-                else:
-                    self.cache_ooi_type[ooi_type].append(boefje)
-
-    def get_boefjes(self) -> Dict:
-        url = f"{self.host}/boefjes"
-        response = self.get(url)
-        return response.json()
-
-    def get_boefje(self, boefje_id: str) -> Dict:
-        url = f"{self.host}/boefjes/{boefje_id}"
-        response = self.get(url)
-        return response.json()
-
-
-class Bytes(HTTPService):
-    name = "bytes"
-
-
-class Octopoes(HTTPService):
-    name = "octopoes"
-    health_endpoint = "/_dev/health"  # FIXME: _dev
-
-    def get_objects(self) -> List:
-        url = f"{self.host}/_dev/objects"  # FIXME: _dev
-        response = self.get(url)
-        return response.json()
-
-    def get_random_objects(self, n: int):
-        url = f"{self.host}/_dev/objects/random"  # FIXME: _dev
-        response = self.get(url, params={"n": str(n)})
-        return response.json()
-
-    def get_object(self, reference: str) -> Dict:
-        url = f"{self.host}/_dev"  # FIXME: _dev
-        response = self.get(url, params={"reference": reference})
-        return response.json()
-
-
-class Rocky(HTTPService):
-    name = "rocky"
-
-
-class XTDB(HTTPService):
-    name = "xtdb"
-    health_endpoint = None
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.headers["Content-Type"] = "application/edn"
-
-    # FIXME: what about org access?
-    def get_random_objects(self, n: int) -> List:
-        """Get `n` random oois from xtdb."""
-        now = datetime.datetime.utcnow().isoformat(timespec="minutes")
-        url = f"{self.host}/_crux/query?valid-time={now}"
-        payload = f"{{:query {{:find [(rand {n} id)], :where [[?e :crux.db/id id] [?e :ooi_type]]}}}}"
-
-        response = self.post(url=url, payload=payload)
-
-        return response.json()

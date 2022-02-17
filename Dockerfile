@@ -1,6 +1,6 @@
 FROM python:3.8
 
-ARG PIP_PACKAGES
+ARG PIP_PACKAGES=requirements.txt
 
 WORKDIR /app/scheduler
 
