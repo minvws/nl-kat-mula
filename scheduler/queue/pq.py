@@ -5,8 +5,9 @@ from typing import Any, Dict, Tuple
 
 
 class PriorityQueue:
-    def __init__(self):
+    def __init__(self, name: str):
         self.logger = logging.getLogger(__name__)
+        self.name = name
         self.pq = []
 
     def pop(self) -> Tuple[int, Dict]:

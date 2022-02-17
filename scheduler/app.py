@@ -17,9 +17,6 @@ class Scheduler:
         self.logger = logging.getLogger(__name__)
         self.ctx = context.AppContext()
 
-        # API server
-        self.server = server.Server(self.ctx)
-
         # FIXME: remove
         def hello():
             self.logger.info("hello, world")
@@ -34,12 +31,18 @@ class Scheduler:
         }
 
         # Initialize queues
-        self.boefjes_queue = queue.PriorityQueue()
-        self.normalizers_queue = queue.PriorityQueue()
+        self.boefjes_queue = queue.PriorityQueue(name="boefjes")
+        self.normalizers_queue = queue.PriorityQueue(name="normalizers")
 
         # Initialize rankers
         self.boefjes_ranker = ranker.BoefjeRanker(self.ctx)
         self.normalizers_ranker = ranker.NormalizerRanker(self.ctx)
+
+        # API server
+        self.server = server.Server(
+            self.ctx,
+            queues=[self.boefjes_queue, self.normalizers_queue],
+        )
 
     # TODO: add shutdown hook for graceful shutdown of threads, when exceptions
     # occur
