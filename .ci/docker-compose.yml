@@ -4,6 +4,8 @@ services:
   mula_unit:
     build:
       context: .
+      args:
+        PIP_PACKAGES: requirements-dev.txt
     command: python -m unittest discover tests/unit
     env_file:
       - .ci/.env.test
@@ -13,6 +15,8 @@ services:
   mula_integration:
     build:
       context: .
+      args:
+        PIP_PACKAGES: requirements-dev.txt
     command: python -m unittest discover tests/integration
     env_file:
       - .ci/.env.test

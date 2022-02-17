@@ -1,9 +1,11 @@
 FROM python:3.8
 
+ARG PIP_PACKAGES
+
 WORKDIR /app/scheduler
 
-COPY ["requirements.txt", "logging.json", "./"]
-RUN pip install -r requirements.txt
+COPY ["requirements.txt", "${PIP_PACKAGES}", "logging.json", "./"]
+RUN pip install -r ${PIP_PACKAGES}
 
 COPY scheduler/ /app/scheduler/
 
