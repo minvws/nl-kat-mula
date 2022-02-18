@@ -27,5 +27,8 @@ class Settings(BaseSettings):
     # Listener settings
     lst_octopoes: str = Field(..., env="QUEUE_URI")
 
+    # Queue settings
+    queue_maxsize: str = Field(100, env="QUEUE_SIZE")
+
     # class Config:
     #     env_prefix = "SCHEDULER_"

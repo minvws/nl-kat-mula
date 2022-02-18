@@ -10,8 +10,9 @@ from scheduler.models import OOI, Boefje, BoefjeTask
 class Scheduler:
     logger: logging.Logger
     ctx: context.AppContext
-    server: server.Server
     listeners: Dict[str, listener.Listener]
+    queues: Dict[str, queue.PriorityQueue]
+    server: server.Server
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ class Scheduler:
         def hello():
             self.logger.info("hello, world")
 
-        # Active message bus listeners
+        # Initialize message bus listeners
         self.listeners = {
             "octopoes_listener": listener.RabbitMQ(
                 func=hello,
@@ -31,18 +32,24 @@ class Scheduler:
         }
 
         # Initialize queues
-        self.boefjes_queue = queue.PriorityQueue(name="boefjes")
-        self.normalizers_queue = queue.PriorityQueue(name="normalizers")
+        self.queues = {
+            "boefjes": queue.PriorityQueue(
+                id="boefjes",
+                max_size=self.ctx.config.queue_maxsize,
+            ),
+            "normalizers": queue.PriorityQueue(
+                id="normalizers",
+                max_size=self.ctx.config.queue_maxsize,
+            ),
+        }
 
         # Initialize rankers
         self.boefjes_ranker = ranker.BoefjeRanker(self.ctx)
         self.normalizers_ranker = ranker.NormalizerRanker(self.ctx)
 
+        # NOTE: pass by value, or pass by reference?
         # API server
-        self.server = server.Server(
-            self.ctx,
-            queues=[self.boefjes_queue, self.normalizers_queue],
-        )
+        self.server = server.Server(self.ctx, queues=self.queues)
 
     # TODO: add shutdown hook for graceful shutdown of threads, when exceptions
     # occur
@@ -83,7 +90,7 @@ class Scheduler:
                     arguments={},  # FIXME
                     organization="_dev",  # FIXME
                 )
-                self.boefjes_queue.push(item=task, priority=score)
+                self.queues["boefjes"].push(item=task, priority=score)
 
     def run(self):
         th_server = threading.Thread(target=self.server.run)
