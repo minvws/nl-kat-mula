@@ -1,12 +1,15 @@
 import logging
 from typing import Dict, List, Optional
 
+import _queue
 import fastapi
 import scheduler
 import uvicorn
 from scheduler import context, datastore, models, queue
 
 
+# TODO: decide if we need AppContext here, since we're only using host and
+# api
 class Server:
     """Server that exposes API endpoints for the scheduler."""
 
@@ -59,6 +62,7 @@ class Server:
             path="/queues/{queue_id}/push",
             endpoint=self.push_queue,
             methods=["POST"],
+            status_code=204,
             # response_model=models.QueueItem,
         )
 
@@ -71,19 +75,48 @@ class Server:
     async def get_queues(self):
         return [q.json() for q in self.queues.values()]
 
-    # TODO: keyerror
+    # TODO: return model
     async def get_queue(self, queue_id: str):
-        return self.queues[queue_id].json()
+        q = self.queues.get(queue_id)
+        if q is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="queue not found",
+            )
 
-    # TODO: keyerror
-    # TODO: indexerror
+        return self.queues.get(queue_id).json()
+
+    # TODO: return model
     async def pop_queue(self, queue_id: str):
-        return self.queues[queue_id].pop().item.json()
+        q = self.queues.get(queue_id)
+        if q is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="queue not found",
+            )
 
-    # TODO: keyerror
+        try:
+            return q.pop().json()
+        except _queue.Empty:
+            return {}
+
+    # TODO: full
+    # TODO: return model
     async def push_queue(self, queue_id: str):
         # self.queues[queue_id].push()
+        q = self.queues.get(queue_id)
+        if q is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="queue not found",
+            )
+
         pass
 
     def run(self):
-        uvicorn.run(self.api, host="0.0.0.0", log_config=None)  # FIXME: make host configurable
+        uvicorn.run(
+            self.api,
+            host=self.ctx.config.api_host,
+            port=self.ctx.config.api_port,
+            log_config=None,
+        )

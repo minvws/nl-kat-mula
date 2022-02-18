@@ -35,11 +35,11 @@ class Scheduler:
         self.queues = {
             "boefjes": queue.PriorityQueue(
                 id="boefjes",
-                max_size=self.ctx.config.queue_maxsize,
+                maxsize=self.ctx.config.queue_maxsize,
             ),
             "normalizers": queue.PriorityQueue(
                 id="normalizers",
-                max_size=self.ctx.config.queue_maxsize,
+                maxsize=self.ctx.config.queue_maxsize,
             ),
         }
 
@@ -47,8 +47,7 @@ class Scheduler:
         self.boefjes_ranker = ranker.BoefjeRanker(self.ctx)
         self.normalizers_ranker = ranker.NormalizerRanker(self.ctx)
 
-        # NOTE: pass by value, or pass by reference?
-        # API server
+        # Initialize API server
         self.server = server.Server(self.ctx, queues=self.queues)
 
     # TODO: add shutdown hook for graceful shutdown of threads, when exceptions
@@ -90,7 +89,7 @@ class Scheduler:
                     arguments={},  # FIXME
                     organization="_dev",  # FIXME
                 )
-                self.queues["boefjes"].push(item=task, priority=score)
+                self.queues["boefjes"].push(priority=score, item=task)
 
     def run(self):
         th_server = threading.Thread(target=self.server.run)

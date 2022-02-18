@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # Server settings
     api_host: str = Field("0.0.0.0", env="SCHEDULER_API_HOST")
-    api_port: int = Field(8004, env="SCHEDULER_API_PORT")
+    api_port: int = Field(8000, env="SCHEDULER_API_PORT")
 
     # External services settings
     host_katalogus: str = Field(..., env="KATALOGUS_API")
@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     # Listener settings
     lst_octopoes: str = Field(..., env="QUEUE_URI")
 
-    # Queue settings
-    queue_maxsize: str = Field(100, env="QUEUE_SIZE")
+    # Queue settings (0 is infinite)
+    queue_maxsize: int = Field(0, env="SHEDULER_MAXSIZE")
 
     # class Config:
     #     env_prefix = "SCHEDULER_"
