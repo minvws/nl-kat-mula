@@ -42,28 +42,27 @@ class Server:
             path="/queues",
             endpoint=self.get_queues,
             methods=["GET"],
-            # response_model=models.QueueItem,
+            response_model=List[models.Queue],
         )
 
         self.api.add_api_route(
             path="/queues/{queue_id}",
             endpoint=self.get_queue,
             methods=["GET"],
+            response_model=models.Queue,
         )
 
         self.api.add_api_route(
             path="/queues/{queue_id}/pop",
             endpoint=self.pop_queue,
             methods=["GET"],
-            # response_model=models.QueueItem,
+            response_model=models.QueueItem,
         )
 
         self.api.add_api_route(
             path="/queues/{queue_id}/push",
             endpoint=self.push_queue,
             methods=["POST"],
-            status_code=204,
-            # response_model=models.QueueItem,
         )
 
     async def root(self):
@@ -73,9 +72,8 @@ class Server:
         return models.ServiceHealth(service="scheduler", healthy=True, version=scheduler.__version__)
 
     async def get_queues(self):
-        return [q.json() for q in self.queues.values()]
+        return [models.Queue(**q.dict()) for q in self.queues.values()]
 
-    # TODO: return model
     async def get_queue(self, queue_id: str):
         q = self.queues.get(queue_id)
         if q is None:
@@ -84,9 +82,8 @@ class Server:
                 detail="queue not found",
             )
 
-        return self.queues.get(queue_id).json()
+        return models.Queue(**self.queues.get(queue_id).dict())
 
-    # TODO: return model
     async def pop_queue(self, queue_id: str):
         q = self.queues.get(queue_id)
         if q is None:
@@ -96,14 +93,15 @@ class Server:
             )
 
         try:
-            return q.pop().json()
+            item = q.pop()
+            return models.QueueItem(**item.dict())
         except _queue.Empty:
-            return {}
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail="queue is empty",
+            )
 
-    # TODO: full
-    # TODO: return model
-    async def push_queue(self, queue_id: str):
-        # self.queues[queue_id].push()
+    async def push_queue(self, queue_id: str, item: models.QueueItem):
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
@@ -111,7 +109,20 @@ class Server:
                 detail="queue not found",
             )
 
-        pass
+        try:
+            q.push(queue.PrioritizedItem(**item.dict()))
+        except _queue.Full:
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail="queue is full",
+            )
+        except ValueError:
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail="invalid item",
+            )
+
+        return fastapi.Response(status_code=204)
 
     def run(self):
         uvicorn.run(

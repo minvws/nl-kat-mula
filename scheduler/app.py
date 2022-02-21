@@ -4,7 +4,7 @@ from typing import Dict
 
 from scheduler import connector, context, queue, ranker, server
 from scheduler.connector import listener
-from scheduler.models import OOI, Boefje, BoefjeTask
+from scheduler.models import OOI, Boefje, BoefjeTask, NormalizerTask
 
 
 class Scheduler:
@@ -36,10 +36,12 @@ class Scheduler:
             "boefjes": queue.PriorityQueue(
                 id="boefjes",
                 maxsize=self.ctx.config.queue_maxsize,
+                item_type=BoefjeTask,
             ),
             "normalizers": queue.PriorityQueue(
                 id="normalizers",
                 maxsize=self.ctx.config.queue_maxsize,
+                item_type=NormalizerTask,
             ),
         }
 
@@ -54,6 +56,10 @@ class Scheduler:
     # occur
     def shutdown(self):
         pass
+
+    # TODO
+    def _populate_normalizers_queue(self):
+        raise NotImplementedError
 
     def _populate_boefjes_queue(self):
 
@@ -89,7 +95,10 @@ class Scheduler:
                     arguments={},  # FIXME
                     organization="_dev",  # FIXME
                 )
-                self.queues["boefjes"].push(priority=score, item=task)
+
+                self.queues.get("boefjes").push(
+                    queue.PrioritizedItem(priority=score, item=task),
+                )
 
     def run(self):
         th_server = threading.Thread(target=self.server.run)

@@ -1,8 +1,30 @@
 import heapq
+import json
 import logging
 import queue
 from dataclasses import dataclass, field
 from typing import Any, Dict, Tuple
+
+import pydantic
+
+
+@dataclass(order=True)
+class PrioritizedItem:
+    """Solves the issue non-comparable tasks to ignore the task item and only
+    compare the priority."""
+
+    priority: int
+    item: Any = field(compare=False)
+
+    def __init__(self, priority: int, item: Any):
+        self.priority = priority
+        self.item = item
+
+    def dict(self) -> Dict:
+        return {"priority": self.priority, "item": self.item}
+
+    def json(self) -> str:
+        return json.dumps(self.dict())
 
 
 class PriorityQueue:
@@ -15,13 +37,21 @@ class PriorityQueue:
         https://docs.python.org/3/library/queue.html#queue.PriorityQueue
     """
 
-    def __init__(self, id: str, maxsize: int):
+    logger: logging.Logger
+    id: str
+    maxsize: int
+    item_type: pydantic.BaseModel
+    pq: queue.PriorityQueue
+    timeout: int = 5
+
+    def __init__(self, id: str, maxsize: int, item_type: pydantic.BaseModel):
         self.logger = logging.getLogger(__name__)
         self.id = id
         self.maxsize = maxsize
+        self.item_type = item_type
         self.pq = queue.PriorityQueue(maxsize=self.maxsize)
 
-    def pop(self) -> Tuple[int, Dict]:
+    def pop(self) -> PrioritizedItem:
         """Pop the item with the highest priority from the queue. If optional
         args block is true and timeout is None (the default), block if
         necessary until an item is available. If timeout is a positive number,
@@ -33,37 +63,57 @@ class PriorityQueue:
         Reference:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.get
         """
-        return self.pq.get(block=True, timeout=5)
+        return self.pq.get(block=True, timeout=self.timeout)
 
-    def push(self, priority: int, item: Dict):
+    def push(self, p_item: PrioritizedItem) -> None:
+        """Push an item with priority into the queue. When timeout is set it
+        will block if necessary until a free slot is available. It raises the
+        Full exception if no free slot was available within that time.
+
+        Args:
+            p_item: The item to be pushed into the queue.
+
+        Raises:
+            ValueError: If the item is not valid.
+
+        Reference:
+            https://docs.python.org/3/library/queue.html#queue.PriorityQueue.put
+        """
+        if not self._is_valid_item(p_item.item):
+            raise ValueError(f"PrioritizedItem must be of type {self.item_type.__name__}")
+
         self.pq.put(
-            item=PrioritizedItem(priority=priority, item=item),
+            item=p_item,
             block=True,
+            timeout=self.timeout,
         )
 
-    def json(self) -> Dict:
+    def _is_valid_item(self, item: Any) -> bool:
+        """Validate the item to be pushed into the queue.
+
+        Args:
+            item: The item to be validated.
+
+        Returns:
+            bool: True if the item is valid, False otherwise.
+        """
+        try:
+            pydantic.parse_obj_as(self.item_type, item)
+        except pydantic.ValidationError:
+            return False
+
+        return True
+
+    def dict(self) -> Dict:
         return {
             "id": self.id,
             "size": self.pq.qsize(),
             "maxsize": self.maxsize,
-            "pq": [self.pq.queue[i].json() for i in range(self.pq.qsize())],  # TODO: maybe overkill
+            "pq": [self.pq.queue[i].dict() for i in range(self.pq.qsize())],  # TODO: maybe overkill
         }
+
+    def json(self) -> str:
+        return json.dumps(self.dict())
 
     def __len__(self):
         return self.pq.qsize()
-
-
-@dataclass(order=True)
-class PrioritizedItem:
-    """Solves the issue non-comporable tasks to ignore the task item and only
-    compare the priority."""
-
-    priority: int
-    item: Any = field(compare=False)
-
-    def __init__(self, priority: int, item: Any):
-        self.priority = priority
-        self.item = item
-
-    def json(self) -> Dict:
-        return {"priority": self.priority, "item": self.item}
