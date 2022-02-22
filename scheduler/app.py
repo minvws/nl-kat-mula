@@ -1,6 +1,7 @@
 import logging
 import threading
-from typing import Dict
+import time
+from typing import Callable, Dict
 
 from scheduler import connector, context, queue, ranker, server
 from scheduler.connector import listener
@@ -35,19 +36,25 @@ class Scheduler:
         self.queues = {
             "boefjes": queue.PriorityQueue(
                 id="boefjes",
-                maxsize=self.ctx.config.queue_maxsize,
+                maxsize=self.ctx.config.pq_maxsize,
                 item_type=BoefjeTask,
             ),
             "normalizers": queue.PriorityQueue(
                 id="normalizers",
-                maxsize=self.ctx.config.queue_maxsize,
+                maxsize=self.ctx.config.pq_maxsize,
                 item_type=NormalizerTask,
             ),
         }
 
         # Initialize rankers
-        self.boefjes_ranker = ranker.BoefjeRanker(self.ctx)
-        self.normalizers_ranker = ranker.NormalizerRanker(self.ctx)
+        self.rankers = {
+            "boefjes": ranker.BoefjeRanker(
+                ctx=self.ctx,
+            ),
+            "normalizers": ranker.NormalizerRanker(
+                ctx=self.ctx,
+            ),
+        }
 
         # Initialize API server
         self.server = server.Server(self.ctx, queues=self.queues)
@@ -57,22 +64,24 @@ class Scheduler:
     def shutdown(self):
         pass
 
-    # TODO
+    def loop_with_interval(self, interval: int, func: Callable):
+        while True:
+            func()
+            time.sleep(interval)
+
     def _populate_normalizers_queue(self):
-        raise NotImplementedError
+        # TODO: from bytes get boefjes jobs that are done
+        pass
 
     def _populate_boefjes_queue(self):
-
         # TODO: get n from config file
         # oois = self.ctx.services.octopoes.get_random_objects(n=3)
         oois = self.ctx.services.octopoes.get_objects()
 
-        # TODO: rank the OOI's (or create jobs (ooi*boefje=tasks) and then
-        # rank?)
         # TODO: make concurrent, since ranker will be doing I/O using external
         # services
         for ooi in oois:
-            score = self.boefjes_ranker.rank(ooi)
+            score = self.rankers.get("boefjes").rank(ooi)
 
             # TODO: get boefjes for ooi, active boefjes depend on organization
             # Get available boefjes based on ooi type
@@ -101,17 +110,30 @@ class Scheduler:
                 )
 
     def run(self):
+        # TODO: all threads in a list?
+
+        # API server
         th_server = threading.Thread(target=self.server.run)
         th_server.setDaemon(True)
         th_server.start()
 
+        # Listeners
         for _, l in self.listeners.items():
             th_listener = threading.Thread(target=l.listen)
             th_listener.setDaemon(True)
             th_listener.start()
 
-        # TODO: need to be continuous, with a parameter for the interval
-        self._populate_boefjes_queue()
+        # Queues
+        for _, q in self.queues.items():
+            th_queue = threading.Thread(
+                target=self.loop_with_interval,
+                kwargs={
+                    "interval": self.ctx.config.pq_populate_interval,
+                    "func": getattr(self, f"_populate_{q.id}_queue"),
+                },
+            )
+            th_queue.setDaemon(True)
+            th_queue.start()
 
         self.logger.info("Scheduler started ...")
 

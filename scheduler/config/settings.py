@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     lst_octopoes: str = Field(..., env="QUEUE_URI")
 
     # Queue settings (0 is infinite)
-    queue_maxsize: int = Field(0, env="SHEDULER_MAXSIZE")
+    pq_maxsize: int = Field(0, env="SHEDULER_PQ_MAXSIZE")
+    pq_populate_interval: int = Field(5, env="SHEDULER_PQ_INTERVAL")
 
     # class Config:
     #     env_prefix = "SCHEDULER_"

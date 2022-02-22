@@ -31,3 +31,9 @@ class BoefjeTask(BaseModel):
     organization: str
 
     dispatches: List[Normalizer] = Field(default_factory=list)
+
+    def __hash__(self):
+        """Make BoefjeTask hashable, so that we can deduplicate it when used
+        in the PriorityQueue. We hash the combination of the attributes
+        input_ooi and boefje.id since this combination is unique."""
+        return hash((self.input_ooi, self.boefje.id))

@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 import scheduler
-from scheduler import connector, context
+from scheduler import config, connector, context
 from tests.factories import BoefjeFactory, OOIFactory
 
 
@@ -28,9 +28,15 @@ class SchedulerTestCase(unittest.TestCase):
             BoefjeFactory(),
         ]
 
+        # Config
+        cfg = config.settings.Settings()
+
+        # AppContext
         self.mock_ctx = mock.patch("scheduler.context.AppContext").start()
+
         self.mock_ctx.services.octopoes = self.mock_octopoes
         self.mock_ctx.services.katalogus = self.mock_katalogus
+        self.mock_ctx.return_value.config = cfg
 
         self.scheduler = scheduler.Scheduler()
         self.scheduler.ctx = self.mock_ctx
@@ -38,7 +44,7 @@ class SchedulerTestCase(unittest.TestCase):
     def test_populate_boefjes_queue(self):
         """Should populate the boefjes queue with the correct boefje objects"""
         self.scheduler._populate_boefjes_queue()
-        self.assertEqual((len(self.scheduler.boefjes_queue)), 1)
+        self.assertEqual((len(self.scheduler.queues.get("boefjes"))), 1)
 
     def test_pop_boefjes_queue(self):
         pass

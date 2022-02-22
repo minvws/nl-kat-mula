@@ -3,7 +3,7 @@ import json
 import logging
 import queue
 from dataclasses import dataclass, field
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Set, Tuple
 
 import pydantic
 
@@ -26,6 +26,12 @@ class PrioritizedItem:
     def json(self) -> str:
         return json.dumps(self.dict())
 
+    def __hash__(self):
+        return hash(self.item)
+
+    def __eq__(self, other):
+        return self.item == other.item
+
 
 class PriorityQueue:
     """Thread-safe implementation of a priority queue.
@@ -43,6 +49,7 @@ class PriorityQueue:
     item_type: pydantic.BaseModel
     pq: queue.PriorityQueue
     timeout: int = 5
+    item_set: Set[PrioritizedItem] = set()
 
     def __init__(self, id: str, maxsize: int, item_type: pydantic.BaseModel):
         self.logger = logging.getLogger(__name__)
@@ -63,7 +70,9 @@ class PriorityQueue:
         Reference:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.get
         """
-        return self.pq.get(block=True, timeout=self.timeout)
+        item = self.pq.get(block=True, timeout=self.timeout)
+        self.item_set.remove(item)
+        return item
 
     def push(self, p_item: PrioritizedItem) -> None:
         """Push an item with priority into the queue. When timeout is set it
@@ -79,6 +88,10 @@ class PriorityQueue:
         Reference:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.put
         """
+        if p_item in self.item_set:
+            self.logger.warning(f"Item {p_item} already exists in the queue. Ignoring the item.")
+            return
+
         if not self._is_valid_item(p_item.item):
             raise ValueError(f"PrioritizedItem must be of type {self.item_type.__name__}")
 
@@ -87,6 +100,7 @@ class PriorityQueue:
             block=True,
             timeout=self.timeout,
         )
+        self.item_set.add(p_item)
 
     def _is_valid_item(self, item: Any) -> bool:
         """Validate the item to be pushed into the queue.
