@@ -29,7 +29,9 @@ class Settings(BaseSettings):
 
     # Queue settings (0 is infinite)
     pq_maxsize: int = Field(0, env="SHEDULER_PQ_MAXSIZE")
-    pq_populate_interval: int = Field(5, env="SHEDULER_PQ_INTERVAL")
+    pq_populate_interval: int = Field(60, env="SHEDULER_PQ_INTERVAL")
+
+    dsp_broker_url: str = Field(..., env="QUEUE_URI")
 
     # class Config:
     #     env_prefix = "SCHEDULER_"

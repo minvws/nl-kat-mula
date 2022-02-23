@@ -129,5 +129,8 @@ class PriorityQueue:
     def json(self) -> str:
         return json.dumps(self.dict())
 
+    def empty(self) -> bool:
+        return self.pq.empty()
+
     def __len__(self):
         return self.pq.qsize()
