@@ -31,6 +31,8 @@ class AppContext:
                 ),
                 connector.Bytes.name: connector.Bytes(
                     host=self.config.host_bytes,
+                    user=self.config.host_bytes_user,
+                    password=self.config.host_bytes_password,
                     source=f"scheduler/{scheduler.__version__}",
                 ),
                 connector.Octopoes.name: connector.Octopoes(

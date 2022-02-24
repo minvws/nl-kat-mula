@@ -84,6 +84,8 @@ class Scheduler:
             score = self.rankers.get("boefjes").rank(ooi)
 
             # TODO: get boefjes for ooi, active boefjes depend on organization
+            # and indemnification?
+
             # Get available boefjes based on ooi type
             boefjes = self.ctx.services.katalogus.cache_ooi_type.get(
                 ooi.ooi_type,
@@ -135,11 +137,7 @@ class Scheduler:
             th_queue.setDaemon(True)
             th_queue.start()
 
-        dispatcher.CeleryDispatcher(
-            ctx=self.ctx,
-            pq=self.queues.get("boefjes"),
-            queue="boefjes"
-        ).run()
+        dispatcher.CeleryDispatcher(ctx=self.ctx, pq=self.queues.get("boefjes"), queue="boefjes").run()
 
         self.logger.info("Scheduler started ...")
 

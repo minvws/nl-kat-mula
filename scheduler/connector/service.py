@@ -36,16 +36,27 @@ class HTTPService:
 
         self._do_checks()
 
-    def get(self, url: str, params: Dict = None) -> requests.Response:
-        response = requests.get(url, headers=self.headers, params=params, timeout=self.timeout)
+    def get(self, url: str, headers: Dict = None, params: Dict = None) -> requests.Response:
+        response = requests.get(
+            url,
+            headers=self.headers.update(headers) if headers else self.headers,
+            params=params,
+            timeout=self.timeout,
+        )
         self.logger.debug(f"Made GET request to {url}. [name={self.name} url={url}]")
 
         self._verify_response(response)
 
         return response
 
-    def post(self, url: str, payload: str, params: Dict = None) -> requests.Response:
-        response = requests.post(url, headers=self.headers, data=payload, timeout=self.timeout)
+    def post(self, url: str, payload: str, headers: Dict = None, params: Dict = None) -> requests.Response:
+        response = requests.post(
+            url,
+            headers=self.headers.update(headers) if headers else self.headers,
+            params=params,
+            data=payload,
+            timeout=self.timeout,
+        )
         self.logger.debug(f"Made POST request to {url}. [name={self.name} url={url} data={payload}]")
 
         self._verify_response(response)

@@ -36,7 +36,6 @@ class CeleryDispatcher(Dispatcher):
         super().__init__(ctx=ctx, pq=pq)
         self.queue = queue
 
-        print(self.ctx.config.dsp_broker_url)
         self.app = celery.Celery(
             name="",  # FIXME
             broker=self.ctx.config.dsp_broker_url,
@@ -55,10 +54,9 @@ class CeleryDispatcher(Dispatcher):
 
         task = item.item
 
-        # TODO: send_task
         self.app.send_task(
-            name="tasks.handle_boefje",  # FIXME
+            name="tasks.handle_boefje",  # FIXME: from config, is defined
             args=(task.dict(),),
             queue=self.queue,
-            task_id=str(uuid.uuid4()),
+            task_id=task.id,
         )

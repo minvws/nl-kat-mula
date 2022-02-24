@@ -1,3 +1,4 @@
+import uuid
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -25,6 +26,7 @@ class Normalizer(BaseModel):
 class BoefjeTask(BaseModel):
     """BoefjeTask represent data needed for a Boefje to run."""
 
+    id: str = uuid.uuid4().hex
     boefje: Boefje
     input_ooi: str
     arguments: Dict[str, str]
