@@ -6,23 +6,21 @@ import pika
 # TODO: you can do an implementation of a specific Listener that users
 # the context and do dispatches on that. Figure out what form works best.
 class Listener:
-    func: callable
+    logger: logging.Logger
 
-    def __init__(self, func: callable):
-        self.func = func
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
 
-    def dispatch(self):
-        self.func()  # TODO: will this work with arguments? and context?
+    def dispatch(self, *args, **kwargs):
+        raise NotImplementedError
 
 
 class RabbitMQ(Listener):
-    logger: logging.Logger
     dsn: str
     queue: str
 
-    def __init__(self, func: callable, dsn: str, queue: str):
-        super().__init__(func)
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, dsn: str, queue: str):
+        super().__init__()
         self.dsn = dsn
         self.queue = queue
 
@@ -32,12 +30,13 @@ class RabbitMQ(Listener):
         channel.basic_consume(queue=self.queue, on_message_callback=self.callback)
         channel.start_consuming()
 
-    def callback(self, channel, method_frame, header_frame, body):
-        self.logger.info(" [x] Received %r" % body)
+    # def callback(self, channel, method_frame, header_frame, body):
+    def callback(self, *args, **kwargs):
+        self.logger.info(" [x] Received %r" % kwargs.get("body"))
 
-        self.dispatch()
+        self.dispatch(args, kwargs)
 
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+        channel.basic_ack(delivery_tag=kwargs.get("method_frame").delivery_tag)
 
 
 class Kafka(Listener):

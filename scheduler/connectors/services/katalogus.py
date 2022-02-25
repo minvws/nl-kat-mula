@@ -2,7 +2,7 @@ from typing import Dict, List
 
 from scheduler.models import Boefje
 
-from .service import HTTPService
+from .services import HTTPService
 
 
 class Katalogus(HTTPService):

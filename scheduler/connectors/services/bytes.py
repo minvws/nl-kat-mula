@@ -1,4 +1,4 @@
-from .service import HTTPService
+from .services import HTTPService
 
 
 class Bytes(HTTPService):

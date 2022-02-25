@@ -3,15 +3,15 @@ import threading
 import time
 from typing import Callable, Dict
 
-from scheduler import connector, context, dispatcher, queue, ranker, server
-from scheduler.connector import listener
+from scheduler import context, dispatcher, queue, ranker, server
+from scheduler.connectors import listeners
 from scheduler.models import OOI, Boefje, BoefjeTask, NormalizerTask
 
 
 class Scheduler:
     logger: logging.Logger
     ctx: context.AppContext
-    listeners: Dict[str, listener.Listener]
+    listeners: Dict[str, listeners.Listener]
     queues: Dict[str, queue.PriorityQueue]
     server: server.Server
 
@@ -19,14 +19,9 @@ class Scheduler:
         self.logger = logging.getLogger(__name__)
         self.ctx = context.AppContext()
 
-        # FIXME: remove
-        def hello():
-            self.logger.info("hello, world")
-
         # Initialize message bus listeners
         self.listeners = {
-            "octopoes_listener": listener.RabbitMQ(
-                func=hello,
+            "octopoes_listener": listeners.Octopoes(
                 dsn=self.ctx.config.lst_octopoes,
                 queue="create_events",  # FIXME: queue name should be configurable
             ),
@@ -71,7 +66,12 @@ class Scheduler:
 
     def _populate_normalizers_queue(self):
         # TODO: from bytes get boefjes jobs that are done
-        pass
+        self.logger.info("_populate_normalizers_queue")
+
+    def _add_normalizer_task_to_queue(self, task: NormalizerTask):
+        self.queues.get("normalizers").push(
+            queue.PrioritizedItem(priority=0, item=task),
+        )
 
     def _populate_boefjes_queue(self):
         # TODO: get n from config file
@@ -107,9 +107,12 @@ class Scheduler:
                     organization="_dev",  # FIXME
                 )
 
-                self.queues.get("boefjes").push(
-                    queue.PrioritizedItem(priority=score, item=task),
-                )
+                self._add_boefje_task_to_queue(task)
+
+    def _add_boefje_task_to_queue(self, task: BoefjeTask):
+        self.queues.get("boefjes").push(
+            queue.PrioritizedItem(priority=0, item=task),
+        )
 
     def run(self):
         # TODO: all threads in a list?
@@ -119,13 +122,19 @@ class Scheduler:
         th_server.setDaemon(True)
         th_server.start()
 
-        # Listeners
+        # Listeners for OOI changes
         for _, l in self.listeners.items():
             th_listener = threading.Thread(target=l.listen)
             th_listener.setDaemon(True)
             th_listener.start()
 
-        # Queues
+        # Queue population
+        #
+        # We start the `_populate_{queue_id}_queue` functions in a separate
+        # threads, and these be run with an configurable defined interval.
+
+        # TODO: do we want to do it like this, will there be queues without
+        # a specific population based on an id?
         for _, q in self.queues.items():
             th_queue = threading.Thread(
                 target=self.loop_with_interval,
@@ -137,7 +146,13 @@ class Scheduler:
             th_queue.setDaemon(True)
             th_queue.start()
 
-        dispatcher.CeleryDispatcher(ctx=self.ctx, pq=self.queues.get("boefjes"), queue="boefjes").run()
+        # Dispatchers directing work from queues to workers
+        dispatcher.CeleryDispatcher(
+            ctx=self.ctx,
+            pq=self.queues.get("boefjes"),
+            queue="boefjes",
+            task_name="tasks.handle_boefje",
+        ).run()
 
         self.logger.info("Scheduler started ...")
 

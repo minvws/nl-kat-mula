@@ -2,7 +2,7 @@ from typing import List
 
 from scheduler.models import OOI
 
-from .service import HTTPService
+from .services import HTTPService
 
 
 class Octopoes(HTTPService):

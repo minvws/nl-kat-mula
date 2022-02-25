@@ -6,7 +6,6 @@ import urllib.parse
 from typing import Any, Dict, List
 
 import requests
-from scheduler.models import OOI, Boefje
 
 
 class HTTPService:

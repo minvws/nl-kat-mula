@@ -8,6 +8,12 @@ from scheduler import context, queue
 
 
 class Dispatcher:
+    """Dispatcher allows to continuously pop items off a priority queue and
+    dispatches items to be handled. By what, and who this is being handled is
+    done by a sub-classing the dispatcher and implementing the `dispatch()`
+    method.
+    """
+
     logger: logging.Logger
     ctx: context.AppContext
     pq: queue.PriorityQueue
@@ -32,9 +38,20 @@ class Dispatcher:
 
 
 class CeleryDispatcher(Dispatcher):
-    def __init__(self, ctx: context.AppContext, pq: queue.PriorityQueue, queue: str):
+    queue: str
+    task_name: str
+
+    def __init__(
+        self,
+        ctx: context.AppContext,
+        pq: queue.PriorityQueue,
+        queue: str,
+        task_name: str,
+    ):
         super().__init__(ctx=ctx, pq=pq)
+
         self.queue = queue
+        self.task_name = task_name
 
         self.app = celery.Celery(
             name="",  # FIXME
@@ -55,7 +72,7 @@ class CeleryDispatcher(Dispatcher):
         task = item.item
 
         self.app.send_task(
-            name="tasks.handle_boefje",  # FIXME: from config, is defined
+            name=self.task_name,
             args=(task.dict(),),
             queue=self.queue,
             task_id=task.id,

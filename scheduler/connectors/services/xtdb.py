@@ -1,6 +1,6 @@
 from typing import List
 
-from .service import HTTPService
+from .services import HTTPService
 
 
 class XTDB(HTTPService):
