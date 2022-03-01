@@ -30,13 +30,13 @@ class RabbitMQ(Listener):
         channel.basic_consume(queue=self.queue, on_message_callback=self.callback)
         channel.start_consuming()
 
-    # def callback(self, channel, method_frame, header_frame, body):
     def callback(self, *args, **kwargs):
-        self.logger.info(" [x] Received %r" % kwargs.get("body"))
+        channel, method_frame, header_frame, body = args
+        self.logger.info(" [x] Received %r" % body)
 
         self.dispatch(args, kwargs)
 
-        channel.basic_ack(delivery_tag=kwargs.get("method_frame").delivery_tag)
+        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
 
 class Kafka(Listener):

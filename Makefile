@@ -112,7 +112,12 @@ utest: ## Run the unit tests.
 ifneq ($(build),)
 	docker-compose -f base.yml -f .ci/docker-compose.yml build mula_unit
 endif
-	docker-compose -f base.yml  -f .ci/docker-compose.yml run --rm mula_unit; docker-compose -f base.yml  -f .ci/docker-compose.yml down
+
+ifneq ($(file),)
+	docker-compose -f base.yml  -f .ci/docker-compose.yml run --rm mula_unit python -m unittest tests/unit/${file}; docker-compose -f base.yml  -f .ci/docker-compose.yml down
+else
+	docker-compose -f base.yml  -f .ci/docker-compose.yml run --rm mula_unit python -m unittest discover tests/unit; docker-compose -f base.yml  -f .ci/docker-compose.yml down
+endif
 
 itest: ## Run the integration tests.
 ifneq ($(build),)

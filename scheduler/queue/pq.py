@@ -3,9 +3,17 @@ import json
 import logging
 import queue
 from dataclasses import dataclass, field
-from typing import Any, Dict, Set, Tuple
+from enum import Enum
+from typing import Any, Dict, List, Set, Tuple, Union
 
 import pydantic
+
+
+class EntryState(str, Enum):
+    """The state of an entry in the priority queue."""
+
+    ADDED = "added"
+    REMOVED = "removed"
 
 
 @dataclass(order=True)
@@ -30,6 +38,9 @@ class PrioritizedItem:
         return hash(self.item)
 
     def __eq__(self, other):
+        import pdb
+
+        pdb.set_trace()
         return self.item == other.item
 
 
@@ -41,6 +52,16 @@ class PriorityQueue:
 
     Reference:
         https://docs.python.org/3/library/queue.html#queue.PriorityQueue
+
+    Attributes:
+        logger: The logger for the class.
+        id: The id of the queue.
+        maxsize: The maximum size of the queue.
+        item_type: The type of the items in the queue.
+        pq: The priority queue.
+        timeout: The timeout for blocking operations.
+        entry_finder: A dictionary that maps items to their corresponding
+            entries in the queue.
     """
 
     logger: logging.Logger
@@ -49,9 +70,16 @@ class PriorityQueue:
     item_type: pydantic.BaseModel
     pq: queue.PriorityQueue
     timeout: int = 5
-    item_set: Set[PrioritizedItem] = set()
+    entry_finder: Dict[Any, List[Union[PrioritizedItem, EntryState]]] = {}
 
     def __init__(self, id: str, maxsize: int, item_type: pydantic.BaseModel):
+        """Initialize the priority queue.
+
+        Args:
+            id: The id of the queue.
+            maxsize: The maximum size of the queue.
+            item_type (pydantic.BaseModel): The type of the items in the queue.
+        """
         self.logger = logging.getLogger(__name__)
         self.id = id
         self.maxsize = maxsize
@@ -70,9 +98,15 @@ class PriorityQueue:
         Reference:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.get
         """
-        item = self.pq.get(block=True, timeout=self.timeout)
-        self.item_set.remove(item)
-        return item
+        while True:
+            try:
+                item = self.pq.get(block=True, timeout=self.timeout)
+                if item is not EntryState.REMOVED:
+                    del self.entry_finder[item.item]
+                    return item
+            except queue.Empty:
+                self.logger.warning(f"Queue {self.id} is empty")
+                return None
 
     def push(self, p_item: PrioritizedItem) -> None:
         """Push an item with priority into the queue. When timeout is set it
@@ -88,19 +122,38 @@ class PriorityQueue:
         Reference:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.put
         """
-        if p_item in self.item_set:
-            self.logger.warning(f"Item {p_item} already exists in the queue. Ignoring the item.")
-            return
-
         if not self._is_valid_item(p_item.item):
             raise ValueError(f"PrioritizedItem must be of type {self.item_type.__name__}")
 
+        # TODO: total duplicate should be ignored, following will probably
+        # failed since an update has changed it and cant find it in the
+        # entry_finder
+
+        # Set item as removed in entry_finder when it is already present,
+        # since we're updating the entry
+        if p_item.item in self.entry_finder:
+            entry = self.entry_finder.pop(p_item.item)
+            entry[-1] = EntryState.REMOVED
+
+            # Remove item from entry_finder
+
+        entry = [p_item, EntryState.ADDED]
+        self.entry_finder[p_item.item] = entry
+
         self.pq.put(
-            item=p_item,
+            item=entry,
             block=True,
             timeout=self.timeout,
         )
-        self.item_set.add(p_item)
+
+    def peek(self, index: int) -> PrioritizedItem:
+        """Return the item with the highest priority without removing it from
+        the queue.
+
+        Reference:
+            https://docs.python.org/3/library/queue.html#queue.PriorityQueue.peek
+        """
+        return self.pq.queue[index]
 
     def _is_valid_item(self, item: Any) -> bool:
         """Validate the item to be pushed into the queue.

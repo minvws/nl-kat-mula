@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 import scheduler
-from scheduler import config, connector, context
+from scheduler import config, connectors, context
 from tests.factories import BoefjeFactory, OOIFactory
 
 
@@ -12,7 +12,7 @@ class SchedulerTestCase(unittest.TestCase):
 
         # Octopoes
         self.mock_octopoes = mock.create_autospec(
-            spec=connector.Octopoes,
+            spec=connectors.services.Octopoes,
             spec_set=True,
         )
         self.mock_octopoes.get_objects.return_value = [
@@ -21,7 +21,7 @@ class SchedulerTestCase(unittest.TestCase):
 
         # Katalogus
         self.mock_katalogus = mock.create_autospec(
-            spec=connector.Katalogus,
+            spec=connectors.services.Katalogus,
             spec_set=True,
         )
         self.mock_katalogus.cache_ooi_type.get.return_value = [

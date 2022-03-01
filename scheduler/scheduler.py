@@ -19,14 +19,6 @@ class Scheduler:
         self.logger = logging.getLogger(__name__)
         self.ctx = context.AppContext()
 
-        # Initialize message bus listeners
-        self.listeners = {
-            "octopoes_listener": listeners.Octopoes(
-                dsn=self.ctx.config.lst_octopoes,
-                queue="create_events",  # FIXME: queue name should be configurable
-            ),
-        }
-
         # Initialize queues
         self.queues = {
             "boefjes": queue.PriorityQueue(
@@ -48,6 +40,16 @@ class Scheduler:
             ),
             "normalizers": ranker.NormalizerRanker(
                 ctx=self.ctx,
+            ),
+        }
+
+        # Initialize message bus listeners
+        self.listeners = {
+            "create_event": listeners.CreateEventListener(
+                dsn=self.ctx.config.lst_octopoes,
+                queue="create_events",  # FIXME: queue name should be configurable
+                ctx=self.ctx,
+                normalizer_queue=self.queues.get("normalizers"),
             ),
         }
 
@@ -109,6 +111,7 @@ class Scheduler:
 
                 self._add_boefje_task_to_queue(task)
 
+    # FIXME: priority
     def _add_boefje_task_to_queue(self, task: BoefjeTask):
         self.queues.get("boefjes").push(
             queue.PrioritizedItem(priority=0, item=task),
