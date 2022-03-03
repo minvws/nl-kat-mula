@@ -34,14 +34,14 @@ class PrioritizedItem:
     def json(self) -> str:
         return json.dumps(self.dict())
 
+    def __attrs(self):
+        return (self.priority, self.item)
+
     def __hash__(self):
-        return hash(self.item)
+        return hash(self.__attrs())
 
     def __eq__(self, other):
-        import pdb
-
-        pdb.set_trace()
-        return self.item == other.item
+        return isinstance(other, PrioritizedItem) and self.__attrs() == other.__attrs()
 
 
 class PriorityQueue:
@@ -70,7 +70,7 @@ class PriorityQueue:
     item_type: pydantic.BaseModel
     pq: queue.PriorityQueue
     timeout: int = 5
-    entry_finder: Dict[Any, List[Union[PrioritizedItem, EntryState]]] = {}
+    entry_finder: Dict[Any, List[Union[int, PrioritizedItem, EntryState]]] = {}
 
     def __init__(self, id: str, maxsize: int, item_type: pydantic.BaseModel):
         """Initialize the priority queue.
@@ -100,8 +100,10 @@ class PriorityQueue:
         """
         while True:
             try:
-                item = self.pq.get(block=True, timeout=self.timeout)
-                if item is not EntryState.REMOVED:
+                _, item, state = self.pq.get(block=True, timeout=self.timeout)
+
+                # When we reach an item that isn't removed, we can return it
+                if state is not EntryState.REMOVED:
                     del self.entry_finder[item.item]
                     return item
             except queue.Empty:
@@ -125,19 +127,20 @@ class PriorityQueue:
         if not self._is_valid_item(p_item.item):
             raise ValueError(f"PrioritizedItem must be of type {self.item_type.__name__}")
 
-        # TODO: total duplicate should be ignored, following will probably
-        # failed since an update has changed it and cant find it in the
-        # entry_finder
+        # When item is already on the queue, and the priority isn't changed,
+        # we ignore it.
+        if p_item.item in self.entry_finder and p_item == self.entry_finder[p_item.item][1]:
+            self.logger.warning(f"Item {p_item.item} already in queue {self.id} [p_item={p_item}]")
+            return
 
         # Set item as removed in entry_finder when it is already present,
-        # since we're updating the entry
+        # since we're updating the entry. Using a list here acts as a
+        # pointer to the entry in the queue and the entry_finder.
         if p_item.item in self.entry_finder:
             entry = self.entry_finder.pop(p_item.item)
             entry[-1] = EntryState.REMOVED
 
-            # Remove item from entry_finder
-
-        entry = [p_item, EntryState.ADDED]
+        entry = [p_item.priority, p_item, EntryState.ADDED]
         self.entry_finder[p_item.item] = entry
 
         self.pq.put(
@@ -146,7 +149,7 @@ class PriorityQueue:
             timeout=self.timeout,
         )
 
-    def peek(self, index: int) -> PrioritizedItem:
+    def peek(self, index: int) -> List[Union[PrioritizedItem, EntryState]]:
         """Return the item with the highest priority without removing it from
         the queue.
 
@@ -154,6 +157,25 @@ class PriorityQueue:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.peek
         """
         return self.pq.queue[index]
+
+    def remove(self, p_item: PrioritizedItem) -> None:
+        """Remove an item from the queue.
+
+        Args:
+            item: The item to be removed.
+
+        Raises:
+            ValueError: If the item is not valid.
+
+        Reference:
+            https://docs.python.org/3/library/queue.html#queue.PriorityQueue.remove
+        """
+        if not self._is_valid_item(p_item.item):
+            raise ValueError(f"Item must be of type {self.item_type.__name__}")
+
+        if p_item.item in self.entry_finder:
+            entry = self.entry_finder.pop(p_item.item)
+            entry[-1] = EntryState.REMOVED
 
     def _is_valid_item(self, item: Any) -> bool:
         """Validate the item to be pushed into the queue.
