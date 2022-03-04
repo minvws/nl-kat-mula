@@ -39,8 +39,8 @@ class AppContext:
                     host=self.config.host_octopoes,
                     source=f"scheduler/{scheduler.__version__}",
                 ),
-                services.XTDB.name: services.XTDB(
-                    host=self.config.host_xtdb,
+                services.Rocky.name: services.Rocky(
+                    host=self.config.host_rocky,
                     source=f"scheduler/{scheduler.__version__}",
                 ),
             }

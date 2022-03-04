@@ -29,7 +29,6 @@ class BoefjeTask(BaseModel):
     id: str = uuid.uuid4().hex
     boefje: Boefje
     input_ooi: str
-    arguments: Dict[str, str]
     organization: str
 
     dispatches: List[Normalizer] = Field(default_factory=list)
