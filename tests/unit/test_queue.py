@@ -49,6 +49,7 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
+    # FIXME: expected to fail
     def test_update_changed_item(self):
         """When updating an item that is already in the queue, the item should
         NOT be updated and the queue should not be affected.
