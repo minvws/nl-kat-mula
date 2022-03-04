@@ -26,7 +26,7 @@ class Dispatcher:
     def run(self):
         while True:
             if self.pq.empty():
-                self.logger.info("Queue is empty, sleeping ...")
+                self.logger.debug("Queue is empty, sleeping ...")
                 time.sleep(10)
                 continue
 

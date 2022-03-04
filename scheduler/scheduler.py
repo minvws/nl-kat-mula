@@ -105,7 +105,6 @@ class Scheduler:
                 task = BoefjeTask(
                     boefje=boefje,
                     input_ooi="derp",  # FIXME
-                    arguments={},  # FIXME
                     organization="_dev",  # FIXME
                 )
 

@@ -12,7 +12,8 @@ class Ranker:
         self.ctx = ctx
 
     def rank(self, ooi: models.OOI) -> int:
-        return 1
+        # FIXME: for now ranker will always return 2
+        return 2
 
 
 class BoefjeRanker(Ranker):
