@@ -14,10 +14,12 @@ class Scheduler:
     listeners: Dict[str, listeners.Listener]
     queues: Dict[str, queue.PriorityQueue]
     server: server.Server
+    threads: Dict[str, threading.Thread]
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.ctx = context.AppContext()
+        self.threads = {}
 
         # Initialize queues
         self.queues = {
@@ -53,17 +55,28 @@ class Scheduler:
             ),
         }
 
+        # Initialize dispatchers
+        self.dispatchers = {
+            "boefjes": dispatcher.CeleryDispatcher(  # BoefjeDispatcher
+                ctx=self.ctx,
+                pq=self.queues.get("boefjes"),
+                queue="boefjes",
+                task_name="tasks.handle_boefje",
+            ),
+        }
+
         # Initialize API server
         self.server = server.Server(self.ctx, queues=self.queues)
 
     # TODO: add shutdown hook for graceful shutdown of threads, when exceptions
     # occur
     def shutdown(self):
+
         pass
 
-    def loop_with_interval(self, interval: int, func: Callable):
+    def loop_with_interval(self, interval: int, _func: Callable):
         while True:
-            func()
+            _func()
             time.sleep(interval)
 
     def _populate_normalizers_queue(self):
@@ -77,8 +90,8 @@ class Scheduler:
 
     def _populate_boefjes_queue(self):
         # TODO: get n from config file
-        # oois = self.ctx.services.octopoes.get_random_objects(n=3)
         oois = self.ctx.services.octopoes.get_objects()
+        # oois = self.ctx.services.xtdb.get_random_objects(n=3)
 
         # TODO: make concurrent, since ranker will be doing I/O using external
         # services
@@ -104,57 +117,50 @@ class Scheduler:
             for boefje in boefjes:
                 task = BoefjeTask(
                     boefje=boefje,
-                    input_ooi="derp",  # FIXME
+                    input_ooi=ooi.reference,
                     organization="_dev",  # FIXME
                 )
 
-                self._add_boefje_task_to_queue(task)
+                # TODO: do we have a grace period for boefjes that have been
+                # running for this ooi too soon?
 
-    # FIXME: priority
-    def _add_boefje_task_to_queue(self, task: BoefjeTask):
-        self.queues.get("boefjes").push(
-            queue.PrioritizedItem(priority=0, item=task),
+                self.queues.get("boefjes").push(
+                    queue.PrioritizedItem(priority=score, item=task),
+                )
+
+    def _run_in_thread(self, name: str, func: Callable, daemon: bool = True, **kwargs):
+        """Make a function run in a thread, and add it to the dict of threads."""
+        self.threads[name] = threading.Thread(
+            target=func,
+            kwargs=kwargs,
         )
+        self.threads[name].setDaemon(daemon)
+        self.threads[name].start()
 
     def run(self):
-        # TODO: all threads in a list?
-
-        # API server
-        th_server = threading.Thread(target=self.server.run)
-        th_server.setDaemon(True)
-        th_server.start()
+        # API Server
+        self._run_in_thread("server", self.server.run, daemon=True)
 
         # Listeners for OOI changes
-        for _, l in self.listeners.items():
-            th_listener = threading.Thread(target=l.listen)
-            th_listener.setDaemon(True)
-            th_listener.start()
+        for k, l in self.listeners.items():
+            self._run_in_thread(name=k, func=l.listen, daemon=True)
 
         # Queue population
         #
         # We start the `_populate_{queue_id}_queue` functions in a separate
         # threads, and these be run with an configurable defined interval.
-
-        # TODO: do we want to do it like this, will there be queues without
-        # a specific population based on an id?
-        for _, q in self.queues.items():
-            th_queue = threading.Thread(
-                target=self.loop_with_interval,
-                kwargs={
-                    "interval": self.ctx.config.pq_populate_interval,
-                    "func": getattr(self, f"_populate_{q.id}_queue"),
-                },
+        for k, q in self.queues.items():
+            self._run_in_thread(
+                name=f"{k}_queue_populator",
+                func=self.loop_with_interval,
+                daemon=True,
+                interval=self.ctx.config.pq_populate_interval,
+                _func=getattr(self, f"_populate_{q.id}_queue"),
             )
-            th_queue.setDaemon(True)
-            th_queue.start()
 
         # Dispatchers directing work from queues to workers
-        dispatcher.CeleryDispatcher(
-            ctx=self.ctx,
-            pq=self.queues.get("boefjes"),
-            queue="boefjes",
-            task_name="tasks.handle_boefje",
-        ).run()
+        for k, d in self.dispatchers.items():
+            self._run_in_thread(name=k, func=d.run, daemon=True)
 
         self.logger.info("Scheduler started ...")
 

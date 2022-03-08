@@ -77,3 +77,7 @@ class CeleryDispatcher(Dispatcher):
             queue=self.queue,
             task_id=task.id,
         )
+
+
+class BoefjeDispatcher(CeleryDispatcher):
+    pass
