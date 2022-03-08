@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     host_bytes: str = Field(..., env="BYTES_API")
     host_xtdb: str = Field(..., env="XTDB_URI")
     host_octopoes: str = Field(..., env="OCTOPOES_API")
+    host_rocky: str = Field(..., env="ROCKY_API")
 
     host_bytes_user: str = Field(..., env="BYTES_USERNAME")
     host_bytes_password: str = Field(..., env="BYTES_PASSWORD")
