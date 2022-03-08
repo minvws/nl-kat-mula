@@ -26,7 +26,7 @@ export COMPOSE_DOCKER_CLI_BUILD=1
 help: ## Show this help.
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/ ##/			/' | sed -e 's/##//'
 
-check: ## Check the code style using black and mypy.
+check: ## Check the code style using black, mypy and pylint.
 	make black
 	make mypy
 	make pylint
@@ -54,7 +54,6 @@ fmt: ## Format the code using black.
 done: ## Prepare for a commit.
 	make lint
 	make check
-	make req
 	make test
 
 sql: ## Generate raw sql for the migrations.
