@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 import scheduler
-from scheduler import config, connectors, context
+from scheduler import config, connectors, context, dispatcher
 from tests.factories import BoefjeFactory, OOIFactory
 
 
@@ -51,3 +51,26 @@ class SchedulerTestCase(unittest.TestCase):
 
     def test_push_boefjes_queue(self):
         pass
+
+    def test_dispatcher(self):
+        self.scheduler._populate_boefjes_queue()
+
+        d = dispatcher.BoefjeDispatcher(
+            ctx=self.mock_ctx,
+            pq=self.scheduler.queues.get("boefjes"),
+            queue="boefjes",
+            task_name="tasks.handle_boefje",
+        )
+
+        d.app.send_task = mock.Mock()
+
+        # Get item from queue, and dispatch it
+        item = self.scheduler.queues.get("boefjes").pop()
+        d.dispatch(item)
+
+        d.app.send_task.assert_called_once_with(
+            name="tasks.handle_boefje",
+            args=(item.item.dict(),),
+            queue="boefjes",
+            task_id=item.item.id,
+        )
