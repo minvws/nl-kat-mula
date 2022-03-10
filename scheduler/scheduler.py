@@ -1,9 +1,10 @@
 import logging
+import os
 import threading
 import time
 from typing import Callable, Dict
 
-from scheduler import context, dispatcher, queue, ranker, server
+from scheduler import context, dispatcher, queue, ranker, server, thread
 from scheduler.connectors import listeners
 from scheduler.models import OOI, Boefje, BoefjeTask, NormalizerTask
 
@@ -15,11 +16,13 @@ class Scheduler:
     queues: Dict[str, queue.PriorityQueue]
     server: server.Server
     threads: Dict[str, threading.Thread]
+    stop_event: threading.Event
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.ctx = context.AppContext()
         self.threads = {}
+        self.stop_event = threading.Event()
 
         # Initialize queues
         self.queues = {
@@ -57,7 +60,7 @@ class Scheduler:
 
         # Initialize dispatchers
         self.dispatchers = {
-            "boefjes": dispatcher.CeleryDispatcher(  # BoefjeDispatcher
+            "boefjes": dispatcher.BoefjeDispatcher(
                 ctx=self.ctx,
                 pq=self.queues.get("boefjes"),
                 queue="boefjes",
@@ -68,16 +71,16 @@ class Scheduler:
         # Initialize API server
         self.server = server.Server(self.ctx, queues=self.queues)
 
-    # TODO: add shutdown hook for graceful shutdown of threads, when exceptions
-    # occur
     def shutdown(self):
+        """Gracefully shutdown the scheduler, and all threads."""
+        self.logger.warning("Shutting down...")
 
-        pass
+        for k, t in self.threads.items():
+            t.join(timeout=5)
 
-    def loop_with_interval(self, interval: int, _func: Callable):
-        while True:
-            _func()
-            time.sleep(interval)
+        self.logger.warning("Shutdown complete")
+
+        os._exit(0)
 
     def _populate_normalizers_queue(self):
         # TODO: from bytes get boefjes jobs that are done
@@ -128,10 +131,11 @@ class Scheduler:
                     queue.PrioritizedItem(priority=score, item=task),
                 )
 
-    def _run_in_thread(self, name: str, func: Callable, daemon: bool = True, **kwargs):
+    def _run_in_thread(self, name: str, func: Callable, daemon: bool = False, *args, **kwargs):
         """Make a function run in a thread, and add it to the dict of threads."""
-        self.threads[name] = threading.Thread(
+        self.threads[name] = thread.ThreadRunner(
             target=func,
+            stop_event=self.stop_event,
             kwargs=kwargs,
         )
         self.threads[name].setDaemon(daemon)
@@ -139,30 +143,28 @@ class Scheduler:
 
     def run(self):
         # API Server
-        self._run_in_thread("server", self.server.run, daemon=True)
+        self._run_in_thread("server", self.server.run, daemon=False)
 
         # Listeners for OOI changes
         for k, l in self.listeners.items():
-            self._run_in_thread(name=k, func=l.listen, daemon=True)
+            self._run_in_thread(name=k, func=l.listen)
 
         # Queue population
         #
-        # We start the `_populate_{queue_id}_queue` functions in a separate
-        # threads, and these be run with an configurable defined interval.
+        # We start the `_populate_{queue_id}_queue` functions in separate
+        # threads, and these can be run with an configurable defined interval.
         for k, q in self.queues.items():
             self._run_in_thread(
                 name=f"{k}_queue_populator",
-                func=self.loop_with_interval,
-                daemon=True,
-                interval=self.ctx.config.pq_populate_interval,
-                _func=getattr(self, f"_populate_{q.id}_queue"),
+                func=getattr(self, f"_populate_{q.id}_queue"),
             )
 
         # Dispatchers directing work from queues to workers
         for k, d in self.dispatchers.items():
-            self._run_in_thread(name=k, func=d.run, daemon=True)
+            self._run_in_thread(name=k, func=d.run, daemon=False)
 
-        self.logger.info("Scheduler started ...")
+        # Main thread
+        while not self.stop_event.is_set():
+            time.sleep(0.01)
 
-        while True:
-            pass
+        self.shutdown()

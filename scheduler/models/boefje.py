@@ -10,7 +10,7 @@ class Boefje(BaseModel):
     name: str
     description: str
     version: Optional[str] = Field(default=None)
-    scan_level: int
+    scan_level: Optional[int] = Field(default=None)
     consumes: List[str]
     produces: List[str]
     dispatches: Optional[Dict[str, List[str]]] = Field(default=None)
