@@ -15,13 +15,12 @@ class Dispatcher:
     """
 
     logger: logging.Logger
-    ctx: context.AppContext
     pq: queue.PriorityQueue
 
-    def __init__(self, ctx: context.AppContext, pq: queue.PriorityQueue):
+    def __init__(self, pq: queue.PriorityQueue):
         self.logger = logging.getLogger(__name__)
-        self.ctx = ctx
         self.pq = pq
+        self.threshold = float("inf")
 
     def run(self):
         while True:
@@ -30,8 +29,17 @@ class Dispatcher:
                 time.sleep(10)
                 continue
 
+            self.can_dispatch()
+
+    def can_dispatch(self):
+        # Every item lower than the threshold is dispatched immediately
+        peek_item = self.pq.peek(0)[1]
+        if float(peek_item.priority) <= self.get_threshold():
             item = self.pq.pop()
             self.dispatch(item)
+
+    def get_threshold(self) -> float:
+        return self.threshold
 
     def dispatch(self, item: queue.PrioritizedItem):
         self.logger.info(f"Dispatching task {item}")
@@ -40,6 +48,7 @@ class Dispatcher:
 class CeleryDispatcher(Dispatcher):
     queue: str
     task_name: str
+    ctx: context.AppContext
 
     def __init__(
         self,
@@ -48,8 +57,9 @@ class CeleryDispatcher(Dispatcher):
         queue: str,
         task_name: str,
     ):
-        super().__init__(ctx=ctx, pq=pq)
+        super().__init__(pq=pq)
 
+        self.ctx = ctx
         self.queue = queue
         self.task_name = task_name
 
@@ -80,4 +90,5 @@ class CeleryDispatcher(Dispatcher):
 
 
 class BoefjeDispatcher(CeleryDispatcher):
-    pass
+    def get_threshold(self) -> float:
+        return time.time()

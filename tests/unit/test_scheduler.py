@@ -52,10 +52,13 @@ class SchedulerTestCase(unittest.TestCase):
     def test_push_boefjes_queue(self):
         pass
 
+    # CeleryDispatcher
     def test_dispatcher(self):
         self.scheduler._populate_boefjes_queue()
 
-        d = dispatcher.BoefjeDispatcher(
+        # TODO: Add item to queue
+
+        d = dispatcher.CeleryDispatcher(
             ctx=self.mock_ctx,
             pq=self.scheduler.queues.get("boefjes"),
             queue="boefjes",

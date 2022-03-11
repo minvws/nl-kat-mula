@@ -1,4 +1,5 @@
 import logging
+import time
 
 from scheduler import context, models
 
@@ -12,12 +13,12 @@ class Ranker:
         self.ctx = ctx
 
     def rank(self, ooi: models.OOI) -> int:
-        # FIXME: for now ranker will always return 2
-        return 2
+        raise NotImplementedError()
 
 
 class BoefjeRanker(Ranker):
-    pass
+    def rank(self, ooi: models.OOI) -> int:
+        return time.time() - 86400
 
 
 class NormalizerRanker(Ranker):

@@ -149,7 +149,7 @@ class PriorityQueue:
             timeout=self.timeout,
         )
 
-    def peek(self, index: int) -> List[Union[PrioritizedItem, EntryState]]:
+    def peek(self, index: int) -> List[Union[int, PrioritizedItem, EntryState]]:
         """Return the item with the highest priority without removing it from
         the queue.
 

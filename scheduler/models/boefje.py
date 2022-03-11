@@ -26,7 +26,7 @@ class Normalizer(BaseModel):
 class BoefjeTask(BaseModel):
     """BoefjeTask represent data needed for a Boefje to run."""
 
-    id: str = uuid.uuid4().hex
+    id: str = uuid.uuid4().hex  # FIXME: this will always be the same!!!
     boefje: Boefje
     input_ooi: str
     organization: str
