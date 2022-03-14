@@ -17,4 +17,6 @@ class OOIFactory(Factory):
         ),
     )
 
+    organization: str = Faker("company")
+
     reference = Faker("name")

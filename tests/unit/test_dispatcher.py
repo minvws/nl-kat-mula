@@ -36,6 +36,7 @@ class DispatcherTestCase(unittest.TestCase):
 
         self.dispatcher = TestDispatcher(
             pq=self.pq,
+            item_type=TestModel,
         )
         self.dispatcher.threshold = float("inf")
 
@@ -61,7 +62,7 @@ class DispatcherTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 3)
 
         # Dispatch item on the queue
-        self.dispatcher.can_dispatch()
+        self.dispatcher.dispatch()
         self.assertEqual(len(self.pq), 2)
 
         # Check the queue for the correct items
@@ -79,7 +80,7 @@ class DispatcherTestCase(unittest.TestCase):
         self.assertEqual(last_item_state, queue.EntryState.ADDED)
 
         # Dispatch a second time, should have no effect on the queue
-        self.dispatcher.can_dispatch()
+        self.dispatcher.dispatch()
         self.assertEqual(len(self.pq), 2)
 
     def test_threshold_not_set(self):
@@ -95,9 +96,9 @@ class DispatcherTestCase(unittest.TestCase):
 
         self.assertEqual(len(self.pq), 3)
 
-        self.dispatcher.can_dispatch()
-        self.dispatcher.can_dispatch()
-        self.dispatcher.can_dispatch()
+        self.dispatcher.dispatch()
+        self.dispatcher.dispatch()
+        self.dispatcher.dispatch()
 
         self.assertEqual(len(self.pq), 0)
 
@@ -116,9 +117,9 @@ class DispatcherTestCase(unittest.TestCase):
 
         self.assertEqual(len(self.pq), 3)
 
-        self.dispatcher.can_dispatch()
-        self.dispatcher.can_dispatch()
-        self.dispatcher.can_dispatch()
+        self.dispatcher.dispatch()
+        self.dispatcher.dispatch()
+        self.dispatcher.dispatch()
 
         self.assertEqual(len(self.pq), 3)
 
@@ -139,7 +140,7 @@ class DispatcherTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 3)
 
         # Dispatch item on the queue
-        self.dispatcher.can_dispatch()
+        self.dispatcher.dispatch()
         self.assertEqual(len(self.pq), 2)
 
         # Check the queue for the correct items
@@ -157,5 +158,5 @@ class DispatcherTestCase(unittest.TestCase):
         self.assertEqual(last_item_state, queue.EntryState.ADDED)
 
         # Dispatch a second time, should have no effect on the queue
-        self.dispatcher.can_dispatch()
+        self.dispatcher.dispatch()
         self.assertEqual(len(self.pq), 2)

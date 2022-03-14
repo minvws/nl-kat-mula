@@ -2,6 +2,7 @@ import logging
 import os
 import threading
 import time
+import uuid
 from typing import Callable, Dict
 
 from scheduler import context, dispatcher, queue, ranker, server, thread
@@ -63,6 +64,7 @@ class Scheduler:
             "boefjes": dispatcher.BoefjeDispatcher(
                 ctx=self.ctx,
                 pq=self.queues.get("boefjes"),
+                item_type=BoefjeTask,
                 queue="boefjes",
                 task_name="tasks.handle_boefje",
             ),
@@ -119,9 +121,10 @@ class Scheduler:
 
             for boefje in boefjes:
                 task = BoefjeTask(
+                    id=uuid.uuid4().hex,
                     boefje=boefje,
                     input_ooi=ooi.reference,
-                    organization="_dev",  # FIXME
+                    organization=ooi.organization,
                 )
 
                 # TODO: do we have a grace period for boefjes that have been

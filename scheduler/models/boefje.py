@@ -1,8 +1,9 @@
-import uuid
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 from scheduler.models import Base
+
+from .normalizer import Normalizer
 
 
 class Boefje(BaseModel):
@@ -16,17 +17,10 @@ class Boefje(BaseModel):
     dispatches: Optional[Dict[str, List[str]]] = Field(default=None)
 
 
-class Normalizer(BaseModel):
-    name: str
-    version: Optional[str] = Field(default=None)
-
-
-# TODO: this definition should only be the minimal information for
-# a boefje in order to run a task
 class BoefjeTask(BaseModel):
     """BoefjeTask represent data needed for a Boefje to run."""
 
-    id: str = uuid.uuid4().hex  # FIXME: this will always be the same!!!
+    id: str
     boefje: Boefje
     input_ooi: str
     organization: str
