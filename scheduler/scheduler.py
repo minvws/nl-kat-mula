@@ -11,6 +11,26 @@ from scheduler.models import OOI, Boefje, BoefjeTask, NormalizerTask
 
 
 class Scheduler:
+    """Main application definition for the scheduler implementation of KAT.
+
+    Attributes:
+        logger:
+            The logger for the class.
+        ctx:
+            Application context of shared data (e.g. configuration, external
+            services connections).
+        listeners:
+            A dict of connector.Listener instances.
+        queues:
+            A dict of queue.PriorityQueue instances.
+        server:
+            A server.Server instance.
+        threads:
+            A dict of ThreadRunner instances, used for runner processes
+            concurrently.
+        stop_event: A threading.Event object used for communicating a stop
+            event across threads.
+    """
     logger: logging.Logger
     ctx: context.AppContext
     listeners: Dict[str, listeners.Listener]
@@ -49,7 +69,7 @@ class Scheduler:
             ),
         }
 
-        # Initialize message bus listeners
+        # Initialize event stream listeners
         self.listeners = {
             "create_event": listeners.CreateEventListener(
                 dsn=self.ctx.config.lst_octopoes,
@@ -94,6 +114,8 @@ class Scheduler:
         )
 
     def _populate_boefjes_queue(self):
+        """Process to add boefje tasks to the boefjes priority queue.
+        """
         # TODO: get n from config file
         oois = self.ctx.services.octopoes.get_objects()
         # oois = self.ctx.services.xtdb.get_random_objects(n=3)
@@ -145,6 +167,14 @@ class Scheduler:
         self.threads[name].start()
 
     def run(self):
+        """Start the main scheduler application, and run in threads the
+        following processes:
+
+            * api server
+            * listeners
+            * queue populators
+            * dispatchers
+        """
         # API Server
         self._run_in_thread("server", self.server.run, daemon=False)
 
@@ -155,7 +185,7 @@ class Scheduler:
         # Queue population
         #
         # We start the `_populate_{queue_id}_queue` functions in separate
-        # threads, and these can be run with an configurable defined interval.
+        # threads, and these can be run with a configurable defined interval.
         for k, q in self.queues.items():
             self._run_in_thread(
                 name=f"{k}_queue_populator",

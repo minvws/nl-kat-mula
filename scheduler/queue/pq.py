@@ -10,7 +10,7 @@ import pydantic
 
 
 class EntryState(str, Enum):
-    """The state of an entry in the priority queue."""
+    """A Enum describing the state of an entry on the priority queue."""
 
     ADDED = "added"
     REMOVED = "removed"
@@ -19,7 +19,14 @@ class EntryState(str, Enum):
 @dataclass(order=True)
 class PrioritizedItem:
     """Solves the issue non-comparable tasks to ignore the task item and only
-    compare the priority."""
+    compare the priority.
+
+    Attributes:
+        priority:
+            An integer describing the priority of the item.
+        item:
+            A python object that is attached to the prioritized item.
+    """
 
     priority: int
     item: Any = field(compare=False)
@@ -54,13 +61,21 @@ class PriorityQueue:
         https://docs.python.org/3/library/queue.html#queue.PriorityQueue
 
     Attributes:
-        logger: The logger for the class.
-        id: The id of the queue.
-        maxsize: The maximum size of the queue.
-        item_type: The type of the items in the queue.
-        pq: The priority queue.
-        timeout: The timeout for blocking operations.
-        entry_finder: A dictionary that maps items to their corresponding
+        logger:
+            The logger for the class.
+        id:
+            A sting representing the identifier of the priority queue.
+        maxsize:
+            A integer representing the maximum size of the queue.
+        item_type:
+            A pydantic.BaseModel that describes the type of the items on the
+            queue.
+        pq:
+            A queue.PriorityQueue object.
+        timeout:
+            An integer defining the timeout for blocking operations.
+        entry_finder:
+            A dict that maps items (python objects) to their corresponding
             entries in the queue.
     """
 
@@ -150,11 +165,15 @@ class PriorityQueue:
         )
 
     def peek(self, index: int) -> List[Union[int, PrioritizedItem, EntryState]]:
-        """Return the item with the highest priority without removing it from
-        the queue.
+        """Return the item with the without removing it from the queue.
 
         Reference:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.peek
+
+        Args:
+            index:
+                An integer describing the index of item on the queue that you
+                want to inspect.
         """
         return self.pq.queue[index]
 
@@ -184,7 +203,7 @@ class PriorityQueue:
             item: The item to be validated.
 
         Returns:
-            bool: True if the item is valid, False otherwise.
+            A boolean, True if the item is valid, False otherwise.
         """
         try:
             pydantic.parse_obj_as(self.item_type, item)

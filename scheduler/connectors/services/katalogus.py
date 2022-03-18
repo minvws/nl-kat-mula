@@ -14,7 +14,7 @@ class Katalogus(HTTPService):
         super().__init__(*args, **kwargs)
         self._warm_cache_ooi_type()
 
-    # FIXME:
+    # FIXME: can we optimize the double for loop?
     def _warm_cache_ooi_type(self) -> None:
         boefjes = self.get_boefjes()
         for boefje in boefjes:

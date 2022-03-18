@@ -2,7 +2,13 @@
 
 ## Purpose
 
-The scheduler is responsible for scheduling the execution of tasks.
+The scheduler is responsible for scheduling the execution of tasks. The
+execution of those tasks are being prioritized / scored by a ranker. The
+tasks are then pushed onto a priority queue. A dispatcher pop's tasks of
+the queue and send those tasks to a worker to be picked up.
+
+Within the project of KAT, the scheduler is tasked with scheduling boefje and
+normalizer tasks.
 
 ## Architecture
 
@@ -22,7 +28,32 @@ See [design](docs/design.md) document for the architecture.
 ### Project structure
 
 ```
-$ tree -L 1 --dirsfirst
+$ tree -L 3 --dirsfirst
+.
+├── docs/
+├── scheduler/                      # scheduler python module
+│   ├── config                      # application settings configuration
+│   ├── connectors                  # external services connectors
+│   │   ├── listeners               # channel/socket listeners
+│   │   ├── services                # api connectors
+│   │   └── __init__.py
+│   ├── context/                    # shared application context
+│   ├── datastore/                  # datastore connections
+│   ├── models/                     # internal model definitions
+│   ├── queue/                      # priority queue
+│   ├── ranker/                     # priority/score calculations
+│   ├── server/                     # scheduler api interface
+│   ├── dispatcher.py               # tasks dispatcher
+│   ├── __init__.py
+│   ├── __main__.py
+│   ├── scheduler.py                # scheduler app definition
+│   └── thread.py                   # thread runner implementation support
+└─── tests/
+    ├── factories/
+    ├── integration/
+    ├── simulation/
+    ├── unit/
+    └── __init__.py
 
 ```
 

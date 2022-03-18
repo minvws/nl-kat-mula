@@ -4,7 +4,9 @@ from pydantic import BaseModel
 
 
 class ServiceHealth(BaseModel):
-    """ServiceHealth is used as response model for health check."""
+    """ServiceHealth is used as response model for health check in the
+    server.Server for the health endpoint.
+    """
 
     service: str
     healthy: bool = False

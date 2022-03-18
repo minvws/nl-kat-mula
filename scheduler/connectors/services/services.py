@@ -11,6 +11,26 @@ import requests
 class HTTPService:
     """HTTPService exposes methods to make http requests to services that
     typically expose rest api endpoints
+
+    Attributes:
+        logger:
+            The logger for the class.
+        name:
+            A string describing the name of the service. This is used args
+            an identifier.
+        source:
+            As string defining the request user agent of HTTP request made from
+            this HTTPService instance. This helps services differentiate from
+            where the requests came from.
+        host:
+            A string url formatted reference to the host of the service
+        headers:
+            A dict containing the request headers.
+        health_endpoint:
+            A string defining the health endpoint for the service. Used too
+            determine whether a host is healthy.
+        timeout:
+            An integer defining the timeout of requests.
     """
 
     logger: logging.Logger
@@ -25,6 +45,19 @@ class HTTPService:
     timeout: int
 
     def __init__(self, host: str, source: str, timeout: int = 5):
+        """Initializer of the HTTPService class. During initialization thr
+        host will be checked if it is available and healthy.
+
+        Args:
+            host:
+                A string url formatted reference to the host of the service
+            source:
+                A string defining the request source of HTTP request made from
+                this HTTPService instance. This helps services differentiate from
+                where the requests came from.
+            timeout:
+                An integer defining the timeout of requests.
+        """
         self.logger = logging.getLogger(self.__class__.__name__)
         self.host = host
         self.source = source
@@ -36,6 +69,17 @@ class HTTPService:
         self._do_checks()
 
     def get(self, url: str, headers: Dict = None, params: Dict = None) -> requests.Response:
+        """Execute a HTTP GET request
+
+        Args:
+            headers:
+                A dict to set additional headers for the request.
+            params:
+                A dict to set the query paramaters for the request
+
+        Returns:
+            A request.Response object
+        """
         response = requests.get(
             url,
             headers=self.headers.update(headers) if headers else self.headers,
@@ -49,6 +93,17 @@ class HTTPService:
         return response
 
     def post(self, url: str, payload: str, headers: Dict = None, params: Dict = None) -> requests.Response:
+        """Execute a HTTP POST request
+
+        Args:
+            headers:
+                A dict to set additional headers for the request.
+            params:
+                A dict to set the query paramaters for the request
+
+        Returns:
+            A request.Response object
+        """
         response = requests.post(
             url,
             headers=self.headers.update(headers) if headers else self.headers,
@@ -63,14 +118,20 @@ class HTTPService:
         return response
 
     def _do_checks(self) -> None:
-        if self.host is not None and self._retry(self._check_host) is False:
-            raise RuntimeError(f"Host {self.host} is not reachable.")
+        """Do checks whether a host is available and healthy.
+        """
+        if self.host is not None and self._retry(self._is_host_available) is False:
+            raise RuntimeError(f"Host {self.host} is not available.")
 
-        if self.health_endpoint is not None and self._retry(self._check_health) is False:
+        if self.health_endpoint is not None and self._retry(self._is_host_healthy) is False:
             raise RuntimeError(f"Service {self.name} is not running.")
 
-    def _check_host(self) -> bool:
-        """Check if the host is reachable."""
+    def _is_host_available(self) -> bool:
+        """Check if the host is available.
+
+        Returns:
+            A boolean
+        """
         try:
             uri = urllib.parse.urlparse(self.host)
             if uri.netloc.find("@") != -1:
@@ -84,8 +145,12 @@ class HTTPService:
         except socket.error:
             return False
 
-    def _check_health(self) -> bool:
-        """Check if host is reachable and if the service is running."""
+    def _is_host_healthy(self) -> bool:
+        """Check if host is healthy by inspecting the host's health endpoint.
+
+        Returns:
+            A boolean
+        """
         try:
             self.get(f"{self.host}{self.health_endpoint}")
             return True
@@ -93,7 +158,14 @@ class HTTPService:
             return False
 
     def _retry(self, func: callable) -> bool:
-        """Retry a function until it returns True."""
+        """Retry a function until it returns True.
+
+        Args:
+            func: A python callable that needs to be retried.
+
+        Returns:
+            A boolean signifying whether or not the func was executed successfully.
+        """
         i = 0
         while i < 10:
             if func() is True:
@@ -109,9 +181,14 @@ class HTTPService:
 
         return False
 
+    # FIXME: handle the exception, we don't want to stop threads because
+    # of a bad response
     def _verify_response(self, response: requests.Response) -> None:
-        # FIXME: handle the exception, we don't want to stop threads because
-        # of a bad response
+        """Verify the received response from a request.
+
+        Raises:
+            Exception
+        """
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:

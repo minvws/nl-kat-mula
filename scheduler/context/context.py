@@ -9,12 +9,23 @@ from scheduler.connectors import services
 
 
 class AppContext:
-    """AppContext allows shared data between modules"""
+    """AppContext allows shared data between modules.
+
+    Attributes:
+        config:
+            A settings.Settings object containing configurable application
+            settings
+        services:
+            A dict containing all the external services connectors that
+            are used and need to be shared in the scheduler application.
+    """
 
     config: settings.Settings
     services: Dict[str, services.HTTPService]
 
     def __init__(self):
+        """Initializer of th AppContext class.
+        """
         self.config = settings.Settings()
 
         # Load logging configuration

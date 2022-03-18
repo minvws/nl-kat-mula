@@ -1,21 +1,41 @@
 import logging
+import abc
 
 import pika
 
 
 # TODO: you can do an implementation of a specific Listener that users
 # the context and do dispatches on that. Figure out what form works best.
-class Listener:
+class Listener(abc.ABC):
+    """The Listener base class interface
+
+    Attributes:
+        logger:
+            The logger for the class.
+    """
     logger: logging.Logger
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
+    @abc.abstractmethod
     def dispatch(self, *args, **kwargs):
         raise NotImplementedError
 
 
 class RabbitMQ(Listener):
+    """A RabbitMQ Listener implementation that allows subclassing of specific
+    RabbitMQ channel listeners. You can subclass this class and set the
+    channel and procedure that needs to be dispatched when receiving messages
+    from a RabbitMQ queue.
+
+    Attibutes:
+        dsn:
+            A string defining the data source name of the RabbitMQ host too
+            connect to.
+        queue:
+            A string defining the RabbitMQ queue to listen to.
+    """
     dsn: str
     queue: str
 
@@ -32,7 +52,7 @@ class RabbitMQ(Listener):
 
     def callback(self, *args, **kwargs):
         channel, method_frame, header_frame, body = args
-        self.logger.info(" [x] Received %r" % body)
+        self.logger.debug(" [x] Received %r" % body)
 
         self.dispatch(args, kwargs)
 

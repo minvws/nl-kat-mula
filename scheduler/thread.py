@@ -3,7 +3,26 @@ import threading
 
 
 class ThreadRunner(threading.Thread):
-    # TODO: attrs
+    """ThreadRunner extends threading.Thread to allow for graceful shutdown
+    using event signalling. Additionally to the standard threading.Thread
+    attributes we use the following attributes.
+
+    Attributes:
+        logger:
+            The logger for the class.
+        stop_event:
+            A threading.Event object used for signalling thread stop events.
+        interval:
+            A float describing the time between loop iterations.
+        exception:
+            A python Exception that can be set in order to signify that
+            an exception has occured during the execution of the thread.
+    """
+
+    logger: logging.Logger
+    stop_event: threading.Event
+    interval: float
+    exception: Exception
 
     def __init__(self, *args, **kwargs):
         self.logger = logging.getLogger(__name__)

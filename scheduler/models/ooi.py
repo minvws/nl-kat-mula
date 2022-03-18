@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 
 class OOI(BaseModel):
+    """Representation of "Object Of Interests"" from Octopoes.
+    """
     name: str
     ooi_type: str
     organization: str
