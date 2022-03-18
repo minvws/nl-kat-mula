@@ -21,11 +21,10 @@ class AppContext:
     """
 
     config: settings.Settings
-    services: Dict[str, services.HTTPService]
+    services: SimpleNamespace
 
-    def __init__(self):
-        """Initializer of th AppContext class.
-        """
+    def __init__(self) -> None:
+        """Initializer of the AppContext class."""
         self.config = settings.Settings()
 
         # Load logging configuration

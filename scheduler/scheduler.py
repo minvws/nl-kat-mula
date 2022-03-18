@@ -31,6 +31,7 @@ class Scheduler:
         stop_event: A threading.Event object used for communicating a stop
             event across threads.
     """
+
     logger: logging.Logger
     ctx: context.AppContext
     listeners: Dict[str, listeners.Listener]
@@ -114,8 +115,7 @@ class Scheduler:
         )
 
     def _populate_boefjes_queue(self):
-        """Process to add boefje tasks to the boefjes priority queue.
-        """
+        """Process to add boefje tasks to the boefjes priority queue."""
         # TODO: get n from config file
         oois = self.ctx.services.octopoes.get_objects()
         # oois = self.ctx.services.xtdb.get_random_objects(n=3)
@@ -156,11 +156,21 @@ class Scheduler:
                     queue.PrioritizedItem(priority=score, item=task),
                 )
 
-    def _run_in_thread(self, name: str, func: Callable, daemon: bool = False, *args, **kwargs):
-        """Make a function run in a thread, and add it to the dict of threads."""
+    def _run_in_thread(self, name: str, func: Callable, interval: float = 0.01, daemon: bool = False, *args, **kwargs):
+        """Make a function run in a thread, and add it to the dict of threads.
+
+        Args:
+            name: The name of the thread.
+            func: The function to run in the thread.
+            daemon: Whether the thread should be a daemon.
+            *args: Arguments to pass to the function.
+            **kwargs: Keyword arguments to pass to the function.
+        """
         self.threads[name] = thread.ThreadRunner(
             target=func,
             stop_event=self.stop_event,
+            interval=interval,
+            args=args,
             kwargs=kwargs,
         )
         self.threads[name].setDaemon(daemon)
@@ -176,7 +186,7 @@ class Scheduler:
             * dispatchers
         """
         # API Server
-        self._run_in_thread("server", self.server.run, daemon=False)
+        self._run_in_thread(name="server", func=self.server.run, daemon=False)
 
         # Listeners for OOI changes
         for k, l in self.listeners.items():

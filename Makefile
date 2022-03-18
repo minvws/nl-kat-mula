@@ -34,7 +34,7 @@ check: ## Check the code style using black, mypy and pylint.
 mypy: ## Check code style using mypy.
 	docker-compose -f base.yml -f .ci/docker-compose.yml \
 		run --rm mula \
-		mypy --install-types --ignore-missing-imports . --implicit-reexport
+		mypy --install-types --ignore-missing-imports --implicit-reexport /app/scheduler/scheduler
 
 black: ## Check code style with black.
 	docker-compose -f base.yml -f .ci/docker-compose.yml \

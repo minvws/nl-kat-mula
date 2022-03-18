@@ -5,6 +5,7 @@ import _queue
 import fastapi
 import scheduler
 import uvicorn
+from fastapi.responses import JSONResponse
 from scheduler import context, datastore, models, queue
 
 
@@ -65,16 +66,29 @@ class Server:
             methods=["POST"],
         )
 
-    async def root(self):
-        return {"message": "hello, world"}
+    async def root(self) -> JSONResponse:
+        return JSONResponse(
+            status_code=200,
+            content={"message": "hello, world"},
+        )
 
-    async def health(self) -> models.ServiceHealth:
-        return models.ServiceHealth(service="scheduler", healthy=True, version=scheduler.__version__)
+    async def health(self) -> JSONResponse:
+        return JSONResponse(
+            status_code=200,
+            content=models.ServiceHealth(
+                service="scheduler",
+                healthy=True,
+                version=scheduler.__version__,
+            ),
+        )
 
-    async def get_queues(self):
-        return [models.Queue(**q.dict()) for q in self.queues.values()]
+    async def get_queues(self) -> JSONResponse:
+        return JSONResponse(
+            status_code=200,
+            content=[models.Queue(**q.dict()) for q in self.queues.values()],
+        )
 
-    async def get_queue(self, queue_id: str):
+    async def get_queue(self, queue_id: str) -> JSONResponse:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
@@ -82,9 +96,12 @@ class Server:
                 detail="queue not found",
             )
 
-        return models.Queue(**self.queues.get(queue_id).dict())
+        return JSONResponse(
+            status_code=200,
+            content=models.Queue(**q.dict()),
+        )
 
-    async def pop_queue(self, queue_id: str):
+    async def pop_queue(self, queue_id: str) -> JSONResponse:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
@@ -94,14 +111,17 @@ class Server:
 
         try:
             item = q.pop()
-            return models.QueueItem(**item.dict())
+            return JSONResponse(
+                status_code=200,
+                content=models.QueueItem(**item.dict()),
+            )
         except _queue.Empty:
             raise fastapi.HTTPException(
                 status_code=400,
                 detail="queue is empty",
             )
 
-    async def push_queue(self, queue_id: str, item: models.QueueItem):
+    async def push_queue(self, queue_id: str, item: models.QueueItem) -> JSONResponse:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
@@ -122,9 +142,9 @@ class Server:
                 detail="invalid item",
             )
 
-        return fastapi.Response(status_code=204)
+        return JSONResponse(status_code=204)
 
-    def run(self):
+    def run(self) -> None:
         uvicorn.run(
             self.api,
             host=self.ctx.config.api_host,

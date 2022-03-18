@@ -8,7 +8,7 @@ class Ranker:
     logger: logging.Logger
     ctx: context.AppContext
 
-    def __init__(self, ctx):
+    def __init__(self, ctx: context.AppContext) -> None:
         self.logger = logging.getLogger(__name__)
         self.ctx = ctx
 
@@ -30,7 +30,7 @@ class BoefjeRankerTimeBased(Ranker):
     """
 
     def rank(self, ooi: models.OOI) -> int:
-        return time.time() + 86400
+        return int(time.time() + 86400)
 
 
 class NormalizerRanker(Ranker):

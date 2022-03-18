@@ -115,7 +115,7 @@ class Dispatcher:
 
         self.task = p_item.item
 
-    def run(self):
+    def run(self) -> None:
         """Continuously dispatch items from the priority queue."""
         while True:
             if self.pq.empty():

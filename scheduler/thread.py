@@ -1,5 +1,6 @@
 import logging
 import threading
+from typing import Callable
 
 
 class ThreadRunner(threading.Thread):
@@ -24,13 +25,20 @@ class ThreadRunner(threading.Thread):
     interval: float
     exception: Exception
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        target: Callable,
+        stop_event: threading.Event,
+        interval: float = 0.01,
+        *args,
+        **kwargs,
+    ):
         self.logger = logging.getLogger(__name__)
-        self.stop_event = kwargs.pop("stop_event", None)
-        self.interval = kwargs.pop("interval", 0.01)
+        self.stop_event = stop_event
+        self.interval = interval
         self.exception = None
 
-        super().__init__(*args, **kwargs)
+        super().__init__(target=target, *args, **kwargs)
 
     def run(self):
         while not self.stop_event.is_set():
