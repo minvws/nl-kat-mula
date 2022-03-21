@@ -1,3 +1,5 @@
+import json
+
 from .services import HTTPService
 
 
@@ -8,7 +10,7 @@ class Bytes(HTTPService):
     password: str
     token: str
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.user = kwargs.pop("user")
         self.password = kwargs.pop("password")
 
@@ -25,7 +27,7 @@ class Bytes(HTTPService):
         url = f"{self.host}/token"
         response = self.post(
             url=url,
-            payload={"username": user, "password": password},
+            payload=json.dumps({"username": user, "password": password}),
             headers={"Content-Type": "application/x-www-form-urlendcoded"},
         )
-        return response.json()["access_token"]
+        return str(response.json()["access_token"])

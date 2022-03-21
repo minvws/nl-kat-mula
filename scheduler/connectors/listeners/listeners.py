@@ -1,5 +1,5 @@
-import logging
 import abc
+import logging
 
 import pika
 
@@ -13,9 +13,10 @@ class Listener(abc.ABC):
         logger:
             The logger for the class.
     """
+
     logger: logging.Logger
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
 
     @abc.abstractmethod
@@ -36,6 +37,7 @@ class RabbitMQ(Listener):
         queue:
             A string defining the RabbitMQ queue to listen to.
     """
+
     dsn: str
     queue: str
 
@@ -44,13 +46,13 @@ class RabbitMQ(Listener):
         self.dsn = dsn
         self.queue = queue
 
-    def listen(self):
+    def listen(self) -> None:
         connection = pika.BlockingConnection(pika.URLParameters(self.dsn))
         channel = connection.channel()
         channel.basic_consume(queue=self.queue, on_message_callback=self.callback)
         channel.start_consuming()
 
-    def callback(self, *args, **kwargs):
+    def callback(self, *args, **kwargs) -> None:
         channel, method_frame, header_frame, body = args
         self.logger.debug(" [x] Received %r" % body)
 

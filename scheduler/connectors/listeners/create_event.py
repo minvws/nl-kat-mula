@@ -15,13 +15,13 @@ class CreateEventListener(RabbitMQ):
             incoming objects can be posted to.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.ctx = kwargs.pop("ctx")
         self.normalizer_queue = kwargs.pop("normalizer_queue")
 
         super().__init__(*args, **kwargs)
 
-    def dispatch(self, *args, **kwargs):
+    def dispatch(self, *args, **kwargs) -> None:
         self.logger.info("hello, world")
 
         # TODO: put it on the normalizer queue

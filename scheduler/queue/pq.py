@@ -35,19 +35,19 @@ class PrioritizedItem:
         self.priority = priority
         self.item = item
 
-    def dict(self) -> Dict:
+    def dict(self) -> Dict[str, Any]:
         return {"priority": self.priority, "item": self.item}
 
     def json(self) -> str:
         return json.dumps(self.dict())
 
-    def __attrs(self):
+    def __attrs(self) -> Tuple[int, Any]:
         return (self.priority, self.item)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__attrs())
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return isinstance(other, PrioritizedItem) and self.__attrs() == other.__attrs()
 
 
@@ -101,7 +101,7 @@ class PriorityQueue:
         self.item_type = item_type
         self.pq = queue.PriorityQueue(maxsize=self.maxsize)
 
-    def pop(self) -> PrioritizedItem:
+    def pop(self) -> Union[PrioritizedItem, None]:
         """Pop the item with the highest priority from the queue. If optional
         args block is true and timeout is None (the default), block if
         necessary until an item is available. If timeout is a positive number,
@@ -115,6 +115,9 @@ class PriorityQueue:
         """
         while True:
             try:
+                item: Union[PrioritizedItem, None]
+                state: EntryState
+
                 _, item, state = self.pq.get(block=True, timeout=self.timeout)
 
                 # When we reach an item that isn't removed, we can return it
@@ -175,7 +178,8 @@ class PriorityQueue:
                 An integer describing the index of item on the queue that you
                 want to inspect.
         """
-        return self.pq.queue[index]
+        item = self.pq.queue[index]
+        return item
 
     def remove(self, p_item: PrioritizedItem) -> None:
         """Remove an item from the queue.
@@ -212,7 +216,7 @@ class PriorityQueue:
 
         return True
 
-    def dict(self) -> Dict:
+    def dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
             "size": self.pq.qsize(),
@@ -226,5 +230,5 @@ class PriorityQueue:
     def empty(self) -> bool:
         return self.pq.empty()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.pq.qsize()

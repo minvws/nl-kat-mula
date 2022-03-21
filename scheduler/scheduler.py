@@ -40,7 +40,7 @@ class Scheduler:
     threads: Dict[str, threading.Thread]
     stop_event: threading.Event
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         self.ctx = context.AppContext()
         self.threads = {}
@@ -94,7 +94,7 @@ class Scheduler:
         # Initialize API server
         self.server = server.Server(self.ctx, queues=self.queues)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Gracefully shutdown the scheduler, and all threads."""
         self.logger.warning("Shutting down...")
 
@@ -105,16 +105,16 @@ class Scheduler:
 
         os._exit(0)
 
-    def _populate_normalizers_queue(self):
+    def _populate_normalizers_queue(self) -> None:
         # TODO: from bytes get boefjes jobs that are done
         self.logger.info("_populate_normalizers_queue")
 
-    def _add_normalizer_task_to_queue(self, task: NormalizerTask):
+    def _add_normalizer_task_to_queue(self, task: NormalizerTask) -> None:
         self.queues.get("normalizers").push(
             queue.PrioritizedItem(priority=0, item=task),
         )
 
-    def _populate_boefjes_queue(self):
+    def _populate_boefjes_queue(self) -> None:
         """Process to add boefje tasks to the boefjes priority queue."""
         # TODO: get n from config file
         oois = self.ctx.services.octopoes.get_objects()
@@ -156,7 +156,7 @@ class Scheduler:
                     queue.PrioritizedItem(priority=score, item=task),
                 )
 
-    def _run_in_thread(self, name: str, func: Callable, interval: float = 0.01, daemon: bool = False, *args, **kwargs):
+    def _run_in_thread(self, name: str, func: Callable, interval: float = 0.01, daemon: bool = False, *args, **kwargs) -> None:
         """Make a function run in a thread, and add it to the dict of threads.
 
         Args:
@@ -176,7 +176,7 @@ class Scheduler:
         self.threads[name].setDaemon(daemon)
         self.threads[name].start()
 
-    def run(self):
+    def run(self) -> None:
         """Start the main scheduler application, and run in threads the
         following processes:
 

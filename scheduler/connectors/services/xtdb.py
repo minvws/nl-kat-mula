@@ -10,7 +10,7 @@ class XTDB(HTTPService):
     name = "xtdb"
     health_endpoint = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.headers["Content-Type"] = "application/edn"
 

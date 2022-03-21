@@ -32,7 +32,7 @@ class ThreadRunner(threading.Thread):
         interval: float = 0.01,
         *args,
         **kwargs,
-    ):
+    ) -> None:
         self.logger = logging.getLogger(__name__)
         self.stop_event = stop_event
         self.interval = interval
@@ -40,7 +40,7 @@ class ThreadRunner(threading.Thread):
 
         super().__init__(target=target, *args, **kwargs)
 
-    def run(self):
+    def run(self) -> None:
         while not self.stop_event.is_set():
             try:
                 self._target(*self._args, **self._kwargs)
@@ -51,7 +51,7 @@ class ThreadRunner(threading.Thread):
 
             self.stop_event.wait(self.interval)
 
-    def join(self, timeout=None):
+    def join(self, timeout=None) -> None:
         self.logger.debug(f"Stopping thread:")
 
         self.stop_event.set()
@@ -59,5 +59,5 @@ class ThreadRunner(threading.Thread):
 
         self.logger.debug(f"Thread stopped")
 
-    def stop(self):
+    def stop(self) -> None:
         self.stop_event.set()

@@ -3,7 +3,7 @@ import logging
 import socket
 import time
 import urllib.parse
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Union
 
 import requests
 
@@ -41,7 +41,7 @@ class HTTPService:
         "Accept": "application/json",
         "Content-Type": "application/json",
     }
-    health_endpoint: str = "/health"
+    health_endpoint: Union[str, None] = "/health"
     timeout: int
 
     def __init__(self, host: str, source: str, timeout: int = 5):
@@ -68,7 +68,7 @@ class HTTPService:
 
         self._do_checks()
 
-    def get(self, url: str, headers: Dict = None, params: Dict = None) -> requests.Response:
+    def get(self, url: str, headers: Dict[str, Any] = {}, params: Dict[str, Any] = {}) -> requests.Response:
         """Execute a HTTP GET request
 
         Args:
@@ -92,7 +92,9 @@ class HTTPService:
 
         return response
 
-    def post(self, url: str, payload: str, headers: Dict = None, params: Dict = None) -> requests.Response:
+    def post(
+        self, url: str, payload: str, headers: Dict[str, Any] = {}, params: Dict[str, Any] = {}
+    ) -> requests.Response:
         """Execute a HTTP POST request
 
         Args:
@@ -118,8 +120,7 @@ class HTTPService:
         return response
 
     def _do_checks(self) -> None:
-        """Do checks whether a host is available and healthy.
-        """
+        """Do checks whether a host is available and healthy."""
         if self.host is not None and self._retry(self._is_host_available) is False:
             raise RuntimeError(f"Host {self.host} is not available.")
 
@@ -157,7 +158,7 @@ class HTTPService:
         except requests.exceptions.RequestException:
             return False
 
-    def _retry(self, func: callable) -> bool:
+    def _retry(self, func: Callable) -> bool:
         """Retry a function until it returns True.
 
         Args:
@@ -192,5 +193,5 @@ class HTTPService:
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            self.logger.error(f"HTTPError: {e} [name={self.name} url={response.url} response={response.content}]")
+            self.logger.error(f"HTTPError: {str(e)} [name={self.name} url={response.url} response={response.content}]")
             raise (e)

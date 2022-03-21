@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class Normalizer(BaseModel):
+    id: str
     name: str
     version: Optional[str] = Field(default=None)
 
@@ -18,8 +19,8 @@ class NormalizerTask(BaseModel):
     input_ooi: str
     organization: str
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """Make NormalizerTask hashable, so that we can deduplicate it when used
         in the PriorityQueue. We hash the combination of the attributes
         input_ooi and normalizer.id since this combination is unique."""
-        return hash((self.input_ooi, self.normalizer.id))
+        return hash((self.input_ooi, self.normalizer.id, self.organization))
