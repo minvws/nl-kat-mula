@@ -32,14 +32,6 @@ class Scheduler:
             event across threads.
     """
 
-    logger: logging.Logger
-    ctx: context.AppContext
-    listeners: Dict[str, listeners.Listener]
-    queues: Dict[str, queue.PriorityQueue]
-    server: server.Server
-    threads: Dict[str, threading.Thread]
-    stop_event: threading.Event
-
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         self.ctx = context.AppContext()

@@ -33,16 +33,8 @@ class HTTPService:
             An integer defining the timeout of requests.
     """
 
-    logger: logging.Logger
     name: str
-    source: str
-    host: str
-    headers: Dict[str, str] = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-    }
     health_endpoint: Union[str, None] = "/health"
-    timeout: int
 
     def __init__(self, host: str, source: str, timeout: int = 5):
         """Initializer of the HTTPService class. During initialization thr
@@ -53,15 +45,19 @@ class HTTPService:
                 A string url formatted reference to the host of the service
             source:
                 A string defining the request source of HTTP request made from
-                this HTTPService instance. This helps services differentiate from
-                where the requests came from.
+                this HTTPService instance. This helps services differentiate
+                from where the requests came from.
             timeout:
                 An integer defining the timeout of requests.
         """
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger: logger.Logger = logging.getLogger(self.__class__.__name__)
         self.host = host
-        self.source = source
         self.timeout = timeout
+
+        self.headers: Dict[str, str] = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
 
         if self.source:
             self.headers["User-Agent"] = self.source

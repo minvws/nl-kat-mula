@@ -20,12 +20,9 @@ class AppContext:
             are used and need to be shared in the scheduler application.
     """
 
-    config: settings.Settings
-    services: SimpleNamespace
-
     def __init__(self) -> None:
         """Initializer of the AppContext class."""
-        self.config = settings.Settings()
+        self.config: settings.Settings = settings.Settings()
 
         # Load logging configuration
         with open(self.config.log_cfg, "rt") as f:

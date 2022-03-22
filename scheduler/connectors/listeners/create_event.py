@@ -1,3 +1,5 @@
+from scheduler import context
+
 from .listeners import RabbitMQ
 
 
@@ -16,8 +18,8 @@ class CreateEventListener(RabbitMQ):
     """
 
     def __init__(self, *args, **kwargs) -> None:
-        self.ctx = kwargs.pop("ctx")
-        self.normalizer_queue = kwargs.pop("normalizer_queue")
+        self.ctx: context.AppContext = kwargs.pop("ctx")
+        self.normalizer_queue: str = kwargs.pop("normalizer_queue")
 
         super().__init__(*args, **kwargs)
 

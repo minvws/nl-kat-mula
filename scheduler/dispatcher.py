@@ -35,12 +35,6 @@ class Dispatcher:
             reference the task that should be dispatched.
     """
 
-    logger: logging.Logger
-    pq: queue.PriorityQueue
-    threshold: float
-    item_type: pydantic.BaseModel
-    task: pydantic.BaseModel
-
     def __init__(self, pq: queue.PriorityQueue, item_type: pydantic.BaseModel):
         """Initialize the Dispatcher class
 
@@ -51,10 +45,11 @@ class Dispatcher:
                 A pydantic.BaseModel object that specifies the type of item
                 that should be dispatched, this helps with validation.
         """
-        self.logger = logging.getLogger(__name__)
-        self.pq = pq
-        self.threshold = float("inf")
-        self.item_type = item_type
+        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.pq: queue.PriorityQueue = pq
+        self.threshold: float = float("inf")
+        self.item_type: pydantic.BaseModel = item_type
+        self.task: pydantic.BaseModel = None
 
     def _can_dispatch(self) -> bool:
         """Checks the first item of the priority queue, whether or not items
@@ -140,10 +135,6 @@ class CeleryDispatcher(Dispatcher):
         task_name:
             A string describing the name of the Celery task
     """
-
-    ctx: context.AppContext
-    queue: str
-    task_name: str
 
     def __init__(
         self,

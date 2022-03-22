@@ -5,12 +5,9 @@ from scheduler import context, models
 
 
 class Ranker:
-    logger: logging.Logger
-    ctx: context.AppContext
-
     def __init__(self, ctx: context.AppContext) -> None:
-        self.logger = logging.getLogger(__name__)
-        self.ctx = ctx
+        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.ctx: context.AppContext = ctx
 
     def rank(self, ooi: models.OOI) -> int:
         raise NotImplementedError()

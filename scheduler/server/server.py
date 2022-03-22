@@ -14,15 +14,10 @@ from scheduler import context, datastore, models, queue
 class Server:
     """Server that exposes API endpoints for the scheduler."""
 
-    logger: logging.Logger
-    ctx: context.AppContext
-    api: fastapi.FastAPI
-    queues: Dict[str, queue.PriorityQueue]
-
     def __init__(self, ctx: context.AppContext, queues: Dict[str, queue.PriorityQueue]):
-        self.logger = logging.getLogger(__name__)
-        self.ctx = ctx
-        self.queues = queues
+        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.ctx: context.AppContext = ctx
+        self.queues: Dict[str, queue.PriorityQueue] = queues
 
         self.api = fastapi.FastAPI()
 

@@ -20,11 +20,6 @@ class ThreadRunner(threading.Thread):
             an exception has occured during the execution of the thread.
     """
 
-    logger: logging.Logger
-    stop_event: threading.Event
-    interval: float
-    exception: Exception
-
     def __init__(
         self,
         target: Callable,

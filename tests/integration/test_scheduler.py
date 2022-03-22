@@ -69,12 +69,11 @@ class SchedulerTestCase(unittest.TestCase):
         d.app.send_task = mock.Mock()
 
         # Get item from queue, and dispatch it
-        item = self.scheduler.queues.get("boefjes").pop()
-        d.dispatch(item)
+        d.dispatch()
 
         d.app.send_task.assert_called_once_with(
             name="tasks.handle_boefje",
-            args=(item.item.dict(),),
+            args=(d.task.dict(),),
             queue="boefjes",
-            task_id=item.item.id,
+            task_id=d.task.id,
         )

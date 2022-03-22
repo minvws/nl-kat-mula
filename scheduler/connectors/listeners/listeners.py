@@ -14,8 +14,6 @@ class Listener(abc.ABC):
             The logger for the class.
     """
 
-    logger: logging.Logger
-
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
 
@@ -37,9 +35,6 @@ class RabbitMQ(Listener):
         queue:
             A string defining the RabbitMQ queue to listen to.
     """
-
-    dsn: str
-    queue: str
 
     def __init__(self, dsn: str, queue: str):
         super().__init__()

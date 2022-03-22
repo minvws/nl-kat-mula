@@ -6,13 +6,9 @@ from .services import HTTPService
 class Bytes(HTTPService):
     name = "bytes"
 
-    user: str
-    password: str
-    token: str
-
     def __init__(self, *args, **kwargs) -> None:
-        self.user = kwargs.pop("user")
-        self.password = kwargs.pop("password")
+        self.user: str = kwargs.pop("user")
+        self.password: str = kwargs.pop("password")
 
         super().__init__(*args, **kwargs)
 

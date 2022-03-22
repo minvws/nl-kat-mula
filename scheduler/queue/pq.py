@@ -28,12 +28,9 @@ class PrioritizedItem:
             A python object that is attached to the prioritized item.
     """
 
-    priority: int
-    item: Any = field(compare=False)
-
     def __init__(self, priority: int, item: Any):
-        self.priority = priority
-        self.item = item
+        self.priority: int = priority
+        self.item: Any = item
 
     def dict(self) -> Dict[str, Any]:
         return {"priority": self.priority, "item": self.item}
@@ -79,14 +76,6 @@ class PriorityQueue:
             entries in the queue.
     """
 
-    logger: logging.Logger
-    id: str
-    maxsize: int
-    item_type: pydantic.BaseModel
-    pq: queue.PriorityQueue
-    timeout: int = 5
-    entry_finder: Dict[Any, List[Union[int, PrioritizedItem, EntryState]]] = {}
-
     def __init__(self, id: str, maxsize: int, item_type: pydantic.BaseModel):
         """Initialize the priority queue.
 
@@ -95,11 +84,13 @@ class PriorityQueue:
             maxsize: The maximum size of the queue.
             item_type (pydantic.BaseModel): The type of the items in the queue.
         """
-        self.logger = logging.getLogger(__name__)
-        self.id = id
-        self.maxsize = maxsize
-        self.item_type = item_type
-        self.pq = queue.PriorityQueue(maxsize=self.maxsize)
+        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.id: str = id
+        self.maxsize: int = maxsize
+        self.item_type: pydantic.BaseModel = item_type
+        self.pq: queue.PriorityQueue = queue.PriorityQueue(maxsize=self.maxsize)
+        self.timeout: int = 5
+        self.entry_finder: Dict[Any, List[Union[int, PrioritizedItem, EntryState]]] = {}
 
     def pop(self) -> Union[PrioritizedItem, None]:
         """Pop the item with the highest priority from the queue. If optional
