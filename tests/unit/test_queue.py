@@ -87,18 +87,23 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 2)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
-        first_item_priority, first_item, first_item_state = self.pq.peek(0)
-        last_item_priority, last_item, last_item_state = self.pq.peek(-1)
+        first_entry = self.pq.peek(0)
+        last_entry = self.pq.peek(-1)
 
         # Last item should be an item with, EntryState.REMOVED
-        self.assertEqual(last_item_priority, 2)
-        self.assertEqual(last_item, initial_item)
-        self.assertEqual(last_item_state, queue.EntryState.REMOVED)
+        self.assertEqual(last_entry.priority, 2)
+        self.assertEqual(last_entry.p_item, initial_item)
+        self.assertEqual(last_entry.state, queue.EntryState.REMOVED)
 
         # First item should be the updated item
-        self.assertEqual(first_item_priority, 1)
-        self.assertEqual(first_item, updated_item)
-        self.assertEqual(first_item_state, queue.EntryState.ADDED)
+        self.assertEqual(first_entry.priority, 1)
+        self.assertEqual(first_entry.p_item, updated_item)
+        self.assertEqual(first_entry.state, queue.EntryState.ADDED)
+
+        # Item in entry_finder should be the updated item
+        self.assertEqual(self.pq.entry_finder[updated_item.item].priority, updated_item.priority)
+        self.assertEqual(self.pq.entry_finder[updated_item.item].p_item, updated_item)
+        self.assertEqual(self.pq.entry_finder[updated_item.item].state, queue.EntryState.ADDED)
 
         # When popping off the queue you should end up with the updated_item
         # that now has the highest priority.
@@ -130,18 +135,23 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 2)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
-        first_item_priority, first_item, first_item_state = self.pq.peek(0)
-        last_item_priority, last_item, last_item_state = self.pq.peek(-1)
+        first_entry = self.pq.peek(0)
+        last_entry = self.pq.peek(-1)
 
-        # Last item should be then updated item
-        self.assertEqual(last_item_priority, 2)
-        self.assertEqual(last_item, updated_item)
-        self.assertEqual(last_item_state, queue.EntryState.ADDED)
+        # Last item should be the updated item
+        self.assertEqual(last_entry.priority, 2)
+        self.assertEqual(last_entry.p_item, updated_item)
+        self.assertEqual(last_entry.state, queue.EntryState.ADDED)
 
         # First item should be the initial item, with EntryState.REMOVED
-        self.assertEqual(first_item_priority, 1)
-        self.assertEqual(first_item, initial_item)
-        self.assertEqual(first_item_state, queue.EntryState.REMOVED)
+        self.assertEqual(first_entry.priority, 1)
+        self.assertEqual(first_entry.p_item, initial_item)
+        self.assertEqual(first_entry.state, queue.EntryState.REMOVED)
+
+        # Item in entry_finder should be the updated item
+        self.assertEqual(self.pq.entry_finder[updated_item.item].priority, updated_item.priority)
+        self.assertEqual(self.pq.entry_finder[updated_item.item].p_item, updated_item)
+        self.assertEqual(self.pq.entry_finder[updated_item.item].state, queue.EntryState.ADDED)
 
         # When popping off the queue you should end up with the updated_item
         # that now has the lowest priority.
@@ -184,12 +194,12 @@ class PriorityQueueTestCase(unittest.TestCase):
         # Remove the item
         self.pq.remove(item)
 
-        first_item_priority, first_item, first_item_state = self.pq.peek(0)
+        first_entry = self.pq.peek(0)
 
         # First item should be the item with EntryState.REMOVED
-        self.assertEqual(first_item_priority, 1)
-        self.assertEqual(first_item, item)
-        self.assertEqual(first_item_state, queue.EntryState.REMOVED)
+        self.assertEqual(first_entry.priority, 1)
+        self.assertEqual(first_entry.p_item, item)
+        self.assertEqual(first_entry.state, queue.EntryState.REMOVED)
 
         # The queue should now have 1 item and that was the item marked
         # as removed.

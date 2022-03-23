@@ -66,18 +66,18 @@ class DispatcherTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 2)
 
         # Check the queue for the correct items
-        first_item_priority, first_item, first_item_state = self.pq.peek(0)
-        last_item_priority, last_item, last_item_state = self.pq.peek(-1)
+        first_entry = self.pq.peek(0)
+        last_entry = self.pq.peek(-1)
 
         # First item should be the prio2 item
-        self.assertEqual(first_item_priority, 2)
-        self.assertEqual(first_item, prio2)
-        self.assertEqual(first_item_state, queue.EntryState.ADDED)
+        self.assertEqual(first_entry.priority, 2)
+        self.assertEqual(first_entry.p_item, prio2)
+        self.assertEqual(first_entry.state, queue.EntryState.ADDED)
 
         # Last item should be the prio3 item
-        self.assertEqual(last_item_priority, 3)
-        self.assertEqual(last_item, prio3)
-        self.assertEqual(last_item_state, queue.EntryState.ADDED)
+        self.assertEqual(last_entry.priority, 3)
+        self.assertEqual(last_entry.p_item, prio3)
+        self.assertEqual(last_entry.state, queue.EntryState.ADDED)
 
         # Dispatch a second time, should have no effect on the queue
         self.dispatcher.dispatch()
@@ -134,7 +134,7 @@ class DispatcherTestCase(unittest.TestCase):
         prio2 = create_p_item(priority=time.time())
         self.pq.push(p_item=prio2)
 
-        prio3 = create_p_item(priority=time.time())
+        prio3 = create_p_item(priority=time.time() + 20)
         self.pq.push(p_item=prio3)
 
         self.assertEqual(len(self.pq), 3)
@@ -144,18 +144,18 @@ class DispatcherTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 2)
 
         # Check the queue for the correct items
-        first_item_priority, first_item, first_item_state = self.pq.peek(0)
-        last_item_priority, last_item, last_item_state = self.pq.peek(-1)
+        first_entry = self.pq.peek(0)
+        last_entry = self.pq.peek(-1)
 
         # First item should be the prio2 item
-        self.assertEqual(first_item_priority, prio2.priority)
-        self.assertEqual(first_item, prio2)
-        self.assertEqual(first_item_state, queue.EntryState.ADDED)
+        self.assertEqual(first_entry.priority, prio2.priority)
+        self.assertEqual(first_entry.p_item, prio2)
+        self.assertEqual(first_entry.state, queue.EntryState.ADDED)
 
         # Last item should be the prio3 item
-        self.assertEqual(last_item_priority, prio3.priority)
-        self.assertEqual(last_item, prio3)
-        self.assertEqual(last_item_state, queue.EntryState.ADDED)
+        self.assertEqual(last_entry.priority, prio3.priority)
+        self.assertEqual(last_entry.p_item, prio3)
+        self.assertEqual(last_entry.state, queue.EntryState.ADDED)
 
         # Dispatch a second time, should have no effect on the queue
         self.dispatcher.dispatch()

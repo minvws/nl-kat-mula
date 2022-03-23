@@ -48,6 +48,36 @@ class PrioritizedItem:
         return isinstance(other, PrioritizedItem) and self.__attrs() == other.__attrs()
 
 
+class Entry:
+    """A class that represents an entry on the priority queue.
+
+    Attributes:
+        priority:
+            An integer describing the priority of the item.
+        item:
+            A PrioritizedItem object.
+        state:
+            An EntryState object.
+    """
+
+    def __init__(self, p_item: PrioritizedItem, state: EntryState):
+        self.priority: int = p_item.priority
+        self.p_item: PrioritizedItem = p_item
+        self.state: EntryState = state
+
+    def __attrs(self) -> Tuple[int, Any]:
+        return (self.priority, self.p_item, self.state)
+
+    def __hash__(self) -> int:
+        return hash(self.__attrs())
+
+    def __lt__(self, other) -> bool:
+        return self.priority < other.priority
+
+    def __eq__(self, other) -> bool:
+        return isinstance(other, Entry) and self.__attrs() == other.__attrs()
+
+
 class PriorityQueue:
     """Thread-safe implementation of a priority queue.
 
@@ -90,7 +120,7 @@ class PriorityQueue:
         self.item_type: pydantic.BaseModel = item_type
         self.pq: queue.PriorityQueue = queue.PriorityQueue(maxsize=self.maxsize)
         self.timeout: int = 5
-        self.entry_finder: Dict[Any, List[Union[int, PrioritizedItem, EntryState]]] = {}
+        self.entry_finder: Dict[Any, Entry] = {}
 
     def pop(self) -> Union[PrioritizedItem, None]:
         """Pop the item with the highest priority from the queue. If optional
@@ -109,12 +139,12 @@ class PriorityQueue:
                 item: Union[PrioritizedItem, None]
                 state: EntryState
 
-                _, item, state = self.pq.get(block=True, timeout=self.timeout)
+                entry = self.pq.get(block=True, timeout=self.timeout)
 
                 # When we reach an item that isn't removed, we can return it
-                if state is not EntryState.REMOVED:
-                    del self.entry_finder[item.item]
-                    return item
+                if entry.state is not EntryState.REMOVED:
+                    del self.entry_finder[entry.p_item.item]
+                    return entry.p_item
             except queue.Empty:
                 self.logger.warning(f"Queue {self.id} is empty")
                 return None
@@ -138,7 +168,7 @@ class PriorityQueue:
 
         # When item is already on the queue, and the priority isn't changed,
         # we ignore it.
-        if p_item.item in self.entry_finder and p_item == self.entry_finder[p_item.item][1]:
+        if p_item.item in self.entry_finder and p_item == self.entry_finder[p_item.item].p_item:
             self.logger.warning(f"Item {p_item.item} already in queue {self.id} [p_item={p_item}]")
             return
 
@@ -147,9 +177,9 @@ class PriorityQueue:
         # pointer to the entry in the queue and the entry_finder.
         if p_item.item in self.entry_finder:
             entry = self.entry_finder.pop(p_item.item)
-            entry[-1] = EntryState.REMOVED
+            entry.state = EntryState.REMOVED
 
-        entry = [p_item.priority, p_item, EntryState.ADDED]
+        entry = Entry(p_item=p_item, state=EntryState.ADDED)
         self.entry_finder[p_item.item] = entry
 
         self.pq.put(
@@ -158,8 +188,8 @@ class PriorityQueue:
             timeout=self.timeout,
         )
 
-    def peek(self, index: int) -> List[Union[int, PrioritizedItem, EntryState]]:
-        """Return the item with the without removing it from the queue.
+    def peek(self, index: int) -> Entry:
+        """Return the priority queue Entry without removing it from the queue.
 
         Reference:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.peek
@@ -189,7 +219,7 @@ class PriorityQueue:
 
         if p_item.item in self.entry_finder:
             entry = self.entry_finder.pop(p_item.item)
-            entry[-1] = EntryState.REMOVED
+            entry.state = EntryState.REMOVED
 
     def _is_valid_item(self, item: Any) -> bool:
         """Validate the item to be pushed into the queue.

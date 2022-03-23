@@ -60,12 +60,8 @@ class Dispatcher:
             A boolean representing whether the item with the highest priority
             on the queue, should be dispatched.
         """
-        # TODO: since we have a dependency on the PriorityQueue and how items
-        # are defined on the queue, we should make that more explicity so
-        # that we don't heave to use indexing here to get the task item from
-        # an entry
-        peek_item = self.pq.peek(0)[1]
-        if float(peek_item.priority) <= self.get_threshold():
+        p_item = self.pq.peek(0).p_item
+        if float(p_item.priority) <= self.get_threshold():
             return True
 
         return False
