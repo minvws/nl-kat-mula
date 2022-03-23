@@ -1,12 +1,12 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class OOI(BaseModel):
-    """Representation of "Object Of Interests"" from Octopoes.
-    """
+    """Representation of "Object Of Interests" from Octopoes."""
+
+    id: str = Field(..., alias="__id__")
     name: str
     ooi_type: str
-    organization: str
-    reference: Optional[str]  # FIXME: when endpoint exposes the correct id
+    # organization: str

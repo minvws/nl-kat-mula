@@ -45,11 +45,11 @@ class Scheduler:
                 maxsize=self.ctx.config.pq_maxsize,
                 item_type=BoefjeTask,
             ),
-            "normalizers": queue.PriorityQueue(
-                id="normalizers",
-                maxsize=self.ctx.config.pq_maxsize,
-                item_type=NormalizerTask,
-            ),
+            # "normalizers": queue.PriorityQueue(
+            #     id="normalizers",
+            #     maxsize=self.ctx.config.pq_maxsize,
+            #     item_type=NormalizerTask,
+            # ),
         }
 
         # Initialize rankers
@@ -137,8 +137,8 @@ class Scheduler:
                 task = BoefjeTask(
                     id=uuid.uuid4().hex,
                     boefje=boefje,
-                    input_ooi=ooi.reference,
-                    organization=ooi.organization,
+                    input_ooi=ooi.id,
+                    organization="_dev",  # FIXME
                 )
 
                 # TODO: do we have a grace period for boefjes that have been
@@ -148,7 +148,9 @@ class Scheduler:
                     queue.PrioritizedItem(priority=score, item=task),
                 )
 
-    def _run_in_thread(self, name: str, func: Callable, interval: float = 0.01, daemon: bool = False, *args, **kwargs) -> None:
+    def _run_in_thread(
+        self, name: str, func: Callable, interval: float = 0.01, daemon: bool = False, *args, **kwargs
+    ) -> None:
         """Make a function run in a thread, and add it to the dict of threads.
 
         Args:
@@ -184,7 +186,7 @@ class Scheduler:
         for k, l in self.listeners.items():
             self._run_in_thread(name=k, func=l.listen)
 
-        # Queue population
+        # Queue populators
         #
         # We start the `_populate_{queue_id}_queue` functions in separate
         # threads, and these can be run with a configurable defined interval.
@@ -192,6 +194,7 @@ class Scheduler:
             self._run_in_thread(
                 name=f"{k}_queue_populator",
                 func=getattr(self, f"_populate_{q.id}_queue"),
+                interval=10,
             )
 
         # Dispatchers directing work from queues to workers

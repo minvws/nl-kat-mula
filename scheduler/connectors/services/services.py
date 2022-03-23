@@ -53,6 +53,7 @@ class HTTPService:
         self.logger: logger.Logger = logging.getLogger(self.__class__.__name__)
         self.host = host
         self.timeout = timeout
+        self.source = source
 
         self.headers: Dict[str, str] = {
             "Accept": "application/json",
