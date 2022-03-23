@@ -65,6 +65,9 @@ class Entry:
         self.p_item: PrioritizedItem = p_item
         self.state: EntryState = state
 
+    def dict(self) -> Dict[str, Any]:
+        return {"priority": self.priority, "item": self.p_item.dict(), "state": self.state.value}
+
     def __attrs(self) -> Tuple[int, Any]:
         return (self.priority, self.p_item, self.state)
 
@@ -173,7 +176,7 @@ class PriorityQueue:
             return
 
         # Set item as removed in entry_finder when it is already present,
-        # since we're updating the entry. Using a list here acts as a
+        # since we're updating the entry. Using an Entry here acts as a
         # pointer to the entry in the queue and the entry_finder.
         if p_item.item in self.entry_finder:
             entry = self.entry_finder.pop(p_item.item)

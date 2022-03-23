@@ -45,6 +45,15 @@ class DispatcherTestCase(unittest.TestCase):
         del self.pq
         del self.dispatcher
 
+    def test_set_task_on_dispatch(self):
+        """When a task is set on dispatch it should set the task."""
+        prio1 = create_p_item(priority=1)
+        self.pq.push(p_item=prio1)
+
+        self.dispatcher.dispatch()
+
+        self.assertIsNotNone(self.dispatcher.task)
+
     def test_dispatch_threshold(self):
         """When threshold is set it should only dispatch the items at that
         threshold"""

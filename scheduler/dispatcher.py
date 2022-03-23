@@ -178,6 +178,10 @@ class CeleryDispatcher(Dispatcher):
     def dispatch(self) -> None:
         super().dispatch()
 
+        if self.task is None:
+            self.logger.debug("Nothing to dispatch")
+            return
+
         self.app.send_task(
             name=self.task_name,
             args=(self.task.dict(),),
@@ -190,7 +194,7 @@ class BoefjeDispatcher(CeleryDispatcher):
     pass
 
 
-class BoefjeDispatcherTimebased(CeleryDispatcher):
+class BoefjeDispatcherTimeBased(CeleryDispatcher):
     """A time-based BoefjeDispatcher allows for executing jobs at a certain
     time. The threshold of dispatching jobs is the current time, and based
     on the time-based priority score of the jobs on the queue. The dispatcher

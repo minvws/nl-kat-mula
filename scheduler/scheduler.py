@@ -54,7 +54,7 @@ class Scheduler:
 
         # Initialize rankers
         self.rankers = {
-            "boefjes": ranker.BoefjeRanker(
+            "boefjes": ranker.BoefjeRankerTimeBased(
                 ctx=self.ctx,
             ),
             "normalizers": ranker.NormalizerRanker(
@@ -74,7 +74,7 @@ class Scheduler:
 
         # Initialize dispatchers
         self.dispatchers = {
-            "boefjes": dispatcher.BoefjeDispatcher(
+            "boefjes": dispatcher.BoefjeDispatcherTimeBased(
                 ctx=self.ctx,
                 pq=self.queues.get("boefjes"),
                 item_type=BoefjeTask,
