@@ -1,11 +1,10 @@
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import _queue
 import fastapi
 import scheduler
 import uvicorn
-from fastapi.responses import JSONResponse
 from scheduler import context, datastore, models, queue
 
 
@@ -25,6 +24,7 @@ class Server:
             path="/",
             endpoint=self.root,
             methods=["GET"],
+            status_code=200,
         )
 
         self.api.add_api_route(
@@ -32,6 +32,7 @@ class Server:
             endpoint=self.health,
             methods=["GET"],
             response_model=models.ServiceHealth,
+            status_code=200,
         )
 
         self.api.add_api_route(
@@ -39,6 +40,7 @@ class Server:
             endpoint=self.get_queues,
             methods=["GET"],
             response_model=List[models.Queue],
+            status_code=200,
         )
 
         self.api.add_api_route(
@@ -46,6 +48,7 @@ class Server:
             endpoint=self.get_queue,
             methods=["GET"],
             response_model=models.Queue,
+            status_code=200,
         )
 
         self.api.add_api_route(
@@ -53,6 +56,7 @@ class Server:
             endpoint=self.pop_queue,
             methods=["GET"],
             response_model=models.QueueItem,
+            status_code=200,
         )
 
         self.api.add_api_route(
@@ -61,29 +65,20 @@ class Server:
             methods=["POST"],
         )
 
-    async def root(self) -> JSONResponse:
-        return JSONResponse(
-            status_code=200,
-            content={"message": "hello, world"},
+    async def root(self) -> Any:
+        return {"message": "hello, world"}
+
+    async def health(self) -> Any:
+        return models.ServiceHealth(
+            service="scheduler",
+            healthy=True,
+            version=scheduler.__version__,
         )
 
-    async def health(self) -> JSONResponse:
-        return JSONResponse(
-            status_code=200,
-            content=models.ServiceHealth(
-                service="scheduler",
-                healthy=True,
-                version=scheduler.__version__,
-            ),
-        )
+    async def get_queues(self) -> Any:
+        return [models.Queue(**q.dict()) for q in self.queues.values()]
 
-    async def get_queues(self) -> JSONResponse:
-        return JSONResponse(
-            status_code=200,
-            content=[models.Queue(**q.dict()) for q in self.queues.values()],
-        )
-
-    async def get_queue(self, queue_id: str) -> JSONResponse:
+    async def get_queue(self, queue_id: str) -> Any:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
@@ -91,12 +86,9 @@ class Server:
                 detail="queue not found",
             )
 
-        return JSONResponse(
-            status_code=200,
-            content=models.Queue(**q.dict()),
-        )
+        return models.Queue(**q.dict())
 
-    async def pop_queue(self, queue_id: str) -> JSONResponse:
+    async def pop_queue(self, queue_id: str) -> Any:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
@@ -106,17 +98,14 @@ class Server:
 
         try:
             item = q.pop()
-            return JSONResponse(
-                status_code=200,
-                content=models.QueueItem(**item.dict()),
-            )
+            return models.QueueItem(**item.dict())
         except _queue.Empty:
             raise fastapi.HTTPException(
                 status_code=400,
                 detail="queue is empty",
             )
 
-    async def push_queue(self, queue_id: str, item: models.QueueItem) -> JSONResponse:
+    async def push_queue(self, queue_id: str, item: models.QueueItem) -> Any:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
@@ -137,7 +126,7 @@ class Server:
                 detail="invalid item",
             )
 
-        return JSONResponse(status_code=204)
+        return fastapi.Response(status_code=204)
 
     def run(self) -> None:
         uvicorn.run(
