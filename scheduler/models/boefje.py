@@ -22,7 +22,7 @@ class Boefje(BaseModel):
 class BoefjeTask(BaseModel):
     """BoefjeTask represent data needed for a Boefje to run."""
 
-    id: str
+    # id: str
     boefje: Boefje
     input_ooi: str
     organization: str

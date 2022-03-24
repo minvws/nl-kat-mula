@@ -73,5 +73,8 @@ $ docker-compose up --build -d scheduler
 ## Testing
 
 ```
+$ make itest
 $ make utest
+
+$ make file=test_file.py utest
 ```

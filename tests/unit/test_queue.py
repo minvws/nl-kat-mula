@@ -49,22 +49,142 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
-    # FIXME: expected to fail
-    def test_update_changed_item(self):
-        """When updating an item that is already in the queue, the item should
-        NOT be updated and the queue should not be affected.
+    def test_push_duplicates_not_allowed(self):
+        """When pushing an item that is already in the queue the item
+        shouldn't be pushed.
         """
+        # Set queue to not allow duplicates
+        self.pq.allow_duplicates = False
+
         # Add an item to the queue
-        initial_item = create_p_item(priority=2)
-        self.pq.push(p_item=initial_item)
+        first_item = create_p_item(priority=1)
+        self.pq.push(p_item=first_item)
 
-        # Update item
-        updated_item = copy.deepcopy(initial_item)
-        updated_item.item.name = "updated"
-        self.pq.push(p_item=updated_item)
-
-        # PriorityQueue should have 1 item
         self.assertEqual(len(self.pq), 1)
+        self.assertEqual(len(self.pq.entry_finder), 1)
+
+        # Add the same item again
+        self.pq.push(p_item=first_item)
+
+        self.assertEqual(len(self.pq), 1)
+        self.assertEqual(len(self.pq.entry_finder), 1)
+
+    def test_push_duplicates_allowed(self):
+        """When pushing an item that is already in the queue, but the queue
+        allows duplicates, the item should be pushed.
+        """
+        # Set queue to allow duplicates
+        self.pq.allow_duplicates = True
+
+        # Add an item to the queue
+        first_item = create_p_item(priority=1)
+        self.pq.push(p_item=first_item)
+
+        self.assertEqual(len(self.pq), 1)
+        self.assertEqual(len(self.pq.entry_finder), 1)
+
+        # Add the same item again
+        self.pq.push(p_item=first_item)
+
+        self.assertEqual(len(self.pq), 2)
+        self.assertEqual(len(self.pq.entry_finder), 2)
+
+    # FIXME
+    def test_push_updates_not_allowed(self):
+        """When pushing an item that is already in the queue, and the item is
+        updated, the item shouldn't be pushed.
+        """
+        # Set queue to not allow updates
+        self.pq.allow_updates = False
+
+        # Add an item to the queue
+        first_item = create_p_item(priority=1)
+        self.pq.push(p_item=first_item)
+
+        self.assertEqual(len(self.pq), 1)
+        self.assertEqual(len(self.pq.entry_finder), 1)
+
+        # Update the item
+        first_item.item.name = "updated-name"
+
+        # Add the same item again
+        self.pq.push(p_item=first_item)
+
+        self.assertEqual(len(self.pq), 1)
+        self.assertEqual(len(self.pq.entry_finder), 1)
+
+    # FIXME
+    def test_push_updates_allowed(self):
+        """When pushing an item that is already in the queue, and the item is
+        updated, but the queue allows item updates, the item should be pushed.
+        """
+        # Set queue to allow updates
+        self.pq.allow_updates = True
+
+        # Add an item to the queue
+        first_item = create_p_item(priority=1)
+        self.pq.push(p_item=first_item)
+
+        self.assertEqual(len(self.pq), 1)
+        self.assertEqual(len(self.pq.entry_finder), 1)
+
+        # Update the item
+        first_item.item.name = "updated-name"
+
+        # Add the same item again
+        self.pq.push(p_item=first_item)
+
+        # PriorityQueue should have 2 items (one initial with entry state
+        # removed, one updated)
+        self.assertEqual(len(self.pq), 2)
+        self.assertEqual(len(self.pq.entry_finder), 1)
+
+    def test_push_priority_updates_not_allowed(self):
+        """When pushing an item that is already in the queue, and the item
+        priority is updated, the item shouldn't be pushed.
+        """
+        # Set queue to allow updates
+        self.pq.allow_priority_updates = False
+
+        # Add an item to the queue
+        first_item = create_p_item(priority=1)
+        self.pq.push(p_item=first_item)
+
+        self.assertEqual(len(self.pq), 1)
+        self.assertEqual(len(self.pq.entry_finder), 1)
+
+        # Update the item
+        first_item.priority = 100
+
+        # Add the same item again
+        self.pq.push(p_item=first_item)
+
+        self.assertEqual(len(self.pq), 1)
+        self.assertEqual(len(self.pq.entry_finder), 1)
+
+    def test_push_priority_updates_allowed(self):
+        """When pushing an item that is already in the queue, and the item
+        priority is updated, the item should be pushed.
+        """
+        # Set queue to allow updates
+        self.pq.allow_priority_updates = True
+
+        # Add an item to the queue
+        first_item = create_p_item(priority=1)
+        self.pq.push(p_item=first_item)
+
+        self.assertEqual(len(self.pq), 1)
+        self.assertEqual(len(self.pq.entry_finder), 1)
+
+        # Update the item
+        first_item.priority = 100
+
+        # Add the same item again
+        self.pq.push(p_item=first_item)
+
+        # PriorityQueue should have 2 items (one initial with entry state
+        # removed, one updated)
+        self.assertEqual(len(self.pq), 2)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
     def test_update_priority_higher(self):
@@ -163,23 +283,6 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 0)
         self.assertEqual(len(self.pq.entry_finder), 0)
 
-    def test_push_duplicate(self):
-        """When pushing an item that is already in the queue, and the priority
-        of the item hasn't changed the item shouldn't be pushed.
-        """
-        # Add an item to the queue
-        first_item = create_p_item(priority=1)
-        self.pq.push(p_item=first_item)
-
-        self.assertEqual(len(self.pq), 1)
-        self.assertEqual(len(self.pq.entry_finder), 1)
-
-        # Add the same item again
-        self.pq.push(p_item=first_item)
-
-        self.assertEqual(len(self.pq), 1)
-        self.assertEqual(len(self.pq.entry_finder), 1)
-
     def test_remove_item(self):
         """When removing an item from the queue, the item should be marked as
         removed, and the item should be removed from the entry_finder.
@@ -213,4 +316,8 @@ class PriorityQueueTestCase(unittest.TestCase):
         pass
 
     def test_test(self):
+        pass
+
+    # TODO: Add tests for the following methods
+    def test_maxsize(self):
         pass

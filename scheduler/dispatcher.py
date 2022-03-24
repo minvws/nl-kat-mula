@@ -77,11 +77,11 @@ class Dispatcher:
         """
         return isinstance(item, self.item_type)
 
-    def get_threshold(self) -> float:
+    def get_threshold(self) -> int:
         """Return the threshold of that needs to be adhered to.
 
         Returns:
-            A float returning the threshold attribute.
+            A integer returning the threshold attribute.
         """
         return self.threshold
 
@@ -108,15 +108,11 @@ class Dispatcher:
 
     def run(self) -> None:
         """Continuously dispatch items from the priority queue."""
-        while True:
-            if self.pq.empty():
-                self.logger.debug("Queue is empty, sleeping ...")
-                time.sleep(10)
-                continue
+        if self.pq.empty():
+            self.logger.debug("Queue is empty, sleeping ...")
+            return
 
-            self.dispatch()
-
-            time.sleep(0.01)
+        self.dispatch()
 
 
 class CeleryDispatcher(Dispatcher):
@@ -186,7 +182,7 @@ class CeleryDispatcher(Dispatcher):
             name=self.task_name,
             args=(self.task.dict(),),
             queue=self.queue,
-            task_id=self.task.id,
+            task_id=uuid.uuid4().hex,
         )
 
 
@@ -201,5 +197,5 @@ class BoefjeDispatcherTimeBased(CeleryDispatcher):
     determines to dispatch the job.
     """
 
-    def get_threshold(self) -> float:
-        return time.time()
+    def get_threshold(self) -> int:
+        return int(time.time())

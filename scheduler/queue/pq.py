@@ -54,7 +54,7 @@ class Entry:
     Attributes:
         priority:
             An integer describing the priority of the item.
-        item:
+        p_item:
             A PrioritizedItem object.
         state:
             An EntryState object.
@@ -107,15 +107,41 @@ class PriorityQueue:
         entry_finder:
             A dict that maps items (python objects) to their corresponding
             entries in the queue.
+        allow_duplicates:
+            A boolean that defines if the queue allows duplicates. When set to
+            True, the queue will not remove items from the queue when
+            duplicate items are added.
+        allow_updates:
+            A boolean that defines if the queue allows updates. When set to
+            True, the queue will not remove items from the queue when the
+            attributes of an item are updated.
+        allow_priority_updates:
+            A boolean that defines if the queue allows updates. When set to
+            True, the queue will not remove items from the queue when the
+            priority of an item is updated.
     """
 
-    def __init__(self, id: str, maxsize: int, item_type: pydantic.BaseModel):
+    def __init__(self, id: str, maxsize: int, item_type: pydantic.BaseModel,
+                 allow_duplicates: bool = False, allow_updates: bool = False,
+                 allow_priority_updates: bool = False):
         """Initialize the priority queue.
 
         Args:
             id: The id of the queue.
             maxsize: The maximum size of the queue.
             item_type (pydantic.BaseModel): The type of the items in the queue.
+        allow_duplicates:
+            A boolean that defines if the queue allows duplicates. When set to
+            True, the queue will not remove items from the queue when
+            duplicate items are added.
+        allow_updates:
+            A boolean that defines if the queue allows updates. When set to
+            True, the queue will not remove items from the queue when the
+            attributes of an item are updated.
+        allow_priority_updates:
+            A boolean that defines if the queue allows updates. When set to
+            True, the queue will not remove items from the queue when the
+            priority of an item is updated.
         """
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.id: str = id
@@ -124,6 +150,9 @@ class PriorityQueue:
         self.pq: queue.PriorityQueue = queue.PriorityQueue(maxsize=self.maxsize)
         self.timeout: int = 5
         self.entry_finder: Dict[Any, Entry] = {}
+        self.allow_duplicates: bool = allow_duplicates
+        self.allow_updates: bool = allow_updates
+        self.allow_priority_updates: bool =  allow_priority_updates
 
     def pop(self) -> Union[PrioritizedItem, None]:
         """Pop the item with the highest priority from the queue. If optional
@@ -169,10 +198,20 @@ class PriorityQueue:
         if not self._is_valid_item(p_item.item):
             raise ValueError(f"PrioritizedItem must be of type {self.item_type.__name__}")
 
-        # When item is already on the queue, and the priority isn't changed,
-        # we ignore it.
-        if p_item.item in self.entry_finder and p_item == self.entry_finder[p_item.item].p_item:
-            self.logger.warning(f"Item {p_item.item} already in queue {self.id} [p_item={p_item}]")
+        on_queue = self.is_item_on_queue(p_item.item)
+        item_changed = False if not on_queue or p_item == self.entry_finder[p_item.item].p_item else True
+        priority_changed = False if not on_queue or p_item.priority == self.entry_finder[p_item.item].p_item.priority else True
+
+        if not self.allow_duplicates and on_queue:
+            self.logger.warning(f"Item {p_item.item} already in queue {self.id} [queue={self.id} p_item={p_item}]")
+            return
+        elif not self.allow_updates and not item_changed and on_queue:
+            self.logger.warning(f"Item {p_item.item} not in queue, or did not change in queue {self.id} [queue={self.id} p_item={p_item}]")
+            return
+        elif not self.allow_priority_updates and not priority_changed and on_queue:
+            self.logger.warning(
+                f"Item {p_item.item} not in queue, or priority did not change in queue {self.id} [queue={self.id} p_item={p_item}]"
+            )
             return
 
         # Set item as removed in entry_finder when it is already present,
@@ -223,6 +262,20 @@ class PriorityQueue:
         if p_item.item in self.entry_finder:
             entry = self.entry_finder.pop(p_item.item)
             entry.state = EntryState.REMOVED
+
+    def is_item_on_queue(self, item: Any) -> bool:
+        """Check if an item is on the queue.
+
+        Args:
+            item: The item to be checked.
+
+        Raises:
+            ValueError: If the item is not valid.
+        """
+        if not self._is_valid_item(item):
+            raise ValueError(f"Item must be of type {self.item_type.__name__}")
+
+        return item in self.entry_finder
 
     def _is_valid_item(self, item: Any) -> bool:
         """Validate the item to be pushed into the queue.

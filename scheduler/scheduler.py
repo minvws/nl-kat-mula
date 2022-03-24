@@ -44,6 +44,7 @@ class Scheduler:
                 id="boefjes",
                 maxsize=self.ctx.config.pq_maxsize,
                 item_type=BoefjeTask,
+                allow_priority_updates=True,
             ),
             # "normalizers": queue.PriorityQueue(
             #     id="normalizers",
@@ -135,14 +136,21 @@ class Scheduler:
 
             for boefje in boefjes:
                 task = BoefjeTask(
-                    id=uuid.uuid4().hex,
+                    # id=uuid.uuid4().hex,
                     boefje=boefje,
                     input_ooi=ooi.id,
                     organization="_dev",  # FIXME
                 )
 
-                # TODO: do we have a grace period for boefjes that have been
-                # running for this ooi too soon?
+                # When using time-based dispatcher and rankers we don't want
+                # the populator to add tasks to the queue, and we do want
+                # allow the api to update the priority
+                self.logger.info(task)
+                if self.queues.get("boefjes").is_item_on_queue(task):
+                    self.logger.warning(
+                        f"Boefje task {task} already on queue [boefje={boefje.id}]",
+                    )
+                    continue
 
                 self.queues.get("boefjes").push(
                     queue.PrioritizedItem(priority=score, item=task),
@@ -194,7 +202,7 @@ class Scheduler:
             self._run_in_thread(
                 name=f"{k}_queue_populator",
                 func=getattr(self, f"_populate_{q.id}_queue"),
-                interval=10,
+                interval=60,
             )
 
         # Dispatchers directing work from queues to workers
