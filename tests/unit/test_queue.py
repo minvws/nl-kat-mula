@@ -21,9 +21,14 @@ class TestModel(pydantic.BaseModel):
         return hash((self.id, self.name))
 
 
+class TestPriorityQueue(queue.PriorityQueue):
+    def get_item_identifier(self, item: TestModel):
+        return item.id
+
+
 class PriorityQueueTestCase(unittest.TestCase):
     def setUp(self):
-        self.pq = queue.PriorityQueue(
+        self.pq = TestPriorityQueue(
             id="test-queue",
             maxsize=10,
             item_type=TestModel,
@@ -49,12 +54,12 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
-    def test_push_duplicates_not_allowed(self):
+    def test_push_replace_not_allowed(self):
         """When pushing an item that is already in the queue the item
         shouldn't be pushed.
         """
         # Set queue to not allow duplicates
-        self.pq.allow_duplicates = False
+        self.pq.allow_replace = False
 
         # Add an item to the queue
         first_item = create_p_item(priority=1)
@@ -69,12 +74,12 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
-    def test_push_duplicates_allowed(self):
+    def test_push_replace_allowed(self):
         """When pushing an item that is already in the queue, but the queue
         allows duplicates, the item should be pushed.
         """
         # Set queue to allow duplicates
-        self.pq.allow_duplicates = True
+        self.pq.allow_replace = True
 
         # Add an item to the queue
         first_item = create_p_item(priority=1)
@@ -87,9 +92,10 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.pq.push(p_item=first_item)
 
         self.assertEqual(len(self.pq), 2)
-        self.assertEqual(len(self.pq.entry_finder), 2)
+        self.assertEqual(len(self.pq.entry_finder), 1)
 
-    # FIXME
+        # TODO: check if the item on the queue is the replaced item
+
     def test_push_updates_not_allowed(self):
         """When pushing an item that is already in the queue, and the item is
         updated, the item shouldn't be pushed.
@@ -113,7 +119,6 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
-    # FIXME
     def test_push_updates_allowed(self):
         """When pushing an item that is already in the queue, and the item is
         updated, but the queue allows item updates, the item should be pushed.
@@ -122,22 +127,25 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.pq.allow_updates = True
 
         # Add an item to the queue
-        first_item = create_p_item(priority=1)
-        self.pq.push(p_item=first_item)
+        initial_item = create_p_item(priority=1)
+        self.pq.push(p_item=initial_item)
 
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
         # Update the item
-        first_item.item.name = "updated-name"
+        updated_item = copy.deepcopy(initial_item)
+        updated_item.item.name = "updated-name"
 
         # Add the same item again
-        self.pq.push(p_item=first_item)
+        self.pq.push(p_item=updated_item)
 
         # PriorityQueue should have 2 items (one initial with entry state
         # removed, one updated)
         self.assertEqual(len(self.pq), 2)
         self.assertEqual(len(self.pq.entry_finder), 1)
+
+        # TODO: check if the item on the queue is the updated item
 
     def test_push_priority_updates_not_allowed(self):
         """When pushing an item that is already in the queue, and the item
@@ -147,17 +155,18 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.pq.allow_priority_updates = False
 
         # Add an item to the queue
-        first_item = create_p_item(priority=1)
-        self.pq.push(p_item=first_item)
+        initial_item = create_p_item(priority=1)
+        self.pq.push(p_item=initial_item)
 
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
         # Update the item
-        first_item.priority = 100
+        updated_item = copy.deepcopy(initial_item)
+        updated_item.priority = 100
 
         # Add the same item again
-        self.pq.push(p_item=first_item)
+        self.pq.push(p_item=updated_item)
 
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
@@ -170,22 +179,25 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.pq.allow_priority_updates = True
 
         # Add an item to the queue
-        first_item = create_p_item(priority=1)
-        self.pq.push(p_item=first_item)
+        initial_item = create_p_item(priority=1)
+        self.pq.push(p_item=initial_item)
 
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
         # Update the item
-        first_item.priority = 100
+        updated_item = copy.deepcopy(initial_item)
+        updated_item.priority = 100
 
         # Add the same item again
-        self.pq.push(p_item=first_item)
+        self.pq.push(p_item=updated_item)
 
         # PriorityQueue should have 2 items (one initial with entry state
         # removed, one updated)
         self.assertEqual(len(self.pq), 2)
         self.assertEqual(len(self.pq.entry_finder), 1)
+
+        # TODO: check if the item on the queue is the updated item
 
     def test_update_priority_higher(self):
         """When updating the priority of the initial item on the priority queue
@@ -193,6 +205,9 @@ class PriorityQueueTestCase(unittest.TestCase):
         the initial item should be marked as removed, and the initial removed
         from the entry_finder.
         """
+        # Set queue to allow updates
+        self.pq.allow_priority_updates = True
+
         # Add an item to the queue
         initial_item = create_p_item(priority=2)
         self.pq.push(p_item=initial_item)
@@ -221,9 +236,10 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(first_entry.state, queue.EntryState.ADDED)
 
         # Item in entry_finder should be the updated item
-        self.assertEqual(self.pq.entry_finder[updated_item.item].priority, updated_item.priority)
-        self.assertEqual(self.pq.entry_finder[updated_item.item].p_item, updated_item)
-        self.assertEqual(self.pq.entry_finder[updated_item.item].state, queue.EntryState.ADDED)
+        item = self.pq.entry_finder[self.pq.get_item_identifier(updated_item.item)]
+        self.assertEqual(item.priority, updated_item.priority)
+        self.assertEqual(item.p_item, updated_item)
+        self.assertEqual(item.state, queue.EntryState.ADDED)
 
         # When popping off the queue you should end up with the updated_item
         # that now has the highest priority.
@@ -241,6 +257,9 @@ class PriorityQueueTestCase(unittest.TestCase):
         the initial item should be marked as removed, and the initial removed
         from the entry_finder.
         """
+        # Set queue to allow updates
+        self.pq.allow_priority_updates = True
+
         # Add an item to the queue
         initial_item = create_p_item(priority=1)
         self.pq.push(p_item=initial_item)
@@ -269,9 +288,10 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(first_entry.state, queue.EntryState.REMOVED)
 
         # Item in entry_finder should be the updated item
-        self.assertEqual(self.pq.entry_finder[updated_item.item].priority, updated_item.priority)
-        self.assertEqual(self.pq.entry_finder[updated_item.item].p_item, updated_item)
-        self.assertEqual(self.pq.entry_finder[updated_item.item].state, queue.EntryState.ADDED)
+        item = self.pq.entry_finder[self.pq.get_item_identifier(updated_item.item)]
+        self.assertEqual(item.priority, updated_item.priority)
+        self.assertEqual(item.p_item, updated_item)
+        self.assertEqual(item.state, queue.EntryState.ADDED)
 
         # When popping off the queue you should end up with the updated_item
         # that now has the lowest priority.

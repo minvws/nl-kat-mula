@@ -5,7 +5,8 @@ import time
 import uuid
 from typing import Callable, Dict
 
-from scheduler import context, dispatcher, queue, ranker, server, thread
+from scheduler import (context, dispatcher, queue, queues, ranker, server,
+                       thread)
 from scheduler.connectors import listeners
 from scheduler.models import OOI, Boefje, BoefjeTask, NormalizerTask
 
@@ -40,7 +41,7 @@ class Scheduler:
 
         # Initialize queues
         self.queues = {
-            "boefjes": queue.PriorityQueue(
+            "boefjes": queues.BoefjePriorityQueue(
                 id="boefjes",
                 maxsize=self.ctx.config.pq_maxsize,
                 item_type=BoefjeTask,
@@ -136,7 +137,6 @@ class Scheduler:
 
             for boefje in boefjes:
                 task = BoefjeTask(
-                    # id=uuid.uuid4().hex,
                     boefje=boefje,
                     input_ooi=ooi.id,
                     organization="_dev",  # FIXME

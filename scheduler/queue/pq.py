@@ -107,41 +107,37 @@ class PriorityQueue:
         entry_finder:
             A dict that maps items (python objects) to their corresponding
             entries in the queue.
-        allow_duplicates:
-            A boolean that defines if the queue allows duplicates. When set to
-            True, the queue will not remove items from the queue when
-            duplicate items are added.
+        allow_replace:
+            A boolean that defines if the queue allows replacing item When set
+            to True, the queue will replace items that are already on the
+            queue.
         allow_updates:
-            A boolean that defines if the queue allows updates. When set to
-            True, the queue will not remove items from the queue when the
-            attributes of an item are updated.
+            A boolean that defines if the queue allows updates of items on the
+            queue. When set to True, it will update the item on the queue.
         allow_priority_updates:
-            A boolean that defines if the queue allows updates. When set to
-            True, the queue will not remove items from the queue when the
-            priority of an item is updated.
+            A boolean that defines if the queue allows updates of items on the
+            queue. When set to True, it will update the priority of a
+            prioritized item on the queue.
     """
 
-    def __init__(self, id: str, maxsize: int, item_type: pydantic.BaseModel,
-                 allow_duplicates: bool = False, allow_updates: bool = False,
-                 allow_priority_updates: bool = False):
+    def __init__(
+        self,
+        id: str,
+        maxsize: int,
+        item_type: pydantic.BaseModel,
+        allow_replace: bool = False,
+        allow_updates: bool = False,
+        allow_priority_updates: bool = False,
+    ):
         """Initialize the priority queue.
 
         Args:
-            id: The id of the queue.
-            maxsize: The maximum size of the queue.
-            item_type (pydantic.BaseModel): The type of the items in the queue.
-        allow_duplicates:
-            A boolean that defines if the queue allows duplicates. When set to
-            True, the queue will not remove items from the queue when
-            duplicate items are added.
-        allow_updates:
-            A boolean that defines if the queue allows updates. When set to
-            True, the queue will not remove items from the queue when the
-            attributes of an item are updated.
-        allow_priority_updates:
-            A boolean that defines if the queue allows updates. When set to
-            True, the queue will not remove items from the queue when the
-            priority of an item is updated.
+            id:
+                The id of the queue.
+            maxsize:
+                The maximum size of the queue.
+            item_type:
+                The type of the items in the queue.
         """
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.id: str = id
@@ -150,9 +146,9 @@ class PriorityQueue:
         self.pq: queue.PriorityQueue = queue.PriorityQueue(maxsize=self.maxsize)
         self.timeout: int = 5
         self.entry_finder: Dict[Any, Entry] = {}
-        self.allow_duplicates: bool = allow_duplicates
+        self.allow_replace: bool = allow_replace
         self.allow_updates: bool = allow_updates
-        self.allow_priority_updates: bool =  allow_priority_updates
+        self.allow_priority_updates: bool = allow_priority_updates
 
     def pop(self) -> Union[PrioritizedItem, None]:
         """Pop the item with the highest priority from the queue. If optional
@@ -175,7 +171,7 @@ class PriorityQueue:
 
                 # When we reach an item that isn't removed, we can return it
                 if entry.state is not EntryState.REMOVED:
-                    del self.entry_finder[entry.p_item.item]
+                    del self.entry_finder[self.get_item_identifier(entry.p_item.item)]
                     return entry.p_item
             except queue.Empty:
                 self.logger.warning(f"Queue {self.id} is empty")
@@ -198,31 +194,41 @@ class PriorityQueue:
         if not self._is_valid_item(p_item.item):
             raise ValueError(f"PrioritizedItem must be of type {self.item_type.__name__}")
 
-        on_queue = self.is_item_on_queue(p_item.item)
-        item_changed = False if not on_queue or p_item == self.entry_finder[p_item.item].p_item else True
-        priority_changed = False if not on_queue or p_item.priority == self.entry_finder[p_item.item].p_item.priority else True
+        on_queue = self.is_item_on_queue(self.get_item_identifier(p_item.item))
+        item_changed = (
+            False
+            if not on_queue or p_item.item == self.entry_finder[self.get_item_identifier(p_item.item)].p_item.item
+            else True
+        )
+        priority_changed = (
+            False
+            if not on_queue
+            or p_item.priority == self.entry_finder[self.get_item_identifier(p_item.item)].p_item.priority
+            else True
+        )
 
-        if not self.allow_duplicates and on_queue:
-            self.logger.warning(f"Item {p_item.item} already in queue {self.id} [queue={self.id} p_item={p_item}]")
-            return
-        elif not self.allow_updates and not item_changed and on_queue:
-            self.logger.warning(f"Item {p_item.item} not in queue, or did not change in queue {self.id} [queue={self.id} p_item={p_item}]")
-            return
-        elif not self.allow_priority_updates and not priority_changed and on_queue:
-            self.logger.warning(
-                f"Item {p_item.item} not in queue, or priority did not change in queue {self.id} [queue={self.id} p_item={p_item}]"
-            )
+        allowed = False
+        if on_queue and self.allow_replace:
+            allowed = True
+        elif self.allow_updates and item_changed and on_queue:
+            allowed = True
+        elif self.allow_priority_updates and priority_changed and on_queue:
+            allowed = True
+        elif not on_queue:
+            allowed = True
+
+        if not allowed:
             return
 
         # Set item as removed in entry_finder when it is already present,
         # since we're updating the entry. Using an Entry here acts as a
         # pointer to the entry in the queue and the entry_finder.
-        if p_item.item in self.entry_finder:
-            entry = self.entry_finder.pop(p_item.item)
+        if self.get_item_identifier(p_item.item) in self.entry_finder:
+            entry = self.entry_finder.pop(self.get_item_identifier(p_item.item))
             entry.state = EntryState.REMOVED
 
         entry = Entry(p_item=p_item, state=EntryState.ADDED)
-        self.entry_finder[p_item.item] = entry
+        self.entry_finder[self.get_item_identifier(p_item.item)] = entry
 
         self.pq.put(
             item=entry,
@@ -256,14 +262,12 @@ class PriorityQueue:
         Reference:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.remove
         """
-        if not self._is_valid_item(p_item.item):
-            raise ValueError(f"Item must be of type {self.item_type.__name__}")
 
-        if p_item.item in self.entry_finder:
-            entry = self.entry_finder.pop(p_item.item)
+        if self.get_item_identifier(p_item.item) in self.entry_finder:
+            entry = self.entry_finder.pop(self.get_item_identifier(p_item.item))
             entry.state = EntryState.REMOVED
 
-    def is_item_on_queue(self, item: Any) -> bool:
+    def is_item_on_queue(self, identifier: Any) -> bool:
         """Check if an item is on the queue.
 
         Args:
@@ -272,10 +276,21 @@ class PriorityQueue:
         Raises:
             ValueError: If the item is not valid.
         """
-        if not self._is_valid_item(item):
-            raise ValueError(f"Item must be of type {self.item_type.__name__}")
+        return identifier in self.entry_finder
 
-        return item in self.entry_finder
+    def get_item_identifier(self, item: Any) -> Any:
+        """Get the identifier of an item. This is needed to construct an
+        identifier for the item in the entry_finder. The naive implementation
+        is using the item object as the key value for the entry_finder. For
+        custom implementations you would likely want to override this method.
+
+        Args:
+            item: The item to be checked.
+
+        Returns:
+            The identifier of the item.
+        """
+        return item
 
     def _is_valid_item(self, item: Any) -> bool:
         """Validate the item to be pushed into the queue.
