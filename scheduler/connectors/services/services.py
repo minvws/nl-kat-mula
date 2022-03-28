@@ -65,7 +65,9 @@ class HTTPService:
 
         self._do_checks()
 
-    def get(self, url: str, headers: Dict[str, Any] = {}, params: Dict[str, Any] = {}) -> requests.Response:
+    def get(
+        self, url: str, payload: Dict[str, Any] = {}, headers: Dict[str, Any] = {}, params: Dict[str, Any] = {}
+    ) -> requests.Response:
         """Execute a HTTP GET request
 
         Args:
@@ -81,6 +83,7 @@ class HTTPService:
             url,
             headers=self.headers.update(headers) if headers else self.headers,
             params=params,
+            data=payload,
             timeout=self.timeout,
         )
         self.logger.debug(f"Made GET request to {url}. [name={self.name} url={url}]")
@@ -90,7 +93,7 @@ class HTTPService:
         return response
 
     def post(
-        self, url: str, payload: str, headers: Dict[str, Any] = {}, params: Dict[str, Any] = {}
+        self, url: str, payload: Dict[str, Any], headers: Dict[str, Any] = {}, params: Dict[str, Any] = {}
     ) -> requests.Response:
         """Execute a HTTP POST request
 

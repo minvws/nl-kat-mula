@@ -17,7 +17,7 @@ class Octopoes(HTTPService):
     def get_random_objects(self, n: int) -> List[OOI]:
         """Get `n` random oois from octopoes"""
         url = f"{self.host}/_dev/objects/random"  # FIXME: _dev
-        response = self.get(url, params={"n": str(n)})
+        response = self.get(url, params={"amount": str(n)})
         return [OOI(**ooi) for ooi in response.json()]
 
     def get_object(self, reference: str) -> OOI:

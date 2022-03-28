@@ -111,8 +111,8 @@ class Scheduler:
     def _populate_boefjes_queue(self) -> None:
         """Process to add boefje tasks to the boefjes priority queue."""
         # TODO: get n from config file
+        # oois = self.ctx.services.octopoes.get_random_objects(n=3)
         oois = self.ctx.services.octopoes.get_objects()
-        # oois = self.ctx.services.xtdb.get_random_objects(n=3)
 
         # TODO: make concurrent, since ranker will be doing I/O using external
         # services
@@ -145,7 +145,6 @@ class Scheduler:
                 # When using time-based dispatcher and rankers we don't want
                 # the populator to add tasks to the queue, and we do want
                 # allow the api to update the priority
-                self.logger.info(task)
                 if self.queues.get("boefjes").is_item_on_queue(task):
                     self.logger.warning(
                         f"Boefje task {task} already on queue [boefje={boefje.id}]",

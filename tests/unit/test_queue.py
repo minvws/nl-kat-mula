@@ -62,14 +62,14 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.pq.allow_replace = False
 
         # Add an item to the queue
-        first_item = create_p_item(priority=1)
-        self.pq.push(p_item=first_item)
+        initial_item = create_p_item(priority=1)
+        self.pq.push(p_item=initial_item)
 
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
         # Add the same item again
-        self.pq.push(p_item=first_item)
+        self.pq.push(p_item=initial_item)
 
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
@@ -82,14 +82,14 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.pq.allow_replace = True
 
         # Add an item to the queue
-        first_item = create_p_item(priority=1)
-        self.pq.push(p_item=first_item)
+        initial_item = create_p_item(priority=1)
+        self.pq.push(p_item=initial_item)
 
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
         # Add the same item again
-        self.pq.push(p_item=first_item)
+        self.pq.push(p_item=initial_item)
 
         self.assertEqual(len(self.pq), 2)
         self.assertEqual(len(self.pq.entry_finder), 1)
@@ -104,17 +104,18 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.pq.allow_updates = False
 
         # Add an item to the queue
-        first_item = create_p_item(priority=1)
-        self.pq.push(p_item=first_item)
+        initial_item = create_p_item(priority=1)
+        self.pq.push(p_item=initial_item)
 
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
 
         # Update the item
-        first_item.item.name = "updated-name"
+        updated_item = copy.deepcopy(initial_item)
+        updated_item.item.name = "updated-name"
 
         # Add the same item again
-        self.pq.push(p_item=first_item)
+        self.pq.push(p_item=updated_item)
 
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 1)
@@ -151,7 +152,7 @@ class PriorityQueueTestCase(unittest.TestCase):
         """When pushing an item that is already in the queue, and the item
         priority is updated, the item shouldn't be pushed.
         """
-        # Set queue to allow updates
+        # Set queue to disallow priority updates
         self.pq.allow_priority_updates = False
 
         # Add an item to the queue
@@ -175,7 +176,7 @@ class PriorityQueueTestCase(unittest.TestCase):
         """When pushing an item that is already in the queue, and the item
         priority is updated, the item should be pushed.
         """
-        # Set queue to allow updates
+        # Set queue to allow priority updates
         self.pq.allow_priority_updates = True
 
         # Add an item to the queue
