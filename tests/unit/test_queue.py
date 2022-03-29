@@ -1,4 +1,5 @@
 import copy
+import queue as _queue
 import unittest
 import uuid
 
@@ -9,13 +10,16 @@ from scheduler import queue
 def create_p_item(priority: int):
     return queue.PrioritizedItem(
         priority=priority,
-        item=TestModel(),
+        item=TestModel(
+            id=uuid.uuid4().hex,
+            name=uuid.uuid4().hex,
+        ),
     )
 
 
 class TestModel(pydantic.BaseModel):
-    id: str = uuid.uuid4().hex
-    name: str = uuid.uuid4().hex
+    id: str
+    name: str
 
     def __hash__(self):
         return hash((self.id, self.name))
@@ -330,15 +334,68 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 1)
         self.assertEqual(len(self.pq.entry_finder), 0)
 
+    def test_push_maxsize_not_allowed(self):
+        """When pushing an item to the queue, if the maxsize is reached, the
+        item should be discarded.
+        """
+        # Set maxsize to 1
+        self.pq.maxsize = 1
+
+        # Add an item to the queue
+        first_item = create_p_item(priority=1)
+        self.pq.push(p_item=first_item)
+
+        # Add another item to the queue
+        second_item = create_p_item(priority=2)
+        with self.assertRaises(_queue.Full):
+            self.pq.push(p_item=second_item)
+
+        # The queue should now have 1 item
+        self.assertEqual(len(self.pq), 1)
+        self.assertEqual(len(self.pq.entry_finder), 1)
+
+        # The item with the highest priority should be the one that was
+        # added first
+        first_entry = self.pq.peek(0)
+        self.assertEqual(first_entry.priority, 1)
+        self.assertEqual(first_entry.p_item, first_item)
+        self.assertEqual(first_entry.state, queue.EntryState.ADDED)
+
+    def test_push_maxsize_allowed(self):
+        """When pushing an item to the queue, if the maxsize is reached, the
+        item should be discarded.
+        """
+        # Set maxsize to 0 (unbounded)
+        self.pq.maxsize = 0
+
+        # Add an item to the queue
+        first_item = create_p_item(priority=1)
+        self.pq.push(p_item=first_item)
+
+        # Add another item to the queue
+        second_item = create_p_item(priority=2)
+        self.pq.push(p_item=second_item)
+
+        # The queue should now have 2 items
+        self.assertEqual(len(self.pq), 2)
+        self.assertEqual(len(self.pq.entry_finder), 2)
+
+        first_entry = self.pq.peek(0)
+        last_entry = self.pq.peek(-1)
+
+        # The item with the highest priority should be the one that was
+        # added first
+        self.assertEqual(first_entry.priority, 1)
+        self.assertEqual(first_entry.p_item, first_item)
+        self.assertEqual(first_entry.state, queue.EntryState.ADDED)
+
+        # Last item should be the second item
+        self.assertEqual(last_entry.priority, 2)
+        self.assertEqual(last_entry.p_item, second_item)
+        self.assertEqual(last_entry.state, queue.EntryState.ADDED)
+
     def test_pop(self):
         pass
 
     def test_pop_queue_empty(self):
-        pass
-
-    def test_test(self):
-        pass
-
-    # TODO: Add tests for the following methods
-    def test_maxsize(self):
         pass

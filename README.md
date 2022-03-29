@@ -77,4 +77,7 @@ $ make itest
 $ make utest
 
 $ make file=test_file.py utest
+
+$ make file=test_file.py function=-k test_function utest
+
 ```

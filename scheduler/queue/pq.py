@@ -187,12 +187,16 @@ class PriorityQueue:
 
         Raises:
             ValueError: If the item is not valid.
+            Full: If the queue is full.
 
         Reference:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.put
         """
         if not self._is_valid_item(p_item.item):
             raise ValueError(f"PrioritizedItem must be of type {self.item_type.__name__}")
+
+        if self.maxsize is not None and self.maxsize != 0 and self.pq.qsize() == self.maxsize:
+            raise queue.Full
 
         on_queue = self.is_item_on_queue(p_item.item)
         item_changed = (
