@@ -47,11 +47,6 @@ class Scheduler:
                 item_type=BoefjeTask,
                 allow_priority_updates=True,
             ),
-            # "normalizers": queue.PriorityQueue(
-            #     id="normalizers",
-            #     maxsize=self.ctx.config.pq_maxsize,
-            #     item_type=NormalizerTask,
-            # ),
         }
 
         # Initialize rankers
@@ -135,6 +130,7 @@ class Scheduler:
                 f"Found {len(boefjes)} boefjes for ooi_type {ooi.ooi_type} [ooi={ooi} boefjes={[boefje.id for boefje in boefjes]}"
             )
 
+            boefjes_queue = self.queues.get("boefjes")
             for boefje in boefjes:
                 task = BoefjeTask(
                     boefje=boefje,
@@ -145,7 +141,7 @@ class Scheduler:
                 # When using time-based dispatcher and rankers we don't want
                 # the populator to add tasks to the queue, and we do want
                 # allow the api to update the priority
-                if self.queues.get("boefjes").is_item_on_queue(task):
+                if boefjes_queue.is_item_on_queue(task):
                     self.logger.warning(
                         f"Boefje task {task} already on queue [boefje={boefje.id}]",
                     )

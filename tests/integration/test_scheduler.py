@@ -46,6 +46,9 @@ class SchedulerTestCase(unittest.TestCase):
         self.scheduler._populate_boefjes_queue()
         self.assertEqual((len(self.scheduler.queues.get("boefjes"))), 1)
 
+    def test_populate_boefjes_queue_timebased(self):
+        pass
+
     def test_pop_boefjes_queue(self):
         pass
 

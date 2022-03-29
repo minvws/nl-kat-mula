@@ -194,7 +194,7 @@ class PriorityQueue:
         if not self._is_valid_item(p_item.item):
             raise ValueError(f"PrioritizedItem must be of type {self.item_type.__name__}")
 
-        on_queue = self.is_item_on_queue(self.get_item_identifier(p_item.item))
+        on_queue = self.is_item_on_queue(p_item.item)
         item_changed = (
             False
             if not on_queue or p_item.item == self.entry_finder[self.get_item_identifier(p_item.item)].p_item.item
@@ -267,7 +267,7 @@ class PriorityQueue:
             entry = self.entry_finder.pop(self.get_item_identifier(p_item.item))
             entry.state = EntryState.REMOVED
 
-    def is_item_on_queue(self, identifier: Any) -> bool:
+    def is_item_on_queue(self, item: Any) -> bool:
         """Check if an item is on the queue.
 
         Args:
@@ -276,6 +276,7 @@ class PriorityQueue:
         Raises:
             ValueError: If the item is not valid.
         """
+        identifier = self.get_item_identifier(item)
         return identifier in self.entry_finder
 
     def get_item_identifier(self, item: Any) -> Any:
