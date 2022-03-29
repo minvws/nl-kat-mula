@@ -55,7 +55,7 @@ class Server:
             path="/queues/{queue_id}/pop",
             endpoint=self.pop_queue,
             methods=["GET"],
-            response_model=models.QueueItem,
+            response_model=models.QueuePrioritizedItem,
             status_code=200,
         )
 
@@ -98,14 +98,14 @@ class Server:
 
         try:
             item = q.pop()
-            return models.QueueItem(**item.dict())
+            return models.QueuePrioritizedItem(**item.dict())
         except _queue.Empty:
             raise fastapi.HTTPException(
                 status_code=400,
                 detail="queue is empty",
             )
 
-    async def push_queue(self, queue_id: str, item: models.QueueItem) -> Any:
+    async def push_queue(self, queue_id: str, item: models.QueuePrioritizedItem) -> Any:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(

@@ -66,7 +66,7 @@ class Entry:
         self.state: EntryState = state
 
     def dict(self) -> Dict[str, Any]:
-        return {"priority": self.priority, "item": self.p_item.dict(), "state": self.state.value}
+        return {"priority": self.priority, "p_item": self.p_item.dict(), "state": self.state.value}
 
     def __attrs(self) -> Tuple[int, Any]:
         return (self.priority, self.p_item, self.state)

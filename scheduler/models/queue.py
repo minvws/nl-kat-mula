@@ -3,13 +3,24 @@ from typing import Any, List
 from pydantic import BaseModel
 
 
-class QueueItem(BaseModel):
+class QueuePrioritizedItem(BaseModel):
     """Representation of an queue.PrioritizedItem on the priority queue. Used
-    for unmarshalling of priority queue items to a JSON representation.
+    for unmarshalling of priority queue prioritized items to a JSON
+    representation.
     """
 
     priority: int
     item: Any
+
+
+class QueueEntry(BaseModel):
+    """Representation of an queue.Entry on the priority queue. Used for
+    for unmarshalling of priority queue entries to a JSON representation.
+    """
+
+    priority: int
+    p_item: QueuePrioritizedItem
+    state: str
 
 
 class Queue(BaseModel):
@@ -20,4 +31,4 @@ class Queue(BaseModel):
     id: str
     size: int
     maxsize: int
-    pq: List[QueueItem]
+    pq: List[QueueEntry]
