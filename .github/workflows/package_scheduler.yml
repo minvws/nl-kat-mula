@@ -1,4 +1,4 @@
-name: package bytes
+name: package scheduler
 
 on:
   push:
@@ -19,11 +19,11 @@ jobs:
       - name: Replace version number with release version
         run: sed -ibak "s/version=.*/version=\"${RELEASE_VERSION}\",/" ./setup.py
 
-      - name: Create bytes release
-        run:  tar -cvzf ../mula_${{ env.RELEASE_VERSION }}.tar.gz --exclude=./.git* .
+      - name: Create scheduler release
+        run:  tar -cvzf ../scheduler_${{ env.RELEASE_VERSION }}.tar.gz --exclude=./.git* .
 
-      - name: Upload bytes tar
+      - name: Upload scheduler tar
         uses: actions/upload-artifact@v1
         with:
-          name: mula_${{ env.RELEASE_VERSION }}
-          path: ../mula_${{ env.RELEASE_VERSION }}.tar.gz
+          name: scheduler_${{ env.RELEASE_VERSION }}
+          path: ../scheduler_${{ env.RELEASE_VERSION }}.tar.gz

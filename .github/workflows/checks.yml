@@ -1,6 +1,5 @@
 name: Check the coding style
 
-
 on:
   pull_request:
     branches:
@@ -8,34 +7,20 @@ on:
   push:
     branches:
       - 'develop'
-      - 'master'
+      - 'main'
 
 jobs:
-  Check:
-
+  check:
     runs-on: ubuntu-20.04
+    env:
+      COMPOSE_FILE: .ci/docker-compose.yml
 
     steps:
-      - name: Configure git
-        env:
-          TOKEN: ${{ secrets.RDO_REPO_RO }}
-        run: git config --global url."https://${{ secrets.RDO_REPO_RO }}@github.com/".insteadOf "ssh://git@github.com/"
-
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - uses: actions/checkout@v1
+      - name: Build the images
+        run: DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f base.yml -f .ci/docker-compose.yml build
 
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.8
-
-      - name: Setup environment and install KAT packages
-        run: |
-          pip install --user pipenv
-          pipenv install --dev
-          grep "nl-rt-tim-abang" requirements.txt | xargs -L 1 pipenv run pip install
-
-      - name: Run black and mypy checks
+      - name: Run black, mypy, and pylint checks
         run: make check
