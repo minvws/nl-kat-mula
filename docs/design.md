@@ -117,10 +117,65 @@ Following describes main processes of the scheduler:
 See the [C4 model](https://c4model.com/) overview of the scheduler system
 below, with their respective level of abstraction.
 
-C2 Container level:
+C2 Container level *Current situation*:
 
-![C2_Container](./c2_container_diagram.png)
+```mermaid
+graph TB
+    
+    Rocky["Rocky<br/>[webapp]"]
+    Octopoes["Octopoes<br/>[graph database]"]
+    Katalogus["Katalogus<br/>[software system]"]
+    Boefjes["Boefjes<br/>[software system]"]
+    Scheduler["Scheduler<br/>[system]"]
 
-C3 Component level:
+    Rocky--"Create object"-->Octopoes
+    Rocky--"Create scan job<br/>HTTP POST"--->Scheduler
+    
+    Katalogus--"Get available boefjes<br/>HTTP GET"-->Scheduler
 
-![C3_Component](./c3_component_diagram.png)
+    Scheduler--"Send task<br/>Celery send task"-->Boefjes
+```
+
+C3 Component level *Current situation*:
+
+```mermaid
+flowchart TB
+    
+    Rocky["Rocky<br/>[webapp]"]
+    Octopoes["Octopoes<br/>[graph database]"]
+    Katalogus["Katalogus<br/>[software system]"]
+    Boefjes["Boefjes<br/>[software system]"]
+
+
+    Rocky--"Create object"-->Octopoes
+    Rocky--"Create scan job<br/>HTTP POST"--->push_queue
+    
+    Katalogus--"Get available boefjes<br/>HTTP GET"--->get_boefjes
+    Octopoes--"Get n random ooi's"--->get_random_objects
+
+
+    push_queue--"Push job with highest priority"-->PriorityQueue
+    PriorityQueue--"Pop job with highest priority"-->Dispatcher
+    Dispatcher--"Send task to Boefjes"-->Boefjes
+
+    get_random_objects-->get_boefjes-->rank-->push-->PriorityQueue
+
+    subgraph Scheduler
+
+        subgraph populate_queue["populate_queue [method]"]
+            get_random_objects[["get_random_objects"]]
+            get_boefjes[["get_boefjes"]]
+            rank[["rank"]]
+            push[["push"]]
+        end
+
+        subgraph Server
+            push_queue[["push_queue<br/>[api endpoint]"]]
+        end
+
+        Dispatcher
+
+        PriorityQueue(["PriorityQueue"])
+
+    end
+```
