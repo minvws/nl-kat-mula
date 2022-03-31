@@ -86,7 +86,7 @@ class HTTPService:
             data=payload,
             timeout=self.timeout,
         )
-        self.logger.debug(f"Made GET request to {url}. [name={self.name} url={url}]")
+        self.logger.debug(f"Made GET request to {url}. [name={self.name}, url={url}]")
 
         self._verify_response(response)
 
@@ -113,7 +113,7 @@ class HTTPService:
             data=payload,
             timeout=self.timeout,
         )
-        self.logger.debug(f"Made POST request to {url}. [name={self.name} url={url} data={payload}]")
+        self.logger.debug(f"Made POST request to {url}. [name={self.name}, url={url}, data={payload}]")
 
         self._verify_response(response)
 
@@ -170,11 +170,11 @@ class HTTPService:
         i = 0
         while i < 10:
             if func() is True:
-                self.logger.info(f"Connected to {self.host}. [name={self.name} host={self.host} func={func.__name__}]")
+                self.logger.info(f"Connected to {self.host}. [name={self.name}, host={self.host}, func={func.__name__}]")
                 return True
             else:
                 self.logger.warning(
-                    f"Not able to reach host, retrying in {self.timeout} seconds. [name={self.name} host={self.host} func={func.__name__}]"
+                    f"Not able to reach host, retrying in {self.timeout} seconds. [name={self.name}, host={self.host}, func={func.__name__}]"
                 )
 
                 i += 1
@@ -193,5 +193,5 @@ class HTTPService:
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            self.logger.error(f"HTTPError: {str(e)} [name={self.name} url={response.url} response={response.content}]")
+            self.logger.error(f"HTTPError: {str(e)} [name={self.name}, url={response.url}, response={response.content}]")
             raise (e)

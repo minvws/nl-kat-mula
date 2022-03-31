@@ -21,6 +21,6 @@ class XTDB(HTTPService):
         payload = f"{{:query {{:find [(rand {n} id)], :where [[?e :crux.db/id id] [?e :ooi_type]]}}}}"
 
         response = self.post(url=url, payload=payload)
-        self.logger.info(response.json())
+        self.logger.debug(response.json())
 
         return [OOI(**ooi) for ooi in response.json()]

@@ -27,7 +27,7 @@ class BoefjeRankerTimeBased(Ranker):
     """
 
     def rank(self, ooi: models.OOI) -> int:
-        return int(time.time() + 86400)
+        return int(time.time() + 120)
 
 
 class NormalizerRanker(Ranker):

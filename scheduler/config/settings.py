@@ -21,9 +21,8 @@ class Settings(BaseSettings):
     # External services settings
     host_katalogus: str = Field(..., env="KATALOGUS_API")
     host_bytes: str = Field(..., env="BYTES_API")
-    host_xtdb: str = Field(..., env="XTDB_URI")
     host_octopoes: str = Field(..., env="OCTOPOES_API")
-    host_rocky: str = Field(..., env="ROCKY_API")
+    # host_rocky: str = Field(..., env="ROCKY_API")
 
     host_bytes_user: str = Field(..., env="BYTES_USERNAME")
     host_bytes_password: str = Field(..., env="BYTES_PASSWORD")
@@ -35,7 +34,8 @@ class Settings(BaseSettings):
     pq_maxsize: int = Field(0, env="SHEDULER_PQ_MAXSIZE")
     pq_populate_interval: int = Field(60, env="SHEDULER_PQ_INTERVAL")
 
-    dsp_broker_url: str = Field(..., env="QUEUE_URI")
+    # Dispatcher settings
+    dsp_broker_url: str = Field(..., env="SCHEDULER_DSP_BROKER_URL")
 
     # class Config:
     #     env_prefix = "SCHEDULER_"

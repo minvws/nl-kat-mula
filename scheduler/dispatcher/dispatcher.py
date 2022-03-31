@@ -5,7 +5,6 @@ from typing import Any
 
 import celery
 import pydantic
-
 from scheduler import context, queue
 
 
@@ -94,12 +93,13 @@ class Dispatcher:
             None
         """
         if not self._can_dispatch():
-            self.logger.debug("Nothing to dispatch")
             return
 
         p_item = self.pq.pop()
 
-        self.logger.info(f"Dispatching task {p_item.item}")
+        self.logger.info(
+            f"Dispatching task {self.pq.get_item_identifier(p_item.item)} [task_id={self.pq.get_item_identifier(p_item.item)}]"
+        )
 
         if not self._is_valid_item(p_item.item):
             raise ValueError(f"Item must be of type {self.item_type.__name__}")
@@ -175,7 +175,6 @@ class CeleryDispatcher(Dispatcher):
         super().dispatch()
 
         if self.task is None:
-            self.logger.debug("Nothing to dispatch")
             return
 
         self.app.send_task(
@@ -184,18 +183,3 @@ class CeleryDispatcher(Dispatcher):
             queue=self.queue,
             task_id=uuid.uuid4().hex,
         )
-
-
-class BoefjeDispatcher(CeleryDispatcher):
-    pass
-
-
-class BoefjeDispatcherTimeBased(CeleryDispatcher):
-    """A time-based BoefjeDispatcher allows for executing jobs at a certain
-    time. The threshold of dispatching jobs is the current time, and based
-    on the time-based priority score of the jobs on the queue. The dispatcher
-    determines to dispatch the job.
-    """
-
-    def get_threshold(self) -> int:
-        return int(time.time())

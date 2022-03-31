@@ -5,7 +5,7 @@ import time
 import uuid
 from typing import Callable, Dict
 
-from scheduler import (context, dispatcher, queue, queues, ranker, server,
+from scheduler import (context, dispatchers, queue, queues, ranker, server,
                        thread)
 from scheduler.connectors import listeners
 from scheduler.models import OOI, Boefje, BoefjeTask, NormalizerTask
@@ -54,24 +54,14 @@ class Scheduler:
             "boefjes": ranker.BoefjeRankerTimeBased(
                 ctx=self.ctx,
             ),
-            "normalizers": ranker.NormalizerRanker(
-                ctx=self.ctx,
-            ),
         }
 
         # Initialize event stream listeners
-        self.listeners = {
-            "create_event": listeners.CreateEventListener(
-                dsn=self.ctx.config.lst_octopoes,
-                queue="create_events",  # FIXME: queue name should be configurable
-                ctx=self.ctx,
-                normalizer_queue=self.queues.get("normalizers"),
-            ),
-        }
+        self.listeners = {}
 
         # Initialize dispatchers
         self.dispatchers = {
-            "boefjes": dispatcher.BoefjeDispatcherTimeBased(
+            "boefjes": dispatchers.BoefjeDispatcherTimeBased(
                 ctx=self.ctx,
                 pq=self.queues.get("boefjes"),
                 item_type=BoefjeTask,
@@ -105,12 +95,12 @@ class Scheduler:
 
     def _populate_boefjes_queue(self) -> None:
         """Process to add boefje tasks to the boefjes priority queue."""
-        # TODO: get n from config file
-        # oois = self.ctx.services.octopoes.get_random_objects(n=3)
+        # oois = self.ctx.services.octopoes.get_random_objects(n=10)
         oois = self.ctx.services.octopoes.get_objects()
 
         # TODO: make concurrent, since ranker will be doing I/O using external
         # services
+        count_tasks = 0
         for ooi in oois:
             score = self.rankers.get("boefjes").rank(ooi)
 
@@ -123,11 +113,11 @@ class Scheduler:
                 None,
             )
             if boefjes is None:
-                self.logger.warning(f"No boefjes found for type {ooi.ooi_type} [ooi={ooi}]")
+                self.logger.debug(f"No boefjes found for type {ooi.ooi_type} [ooi={ooi}]")
                 continue
 
-            self.logger.info(
-                f"Found {len(boefjes)} boefjes for ooi_type {ooi.ooi_type} [ooi={ooi} boefjes={[boefje.id for boefje in boefjes]}"
+            self.logger.debug(
+                f"Found {len(boefjes)} boefjes for ooi {ooi} [ooi={ooi}, boefjes={[boefje.id for boefje in boefjes]}"
             )
 
             boefjes_queue = self.queues.get("boefjes")
@@ -142,7 +132,7 @@ class Scheduler:
                 # the populator to add tasks to the queue, and we do want
                 # allow the api to update the priority
                 if boefjes_queue.is_item_on_queue(task):
-                    self.logger.warning(
+                    self.logger.debug(
                         f"Boefje task {task} already on queue [boefje={boefje.id}]",
                     )
                     continue
@@ -150,6 +140,12 @@ class Scheduler:
                 self.queues.get("boefjes").push(
                     queue.PrioritizedItem(priority=score, item=task),
                 )
+                count_tasks += 1
+
+        if count_tasks > 0:
+            self.logger.info(
+                f"Added {count_tasks} boefje tasks to queue [queue_id={self.queues.get('boefjes').id}, count_tasks={count_tasks}]",
+            )
 
     def _run_in_thread(
         self, name: str, func: Callable, interval: float = 0.01, daemon: bool = False, *args, **kwargs
@@ -197,7 +193,7 @@ class Scheduler:
             self._run_in_thread(
                 name=f"{k}_queue_populator",
                 func=getattr(self, f"_populate_{q.id}_queue"),
-                interval=60,
+                interval=self.ctx.config.pq_populate_interval,
             )
 
         # Dispatchers directing work from queues to workers
