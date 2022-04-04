@@ -9,7 +9,7 @@ fail-under=8.0
 
 [FORMAT]
 
-max-line-length=88
+max-line-length=120
 
 [STRING]
 
