@@ -18,7 +18,7 @@ class Listener(abc.ABC):
         self.logger = logging.getLogger(__name__)
 
     @abc.abstractmethod
-    def dispatch(self, *args, **kwargs):
+    def listen(self, *args, **kwargs):
         raise NotImplementedError
 
 
@@ -30,7 +30,7 @@ class RabbitMQ(Listener):
 
     Attibutes:
         dsn:
-            A string defining the data source name of the RabbitMQ host too
+            A string defining the data source name of the RabbitMQ host to
             connect to.
         queue:
             A string defining the RabbitMQ queue to listen to.
@@ -40,6 +40,9 @@ class RabbitMQ(Listener):
         super().__init__()
         self.dsn = dsn
         self.queue = queue
+
+    def dispatch(self, *args, **kwargs) -> None:
+        raise NotImplementedError
 
     def listen(self) -> None:
         connection = pika.BlockingConnection(pika.URLParameters(self.dsn))
@@ -54,7 +57,3 @@ class RabbitMQ(Listener):
         self.dispatch(args, kwargs)
 
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
-
-
-class Kafka(Listener):
-    pass
