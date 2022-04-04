@@ -45,15 +45,6 @@ class DispatcherTestCase(unittest.TestCase):
         del self.pq
         del self.dispatcher
 
-    def test_set_task_on_dispatch(self):
-        """When a task is set on dispatch it should set the task."""
-        prio1 = create_p_item(priority=1)
-        self.pq.push(p_item=prio1)
-
-        self.dispatcher.dispatch()
-
-        self.assertIsNotNone(self.dispatcher.task)
-
     def test_dispatch_threshold(self):
         """When threshold is set it should only dispatch the items at that
         threshold"""
@@ -71,7 +62,7 @@ class DispatcherTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 3)
 
         # Dispatch item on the queue
-        self.dispatcher.dispatch()
+        self.dispatcher.run()
         self.assertEqual(len(self.pq), 2)
 
         # Check the queue for the correct items
@@ -89,7 +80,7 @@ class DispatcherTestCase(unittest.TestCase):
         self.assertEqual(last_entry.state, queue.EntryState.ADDED)
 
         # Dispatch a second time, should have no effect on the queue
-        self.dispatcher.dispatch()
+        self.dispatcher.run()
         self.assertEqual(len(self.pq), 2)
 
     def test_threshold_not_set(self):
@@ -105,9 +96,9 @@ class DispatcherTestCase(unittest.TestCase):
 
         self.assertEqual(len(self.pq), 3)
 
-        self.dispatcher.dispatch()
-        self.dispatcher.dispatch()
-        self.dispatcher.dispatch()
+        self.dispatcher.run()
+        self.dispatcher.run()
+        self.dispatcher.run()
 
         self.assertEqual(len(self.pq), 0)
 
@@ -126,9 +117,9 @@ class DispatcherTestCase(unittest.TestCase):
 
         self.assertEqual(len(self.pq), 3)
 
-        self.dispatcher.dispatch()
-        self.dispatcher.dispatch()
-        self.dispatcher.dispatch()
+        self.dispatcher.run()
+        self.dispatcher.run()
+        self.dispatcher.run()
 
         self.assertEqual(len(self.pq), 3)
 
@@ -149,7 +140,7 @@ class DispatcherTestCase(unittest.TestCase):
         self.assertEqual(len(self.pq), 3)
 
         # Dispatch item on the queue
-        self.dispatcher.dispatch()
+        self.dispatcher.run()
         self.assertEqual(len(self.pq), 2)
 
         # Check the queue for the correct items
@@ -167,5 +158,5 @@ class DispatcherTestCase(unittest.TestCase):
         self.assertEqual(last_entry.state, queue.EntryState.ADDED)
 
         # Dispatch a second time, should have no effect on the queue
-        self.dispatcher.dispatch()
+        self.dispatcher.run()
         self.assertEqual(len(self.pq), 2)

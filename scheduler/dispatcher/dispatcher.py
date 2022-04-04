@@ -28,10 +28,6 @@ class Dispatcher:
         item_type:
             A pydantic.BaseModel object that specifies the type of item that
             should be dispatched, this helps with validation.
-        task:
-            A pydantic.BaseModel object that defines the task that is going
-            to be dispatched. Used for sub classes of the dispatcher to
-            reference the task that should be dispatched.
     """
 
     def __init__(self, pq: queue.PriorityQueue, item_type: pydantic.BaseModel):
@@ -48,7 +44,6 @@ class Dispatcher:
         self.pq: queue.PriorityQueue = pq
         self.threshold: float = float("inf")
         self.item_type: pydantic.BaseModel = item_type
-        self.task: pydantic.BaseModel = None
 
     def _can_dispatch(self) -> bool:
         """Checks the first item of the priority queue, whether or not items
@@ -84,27 +79,21 @@ class Dispatcher:
         """
         return self.threshold
 
-    def dispatch(self) -> None:
+    def dispatch(self, p_item: queue.PrioritizedItem) -> None:
         """Pop and dispatch a task item from a priority queue entry. This
         method should be extended by subclasses to implement its specific
         dispatching strategy.
 
+        Arguments:
+            p_item:
+                A queue.PrioritizedItem instance.
+
         Returns:
             None
         """
-        if not self._can_dispatch():
-            return
-
-        p_item = self.pq.pop()
-
         self.logger.info(
             f"Dispatching task {self.pq.get_item_identifier(p_item.item)} [task_id={self.pq.get_item_identifier(p_item.item)}]"
         )
-
-        if not self._is_valid_item(p_item.item):
-            raise ValueError(f"Item must be of type {self.item_type.__name__}")
-
-        self.task = p_item.item
 
     def run(self) -> None:
         """Continuously dispatch items from the priority queue."""
@@ -112,7 +101,15 @@ class Dispatcher:
             self.logger.debug("Queue is empty, sleeping ...")
             return
 
-        self.dispatch()
+        if not self._can_dispatch():
+            return
+
+        p_item = self.pq.pop()
+
+        if not self._is_valid_item(p_item.item):
+            raise ValueError(f"Item must be of type {self.item_type.__name__}")
+
+        self.dispatch(p_item=p_item)
 
 
 class CeleryDispatcher(Dispatcher):
@@ -171,15 +168,12 @@ class CeleryDispatcher(Dispatcher):
             result_accept_content=["application/json", "application/x-python-serialize"],
         )
 
-    def dispatch(self) -> None:
-        super().dispatch()
-
-        if self.task is None:
-            return
+    def dispatch(self, p_item: queue.PrioritizedItem) -> None:
+        super().dispatch(p_item=p_item)
 
         self.app.send_task(
             name=self.task_name,
-            args=(self.task.dict(),),
+            args=(p_item.dict(),),
             queue=self.queue,
             task_id=uuid.uuid4().hex,
         )
