@@ -173,7 +173,7 @@ class CeleryDispatcher(Dispatcher):
 
         self.app.send_task(
             name=self.task_name,
-            args=(p_item.dict(),),
+            args=(p_item.item.dict(),),
             queue=self.queue,
             task_id=uuid.uuid4().hex,
         )
