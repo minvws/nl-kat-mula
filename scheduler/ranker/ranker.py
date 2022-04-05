@@ -1,5 +1,7 @@
+import datetime
 import logging
-import time
+import random
+from datetime import datetime, timedelta
 
 from scheduler import context, models
 
@@ -27,7 +29,9 @@ class BoefjeRankerTimeBased(Ranker):
     """
 
     def rank(self, ooi: models.OOI) -> int:
-        return int(time.time() + 120)
+        minimum = datetime.today() + timedelta(days=1)
+        maximum = minimum + timedelta(days=7)
+        return random.randint(int(minimum.timestamp()), int(maximum.timestamp()))
 
 
 class NormalizerRanker(Ranker):

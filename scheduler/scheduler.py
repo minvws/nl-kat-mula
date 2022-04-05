@@ -121,10 +121,12 @@ class Scheduler:
 
             boefjes_queue = self.queues.get("boefjes")
             for boefje in boefjes:
+                organization = "_dev"  # FIXME
+
                 task = BoefjeTask(
                     boefje=boefje,
                     input_ooi=ooi.id,
-                    organization="_dev",  # FIXME
+                    organization=organization,
                 )
 
                 # When using time-based dispatcher and rankers we don't want
@@ -132,7 +134,7 @@ class Scheduler:
                 # allow the api to update the priority
                 if boefjes_queue.is_item_on_queue(task):
                     self.logger.debug(
-                        f"Boefje task {task} already on queue [boefje={boefje.id}]",
+                        f"Boefje task already on queue [boefje={boefje.id} input_ooi={ooi.id} organization={organization}]",
                     )
                     continue
 
