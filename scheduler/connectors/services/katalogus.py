@@ -9,8 +9,6 @@ from .services import HTTPService
 class Katalogus(HTTPService):
     name = "katalogus"
 
-    cache_ooi_type: Dict[str, List[Boefje]] = {}
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
