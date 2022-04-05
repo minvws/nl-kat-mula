@@ -1,6 +1,7 @@
 from typing import Dict, List
 
 from scheduler.models import Boefje
+from scheduler.utils import cache
 
 from .services import HTTPService
 
@@ -8,23 +9,27 @@ from .services import HTTPService
 class Katalogus(HTTPService):
     name = "katalogus"
 
-    cache_ooi_type: Dict[str, Boefje] = {}
+    cache_ooi_type: Dict[str, List[Boefje]] = {}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.cache_ooi_type = {}
 
-        self._warm_cache_ooi_type()
-
-    # FIXME: can we optimize the double for loop?
-    def _warm_cache_ooi_type(self) -> None:
+    @cache.ttl_lru_cache(ttl=60*10)
+    def _get_boefjes_by_ooi_type(self, ooi_type: str) -> List[Boefje]:
         boefjes = self.get_boefjes()
+
+        cache_ooi_type = {}
         for boefje in boefjes:
             for ooi_type in boefje.consumes:
-                if ooi_type not in self.cache_ooi_type:
-                    self.cache_ooi_type[ooi_type] = [boefje]
+                if ooi_type not in cache_ooi_type:
+                    cache_ooi_type[ooi_type] = [boefje]
                 else:
-                    self.cache_ooi_type[ooi_type].append(boefje)
+                    cache_ooi_type[ooi_type].append(boefje)
+
+        return cache_ooi_type.get(ooi_type, [])
+
+    def get_boefjes_by_ooi_type(self, ooi_type: str) -> List[Boefje]:
+        return self._get_boefjes_by_ooi_type(ooi_type)
 
     def get_boefjes(self) -> List[Boefje]:
         url = f"{self.host}/boefjes"

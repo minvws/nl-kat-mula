@@ -102,6 +102,7 @@ class Dispatcher:
             return
 
         if not self._can_dispatch():
+            # self.logger.debug("Can't yet dispatch, threshold not reached")
             return
 
         p_item = self.pq.pop()

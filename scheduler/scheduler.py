@@ -108,9 +108,8 @@ class Scheduler:
             # and indemnification?
 
             # Get available boefjes based on ooi type
-            boefjes = self.ctx.services.katalogus.cache_ooi_type.get(
+            boefjes = self.ctx.services.katalogus.get_boefjes_by_ooi_type(
                 ooi.ooi_type,
-                None,
             )
             if boefjes is None:
                 self.logger.debug(f"No boefjes found for type {ooi.ooi_type} [ooi={ooi}]")
@@ -198,7 +197,7 @@ class Scheduler:
 
         # Dispatchers directing work from queues to workers
         for k, d in self.dispatchers.items():
-            self._run_in_thread(name=k, func=d.run, daemon=False)
+            self._run_in_thread(name=k, func=d.run, daemon=False, interval=5)
 
         # Main thread
         while not self.stop_event.is_set():
