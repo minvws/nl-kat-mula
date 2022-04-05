@@ -15,6 +15,8 @@ class HTTPService:
     Attributes:
         logger:
             The logger for the class.
+        session:
+            A requests.Session object.
         name:
             A string describing the name of the service. This is used args
             an identifier.
@@ -51,6 +53,7 @@ class HTTPService:
                 An integer defining the timeout of requests.
         """
         self.logger: logger.Logger = logging.getLogger(self.__class__.__name__)
+        self.session = requests.Session()
         self.host = host
         self.timeout = timeout
         self.source = source
@@ -62,6 +65,7 @@ class HTTPService:
 
         if self.source:
             self.headers["User-Agent"] = self.source
+
 
         self._do_checks()
 
@@ -79,7 +83,7 @@ class HTTPService:
         Returns:
             A request.Response object
         """
-        response = requests.get(
+        response = self.session.get(
             url,
             headers=self.headers.update(headers) if headers else self.headers,
             params=params,
@@ -106,7 +110,7 @@ class HTTPService:
         Returns:
             A request.Response object
         """
-        response = requests.post(
+        response = self.session.post(
             url,
             headers=self.headers.update(headers) if headers else self.headers,
             params=params,
