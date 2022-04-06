@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     host_bytes_password: str = Field(..., env="BYTES_PASSWORD")
 
     # Listener settings
-    lst_octopoes: str = Field(..., env="QUEUE_URI")
+    # lst_octopoes: str = Field(..., env="QUEUE_URI")
 
     # Queue settings (0 is infinite)
     pq_maxsize: int = Field(0, env="SHEDULER_PQ_MAXSIZE")

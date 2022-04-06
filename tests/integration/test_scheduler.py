@@ -1,4 +1,5 @@
 import unittest
+import uuid
 from types import SimpleNamespace
 from unittest import mock
 
@@ -24,7 +25,7 @@ class SchedulerTestCase(unittest.TestCase):
             spec=connectors.services.Katalogus,
             spec_set=True,
         )
-        self.mock_katalogus.cache_ooi_type.get.return_value = [
+        self.mock_katalogus.get_boefjes_by_ooi_type.return_value = [
             BoefjeFactory(),
         ]
 
@@ -55,11 +56,10 @@ class SchedulerTestCase(unittest.TestCase):
     def test_push_boefjes_queue(self):
         pass
 
-    # CeleryDispatcher
-    def test_dispatcher(self):
-        self.scheduler._populate_boefjes_queue()
-
+    def test_celery_dispatcher(self):
         # TODO: Add item to queue, instead of populate
+        self.scheduler._populate_boefjes_queue()
+        self.assertEqual((len(self.scheduler.queues.get("boefjes"))), 1)
 
         d = dispatcher.CeleryDispatcher(
             ctx=self.mock_ctx,
@@ -70,13 +70,15 @@ class SchedulerTestCase(unittest.TestCase):
         )
 
         d.app.send_task = mock.Mock()
+        mock.patch("uuid.UUID.hex", return_value=uuid.uuid4().hex).start()
 
-        # Get item from queue, and dispatch it
-        d.dispatch()
+        # Get item and dispatch it
+        p_item = d.pq.pop()
+        d.dispatch(p_item)
 
         d.app.send_task.assert_called_once_with(
             name="tasks.handle_boefje",
-            args=(d.task.dict(),),
+            args=(p_item.item.dict(),),
             queue="boefjes",
-            task_id=d.task.id,
+            task_id=uuid.uuid4().hex,
         )
