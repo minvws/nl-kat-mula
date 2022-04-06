@@ -10,15 +10,22 @@
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "level": "DEBUG",
+            "level": "INFO",
             "formatter": "default",
             "stream": "ext://sys.stdout"
+        },
+        "syslog": {
+            "class": "logging.handlers.SysLogHandler",
+            "formatter": "default",
+            "address": "/dev/log",
+            "facility": "local0"
         }
     },
     "root": {
-        "level": "DEBUG",
+        "level": "INFO",
         "handlers": [
-            "console"
+            "console",
+            "syslog"
         ]
     },
     "loggers": {

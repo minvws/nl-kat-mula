@@ -1,0 +1,29 @@
+name: package scheduler
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v1
+
+      - name: Replace version number with release version
+        run: sed -ibak "s/version=.*/version=\"${RELEASE_VERSION}\",/" ./setup.py
+
+      - name: Create scheduler release
+        run:  tar -cvzf ../scheduler_${{ env.RELEASE_VERSION }}.tar.gz --exclude=./.git* .
+
+      - name: Upload scheduler tar
+        uses: actions/upload-artifact@v1
+        with:
+          name: scheduler_${{ env.RELEASE_VERSION }}
+          path: ../scheduler_${{ env.RELEASE_VERSION }}.tar.gz
