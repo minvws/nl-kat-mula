@@ -18,7 +18,7 @@ class Listener(abc.ABC):
         self.logger = logging.getLogger(__name__)
 
     @abc.abstractmethod
-    def listen(self, *args, **kwargs):
+    def listen(self) -> None:
         raise NotImplementedError
 
 

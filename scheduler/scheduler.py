@@ -3,9 +3,10 @@ import os
 import threading
 import time
 import uuid
-from typing import Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
-from scheduler import context, dispatchers, queue, queues, ranker, server, thread
+from scheduler import (context, dispatchers, queue, queues, ranker, server,
+                       thread)
 from scheduler.connectors import listeners
 from scheduler.models import OOI, Boefje, BoefjeTask, NormalizerTask
 
@@ -148,7 +149,7 @@ class Scheduler:
             )
 
     def _run_in_thread(
-        self, name: str, func: Callable, interval: float = 0.01, daemon: bool = False, *args, **kwargs
+        self, name: str, func: Callable, interval: float = 0.01, daemon: bool = False,
     ) -> None:
         """Make a function run in a thread, and add it to the dict of threads.
 
@@ -163,8 +164,6 @@ class Scheduler:
             target=func,
             stop_event=self.stop_event,
             interval=interval,
-            args=args,
-            kwargs=kwargs,
         )
         self.threads[name].setDaemon(daemon)
         self.threads[name].start()

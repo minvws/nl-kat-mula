@@ -23,7 +23,7 @@ class Bytes(HTTPService):
         url = f"{self.host}/token"
         response = self.post(
             url=url,
-            payload=json.dumps({"username": user, "password": password}),
+            payload={"username": user, "password": password},
             headers={"Content-Type": "application/x-www-form-urlendcoded"},
         )
         return str(response.json()["access_token"])

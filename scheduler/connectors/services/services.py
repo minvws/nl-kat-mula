@@ -52,11 +52,11 @@ class HTTPService:
             timeout:
                 An integer defining the timeout of requests.
         """
-        self.logger: logger.Logger = logging.getLogger(self.__class__.__name__)
-        self.session = requests.Session()
-        self.host = host
-        self.timeout = timeout
-        self.source = source
+        self.logger: logging.Logger = logging.getLogger(self.__class__.__name__)
+        self.session: requests.Session = requests.Session()
+        self.host: str = host
+        self.timeout: int = timeout
+        self.source: str = source
 
         self.headers: Dict[str, str] = {
             "Accept": "application/json",
@@ -161,7 +161,7 @@ class HTTPService:
         except requests.exceptions.RequestException:
             return False
 
-    def _retry(self, func: Callable) -> bool:
+    def _retry(self, func: Callable[[], Any]) -> bool:
         """Retry a function until it returns True.
 
         Args:
@@ -199,6 +199,6 @@ class HTTPService:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             self.logger.error(
-                f"HTTPError: {str(e)} [name={self.name}, url={response.url}, response={response.content}]"
+                f"HTTPError: {e} [name={self.name}, url={response.url}, response={response.content}]"
             )
             raise (e)

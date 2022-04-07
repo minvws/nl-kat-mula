@@ -2,9 +2,9 @@ import heapq
 import json
 import logging
 import queue
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Set, Tuple, Union
+from typing import Any, Dict, Tuple, Union
 
 import pydantic
 
@@ -44,7 +44,7 @@ class PrioritizedItem:
     def __hash__(self) -> int:
         return hash(self.__attrs())
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         return isinstance(other, PrioritizedItem) and self.__attrs() == other.__attrs()
 
 
@@ -68,16 +68,16 @@ class Entry:
     def dict(self) -> Dict[str, Any]:
         return {"priority": self.priority, "p_item": self.p_item.dict(), "state": self.state.value}
 
-    def __attrs(self) -> Tuple[int, Any]:
+    def __attrs(self) -> Tuple[int, PrioritizedItem, EntryState]:
         return (self.priority, self.p_item, self.state)
 
     def __hash__(self) -> int:
         return hash(self.__attrs())
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: Entry) -> bool:
         return self.priority < other.priority
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         return isinstance(other, Entry) and self.__attrs() == other.__attrs()
 
 
@@ -143,7 +143,7 @@ class PriorityQueue:
         self.id: str = id
         self.maxsize: int = maxsize
         self.item_type: pydantic.BaseModel = item_type
-        self.pq: queue.PriorityQueue = queue.PriorityQueue(maxsize=self.maxsize)
+        self.pq: queue.PriorityQueue[Entry] = queue.PriorityQueue(maxsize=self.maxsize)
         self.timeout: int = 5
         self.entry_finder: Dict[Any, Entry] = {}
         self.allow_replace: bool = allow_replace
@@ -193,7 +193,7 @@ class PriorityQueue:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.put
         """
         if not self._is_valid_item(p_item.item):
-            raise ValueError(f"PrioritizedItem must be of type {self.item_type.__name__}")
+            raise ValueError(f"PrioritizedItem must be of type {self.item_type}")
 
         if self.maxsize is not None and self.maxsize != 0 and self.pq.qsize() == self.maxsize:
             raise queue.Full
@@ -251,7 +251,7 @@ class PriorityQueue:
                 An integer describing the index of item on the queue that you
                 want to inspect.
         """
-        item = self.pq.queue[index]
+        item: Entry = self.pq.queue[index]
         return item
 
     def remove(self, p_item: PrioritizedItem) -> None:
@@ -307,7 +307,7 @@ class PriorityQueue:
             A boolean, True if the item is valid, False otherwise.
         """
         try:
-            pydantic.parse_obj_as(self.item_type, item)
+            self.item_type.parse_obj(item)
         except pydantic.ValidationError:
             return False
 

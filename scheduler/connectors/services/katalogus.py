@@ -14,13 +14,13 @@ class Katalogus(HTTPService):
     # _get_boefjes_by_ooi_type which implements a timed lru cache.
     boefjes_by_ooi_type_cache: Dict[str, List[Boefje]] = {}
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.boefjes_by_ooi_type_cache = {}
         self._flush_boefjes_by_ooi_type_cache()
 
-    def _flush_boefjes_by_ooi_type_cache(self):
+    def _flush_boefjes_by_ooi_type_cache(self) -> None:
         boefjes = self.get_boefjes()
 
         for boefje in boefjes:

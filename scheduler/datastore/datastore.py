@@ -3,6 +3,7 @@ Reference implementation for potential PostgreSQL database connections.
 at the moment this isn't used.
 
 """
+from typing import Any, Optional
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -16,5 +17,5 @@ class PostgreSQL:
     def connect(self) -> None:
         pass
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self) -> None:
         pass
