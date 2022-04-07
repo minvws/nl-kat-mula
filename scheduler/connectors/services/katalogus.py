@@ -30,7 +30,7 @@ class Katalogus(HTTPService):
                 else:
                     self.boefjes_by_ooi_type_cache[ooi_type].append(boefje)
 
-    @cache.ttl_lru_cache(ttl=60*10)
+    @cache.ttl_lru_cache(ttl=60 * 10)
     def _get_boefjes_by_ooi_type(self, ooi_type: str) -> List[Boefje]:
         boefjes = self.get_boefjes()
 

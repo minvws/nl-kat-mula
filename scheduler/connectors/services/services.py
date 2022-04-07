@@ -66,7 +66,6 @@ class HTTPService:
         if self.source:
             self.headers["User-Agent"] = self.source
 
-
         self._do_checks()
 
     def get(
@@ -174,7 +173,9 @@ class HTTPService:
         i = 0
         while i < 10:
             if func() is True:
-                self.logger.info(f"Connected to {self.host}. [name={self.name}, host={self.host}, func={func.__name__}]")
+                self.logger.info(
+                    f"Connected to {self.host}. [name={self.name}, host={self.host}, func={func.__name__}]"
+                )
                 return True
             else:
                 self.logger.warning(
@@ -197,5 +198,7 @@ class HTTPService:
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            self.logger.error(f"HTTPError: {str(e)} [name={self.name}, url={response.url}, response={response.content}]")
+            self.logger.error(
+                f"HTTPError: {str(e)} [name={self.name}, url={response.url}, response={response.content}]"
+            )
             raise (e)

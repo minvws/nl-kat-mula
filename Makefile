@@ -11,7 +11,7 @@ MAKEFLAGS += --no-builtin-rules
 # use HIDE to run commands invisibly, unless VERBOSE defined
 HIDE:=$(if $(VERBOSE),,@)
 
-BLACKFLAGS= --exclude ""
+BLACKFLAGS= --exclude=alembic
 BYTES_VERSION= v0.6.0
 
 # Export cmd line args:
