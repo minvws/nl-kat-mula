@@ -95,53 +95,54 @@ class Scheduler:
 
     def _populate_boefjes_queue(self) -> None:
         """Process to add boefje tasks to the boefjes priority queue."""
-        # oois = self.ctx.services.octopoes.get_random_objects(n=10)
-        oois = self.ctx.services.octopoes.get_objects()
+        count_tasks = 0
 
         # TODO: make concurrent, since ranker will be doing I/O using external
         # services
-        count_tasks = 0
-        for ooi in oois:
-            score = self.rankers.get("boefjes").rank(ooi)
+        orgs = self.ctx.services.katalogus.get_organisations()
+        for org in orgs:
 
-            # TODO: get boefjes for ooi, active boefjes depend on organization
-            # and indemnification?
+            # oois = self.ctx.services.octopoes.get_random_objects(org=org, n=10)
+            oois = self.ctx.services.octopoes.get_objects(org=org.id)
 
-            # Get available boefjes based on ooi type
-            boefjes = self.ctx.services.katalogus.get_boefjes_by_ooi_type(
-                ooi.ooi_type,
-            )
-            if boefjes is None:
-                self.logger.debug(f"No boefjes found for type {ooi.ooi_type} [ooi={ooi}]")
-                continue
+            for ooi in oois:
+                score = self.rankers.get("boefjes").rank(ooi)
 
-            self.logger.debug(
-                f"Found {len(boefjes)} boefjes for ooi {ooi} [ooi={ooi}, boefjes={[boefje.id for boefje in boefjes]}"
-            )
+                # TODO: get boefjes for ooi, active boefjes depend on organization
+                # and indemnification?
 
-            boefjes_queue = self.queues.get("boefjes")
-            for boefje in boefjes:
-                organization = "_dev"  # FIXME
-
-                task = BoefjeTask(
-                    boefje=boefje,
-                    input_ooi=ooi.id,
-                    organization=organization,
+                # Get available boefjes based on ooi type
+                boefjes = self.ctx.services.katalogus.get_boefjes_by_ooi_type(
+                    ooi.ooi_type,
                 )
-
-                # When using time-based dispatcher and rankers we don't want
-                # the populator to add tasks to the queue, and we do want
-                # allow the api to update the priority
-                if boefjes_queue.is_item_on_queue(task):
-                    self.logger.debug(
-                        f"Boefje task already on queue [boefje={boefje.id} input_ooi={ooi.id} organization={organization}]",
-                    )
+                if boefjes is None:
+                    self.logger.debug(f"No boefjes found for type {ooi.ooi_type} [ooi={ooi}]")
                     continue
 
-                self.queues.get("boefjes").push(
-                    queue.PrioritizedItem(priority=score, item=task),
+                self.logger.debug(
+                    f"Found {len(boefjes)} boefjes for ooi {ooi} [ooi={ooi}, boefjes={[boefje.id for boefje in boefjes]}"
                 )
-                count_tasks += 1
+
+                boefjes_queue = self.queues.get("boefjes")
+                for boefje in boefjes:
+                    task = BoefjeTask(
+                        boefje=boefje,
+                        input_ooi=ooi.id,
+                        organization=org.id)
+
+                    # When using time-based dispatcher and rankers we don't want
+                    # the populator to add tasks to the queue, and we do want
+                    # allow the api to update the priority
+                    if boefjes_queue.is_item_on_queue(task):
+                        self.logger.debug(
+                            f"Boefje task already on queue [boefje={boefje.id} input_ooi={ooi.id} organization={org.id}]",
+                        )
+                        continue
+
+                    self.queues.get("boefjes").push(
+                        queue.PrioritizedItem(priority=score, item=task),
+                    )
+                    count_tasks += 1
 
         if count_tasks > 0:
             self.logger.info(

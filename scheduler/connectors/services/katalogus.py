@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from scheduler.models import Boefje
+from scheduler.models import Boefje, Organisation
 from scheduler.utils import cache
 
 from .services import HTTPService
@@ -56,3 +56,8 @@ class Katalogus(HTTPService):
         url = f"{self.host}/boefjes/{boefje_id}"
         response = self.get(url)
         return Boefje(**response.json())
+
+    def get_organisations(self) -> List[Organisation]:
+        url = f"{self.host}/v1/organisations"
+        response = self.get(url)
+        return [Organisation(**organisation) for organisation in response.json().values()]
