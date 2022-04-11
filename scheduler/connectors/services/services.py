@@ -6,6 +6,7 @@ import urllib.parse
 from typing import Any, Callable, Dict, List, Union
 
 import requests
+from requests.adapters import HTTPAdapter, Retry
 
 
 class HTTPService:
@@ -38,7 +39,7 @@ class HTTPService:
     name: str
     health_endpoint: Union[str, None] = "/health"
 
-    def __init__(self, host: str, source: str, timeout: int = 5):
+    def __init__(self, host: str, source: str, timeout: int = 5, retries: int = 5):
         """Initializer of the HTTPService class. During initialization thr
         host will be checked if it is available and healthy.
 
@@ -51,12 +52,25 @@ class HTTPService:
                 from where the requests came from.
             timeout:
                 An integer defining the timeout of requests.
+            retries:
+                An integer defining the number of retries to make before
+                giving up.
         """
         self.logger: logger.Logger = logging.getLogger(self.__class__.__name__)
-        self.session = requests.Session()
         self.host = host
         self.timeout = timeout
+        self.retries = retries
         self.source = source
+
+        self.session = requests.Session()
+
+        max_retries = Retry(
+            total=self.retries,
+            backoff_factor=0.1,
+            status_forcelist=[500, 502, 503, 504],
+        )
+        self.session.mount("http://", HTTPAdapter(max_retries=max_retries))
+        self.session.mount("https://", HTTPAdapter(max_retries=max_retries))
 
         self.headers: Dict[str, str] = {
             "Accept": "application/json",
@@ -157,7 +171,7 @@ class HTTPService:
             A boolean
         """
         try:
-            self.get(f"{self.host}{self.health_endpoint}")
+            self.session.get(f"{self.host}{self.health_endpoint}")
             return True
         except requests.exceptions.RequestException:
             return False
@@ -186,8 +200,6 @@ class HTTPService:
 
         return False
 
-    # FIXME: handle the exception, we don't want to stop threads because
-    # of a bad response
     def _verify_response(self, response: requests.Response) -> None:
         """Verify the received response from a request.
 
