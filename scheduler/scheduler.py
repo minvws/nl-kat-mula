@@ -119,12 +119,26 @@ class Scheduler:
                     self.logger.debug(f"No boefjes found for type {ooi.ooi_type} [ooi={ooi}]")
                     continue
 
+
                 self.logger.debug(
                     f"Found {len(boefjes)} boefjes for ooi {ooi} [ooi={ooi}, boefjes={[boefje.id for boefje in boefjes]}"
                 )
 
                 boefjes_queue = self.queues.get("boefjes")
                 for boefje in boefjes:
+                    plugin = self.ctx.services.katalogus.get_plugin_by_org_and_boefje_id(
+                        organisation_id=org.id, boefje_id=boefje.id,
+                    )
+                    if plugin is None:
+                        self.logger.debug(
+                            f"No plugin found for boefje {boefje.id} [org={org.id}, boefje={boefje.id}]"
+                        )
+                        continue
+
+                    if plugin.enabled is False:
+                        self.logger.debug(f"Boefje {boefje.id} is disabled")
+                        continue
+
                     task = BoefjeTask(
                         boefje=boefje,
                         input_ooi=ooi.id,

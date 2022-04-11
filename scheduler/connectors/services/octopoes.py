@@ -10,7 +10,8 @@ class Octopoes(HTTPService):
     health_endpoint = "/_dev/health"  # FIXME: _dev
 
     def get_objects(self, org: str) -> List[OOI]:
-        url = f"{self.host}/{org}/objects"
+        # url = f"{self.host}/{org}/objects"
+        url = f"{self.host}/_dev/objects"
         response = self.get(url)
         return [OOI(**ooi) for ooi in response.json()]
 
