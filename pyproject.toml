@@ -3,7 +3,6 @@
 line-length = 120
 target-version = ['py38']
 
-
 [tool.mypy]
 
 python_version = 3.8
@@ -17,7 +16,13 @@ exclude = "alembic"
 
 [tool.pylint.master]
 
-disable= ["missing-module-docstring", "missing-class-docstring", "missing-function-docstring", "too-few-public-methods"]
 fail-under=9.0
 max-line-length=120
 check-quote-consistency=true
+disable= [
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "too-few-public-methods",
+    "cyclic-import",
+]

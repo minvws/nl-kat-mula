@@ -44,7 +44,7 @@ black: ## Check code style with black.
 pylint: ## Rate the code with pylint.
 	docker-compose -f base.yml -f .ci/docker-compose.yml \
 		run --rm mula \
-		pylint scheduler | grep rated
+		pylint --rcfile pyproject.toml scheduler
 
 fmt: ## Format the code using black.
 	docker-compose -f base.yml -f .ci/docker-compose.yml \
