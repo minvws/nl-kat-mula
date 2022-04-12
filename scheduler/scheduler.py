@@ -5,8 +5,7 @@ import time
 import uuid
 from typing import Any, Callable, Dict, Optional
 
-from scheduler import (context, dispatcher, dispatchers, queue, queues, ranker,
-                       server, thread)
+from scheduler import context, dispatcher, dispatchers, queue, queues, ranker, server, thread
 from scheduler.connectors import listeners
 from scheduler.models import OOI, Boefje, BoefjeTask, NormalizerTask
 
