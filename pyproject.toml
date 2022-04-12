@@ -25,4 +25,7 @@ disable= [
     "missing-function-docstring",
     "too-few-public-methods",
     "cyclic-import",
+    "fixme",
+    "invalid-name",
+    "logging-fstring-interpolation",
 ]

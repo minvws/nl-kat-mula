@@ -46,7 +46,7 @@ class ThreadRunner(threading.Thread):
             self.stop_event.wait(self.interval)
 
     def join(self, timeout: Optional[float] = None) -> None:
-        self.logger.debug(f"Stopping thread:")
+        self.logger.debug("Stopping thread")
 
         self.stop_event.set()
         super().join(timeout)
