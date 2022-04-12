@@ -1,4 +1,3 @@
-import datetime
 import logging
 import random
 from datetime import datetime, timedelta

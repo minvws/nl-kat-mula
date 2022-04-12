@@ -199,6 +199,6 @@ class HTTPService:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             self.logger.error(
-                f"HTTPError: {e} [name={self.name}, url={response.url}, response={response.content}]"
+                f"Received bad response from {self.host}. [name={self.name}, url={response.url}, {str(response.content)}]"
             )
             raise (e)

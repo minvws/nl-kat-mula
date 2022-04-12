@@ -5,8 +5,7 @@ import time
 import uuid
 from typing import Any, Callable, Dict, Optional
 
-from scheduler import (context, dispatchers, queue, queues, ranker, server,
-                       thread)
+from scheduler import context, dispatcher, dispatchers, queue, queues, ranker, server, thread
 from scheduler.connectors import listeners
 from scheduler.models import OOI, Boefje, BoefjeTask, NormalizerTask
 
@@ -34,13 +33,13 @@ class Scheduler:
     """
 
     def __init__(self) -> None:
-        self.logger = logging.getLogger(__name__)
-        self.ctx = context.AppContext()
-        self.threads = {}
-        self.stop_event = threading.Event()
+        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.ctx: context.AppContext = context.AppContext()
+        self.threads: Dict[str, thread.ThreadRunner] = {}
+        self.stop_event: threading.Event = threading.Event()
 
         # Initialize queues
-        self.queues = {
+        self.queues: Dict[str, queue.PriorityQueue] = {
             "boefjes": queues.BoefjePriorityQueue(
                 id="boefjes",
                 maxsize=self.ctx.config.pq_maxsize,
@@ -50,20 +49,24 @@ class Scheduler:
         }
 
         # Initialize rankers
-        self.rankers = {
+        self.rankers: Dict[str, ranker.Ranker] = {
             "boefjes": ranker.BoefjeRankerTimeBased(
                 ctx=self.ctx,
             ),
         }
 
         # Initialize event stream listeners
-        self.listeners = {}
+        self.listeners: Dict[str, listeners.Listener] = {}
 
         # Initialize dispatchers
-        self.dispatchers = {
+        boefjes_queue = self.queues.get("boefjes")
+        if not boefjes_queue:
+            raise RuntimeError("No boefjes queue found")
+
+        self.dispatchers: Dict[str, dispatcher.Dispatcher] = {
             "boefjes": dispatchers.BoefjeDispatcherTimeBased(
                 ctx=self.ctx,
-                pq=self.queues.get("boefjes"),
+                pq=boefjes_queue,
                 item_type=BoefjeTask,
                 queue="boefjes",
                 task_name="tasks.handle_boefje",
@@ -71,7 +74,7 @@ class Scheduler:
         }
 
         # Initialize API server
-        self.server = server.Server(self.ctx, queues=self.queues)
+        self.server: server.Server = server.Server(self.ctx, queues=self.queues)
 
     def shutdown(self) -> None:
         """Gracefully shutdown the scheduler, and all threads."""
@@ -85,16 +88,20 @@ class Scheduler:
         os._exit(0)
 
     def _populate_normalizers_queue(self) -> None:
-        # TODO: from bytes get boefjes jobs that are done
-        self.logger.info("_populate_normalizers_queue")
-
-    def _add_normalizer_task_to_queue(self, task: NormalizerTask) -> None:
-        self.queues.get("normalizers").push(
-            queue.PrioritizedItem(priority=0, item=task),
-        )
+        raise NotImplementedError()
 
     def _populate_boefjes_queue(self) -> None:
         """Process to add boefje tasks to the boefjes priority queue."""
+        boefjes_queue = self.queues.get("boefjes")
+        if not boefjes_queue:
+            self.logger.error("No boefjes queue found")
+            return
+
+        boefjes_ranker = self.rankers.get("boefjes")
+        if not boefjes_ranker:
+            self.logger.error("No boefjes ranker found")
+            return
+
         # oois = self.ctx.services.octopoes.get_random_objects(n=10)
         oois = self.ctx.services.octopoes.get_objects()
 
@@ -102,7 +109,7 @@ class Scheduler:
         # services
         count_tasks = 0
         for ooi in oois:
-            score = self.rankers.get("boefjes").rank(ooi)
+            score = boefjes_ranker.rank(ooi)
 
             # TODO: get boefjes for ooi, active boefjes depend on organization
             # and indemnification?
@@ -119,7 +126,6 @@ class Scheduler:
                 f"Found {len(boefjes)} boefjes for ooi {ooi} [ooi={ooi}, boefjes={[boefje.id for boefje in boefjes]}"
             )
 
-            boefjes_queue = self.queues.get("boefjes")
             for boefje in boefjes:
                 organization = "_dev"  # FIXME
 
@@ -138,18 +144,22 @@ class Scheduler:
                     )
                     continue
 
-                self.queues.get("boefjes").push(
+                boefjes_queue.push(
                     queue.PrioritizedItem(priority=score, item=task),
                 )
                 count_tasks += 1
 
         if count_tasks > 0:
             self.logger.info(
-                f"Added {count_tasks} boefje tasks to queue [queue_id={self.queues.get('boefjes').id}, count_tasks={count_tasks}]",
+                f"Added {count_tasks} boefje tasks to queue [queue_id={boefjes_queue.id}, count_tasks={count_tasks}]",
             )
 
     def _run_in_thread(
-        self, name: str, func: Callable, interval: float = 0.01, daemon: bool = False,
+        self,
+        name: str,
+        func: Callable[[], Any],
+        interval: float = 0.01,
+        daemon: bool = False,
     ) -> None:
         """Make a function run in a thread, and add it to the dict of threads.
 

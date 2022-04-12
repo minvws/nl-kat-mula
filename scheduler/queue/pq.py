@@ -4,7 +4,7 @@ import logging
 import queue
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Tuple, Type, Union
 
 import pydantic
 
@@ -74,8 +74,11 @@ class Entry:
     def __hash__(self) -> int:
         return hash(self.__attrs())
 
-    def __lt__(self, other: Entry) -> bool:
-        return self.priority < other.priority
+    def __lt__(self, other: Any) -> bool:
+        if self.priority < other.priority:
+            return True
+
+        return False
 
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, Entry) and self.__attrs() == other.__attrs()
@@ -124,7 +127,7 @@ class PriorityQueue:
         self,
         id: str,
         maxsize: int,
-        item_type: pydantic.BaseModel,
+        item_type: Type[pydantic.BaseModel],
         allow_replace: bool = False,
         allow_updates: bool = False,
         allow_priority_updates: bool = False,
@@ -142,7 +145,7 @@ class PriorityQueue:
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.id: str = id
         self.maxsize: int = maxsize
-        self.item_type: pydantic.BaseModel = item_type
+        self.item_type: Type[pydantic.BaseModel] = item_type
         self.pq: queue.PriorityQueue[Entry] = queue.PriorityQueue(maxsize=self.maxsize)
         self.timeout: int = 5
         self.entry_finder: Dict[Any, Entry] = {}
@@ -150,7 +153,7 @@ class PriorityQueue:
         self.allow_updates: bool = allow_updates
         self.allow_priority_updates: bool = allow_priority_updates
 
-    def pop(self) -> Union[PrioritizedItem, None]:
+    def pop(self) -> PrioritizedItem:
         """Pop the item with the highest priority from the queue. If optional
         args block is true and timeout is None (the default), block if
         necessary until an item is available. If timeout is a positive number,
@@ -175,7 +178,6 @@ class PriorityQueue:
                     return entry.p_item
             except queue.Empty:
                 self.logger.warning(f"Queue {self.id} is empty")
-                return None
 
     def push(self, p_item: PrioritizedItem) -> None:
         """Push an item with priority into the queue. When timeout is set it
