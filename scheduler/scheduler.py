@@ -5,7 +5,8 @@ import time
 import uuid
 from typing import Any, Callable, Dict, Optional
 
-from scheduler import context, dispatcher, dispatchers, queue, queues, ranker, server, thread
+from scheduler import (context, dispatcher, dispatchers, queue, queues, ranker,
+                       server, thread)
 from scheduler.connectors import listeners
 from scheduler.models import OOI, Boefje, BoefjeTask, NormalizerTask
 
@@ -60,7 +61,7 @@ class Scheduler:
 
         # Initialize dispatchers
         boefjes_queue = self.queues.get("boefjes")
-        if not boefjes_queue:
+        if boefjes_queue is None:
             raise RuntimeError("No boefjes queue found")
 
         self.dispatchers: Dict[str, dispatcher.Dispatcher] = {
@@ -93,14 +94,12 @@ class Scheduler:
     def _populate_boefjes_queue(self) -> None:
         """Process to add boefje tasks to the boefjes priority queue."""
         boefjes_queue = self.queues.get("boefjes")
-        if not boefjes_queue:
-            self.logger.error("No boefjes queue found")
-            return
+        if boefjes_queue is None:
+            raise RuntimeError("No boefjes queue found")
 
         boefjes_ranker = self.rankers.get("boefjes")
-        if not boefjes_ranker:
-            self.logger.error("No boefjes ranker found")
-            return
+        if boefjes_ranker is None:
+            raise RuntimeError("No boefjes ranker found")
 
         # oois = self.ctx.services.octopoes.get_random_objects(n=10)
         oois = self.ctx.services.octopoes.get_objects()

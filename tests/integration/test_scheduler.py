@@ -47,17 +47,8 @@ class SchedulerTestCase(unittest.TestCase):
         self.scheduler._populate_boefjes_queue()
         self.assertEqual((len(self.scheduler.queues.get("boefjes"))), 1)
 
-    def test_populate_boefjes_queue_timebased(self):
-        pass
-
-    def test_pop_boefjes_queue(self):
-        pass
-
-    def test_push_boefjes_queue(self):
-        pass
-
     def test_celery_dispatcher(self):
-        # TODO: Add item to queue, instead of populate
+        # TODO: Add item to queue, instead of populate self.scheduler._populate_boefjes_queue()
         self.scheduler._populate_boefjes_queue()
         self.assertEqual((len(self.scheduler.queues.get("boefjes"))), 1)
 
