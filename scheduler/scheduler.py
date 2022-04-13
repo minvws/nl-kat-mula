@@ -106,7 +106,6 @@ class Scheduler:
             oois = self.ctx.services.octopoes.get_objects(org=org.id)
 
             for ooi in oois:
-                score = self.rankers.get("boefjes").rank(ooi)
 
                 # TODO: get boefjes for ooi, active boefjes depend on organization
                 # and indemnification?
@@ -152,6 +151,8 @@ class Scheduler:
                             f"Boefje task already on queue [boefje={boefje.id} input_ooi={ooi.id} organization={org.id}]",
                         )
                         continue
+
+                    score = self.rankers.get("boefjes").rank(task)
 
                     self.queues.get("boefjes").push(
                         queue.PrioritizedItem(priority=score, item=task),
