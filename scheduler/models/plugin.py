@@ -12,4 +12,8 @@ class Plugin(BaseModel):
     description: str
     environment_keys: List[str]
     related: List[str]
+    type: str
+    scan_level: int
+    consumes: str
+    produces: List[str]
     enabled: bool

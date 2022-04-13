@@ -95,7 +95,7 @@ class Scheduler:
 
     def _populate_boefjes_queue(self) -> None:
         """Process to add boefje tasks to the boefjes priority queue."""
-        count_tasks = 0
+        tasks_count = 0
 
         # TODO: make concurrent, since ranker will be doing I/O using external
         # services
@@ -157,11 +157,11 @@ class Scheduler:
                     self.queues.get("boefjes").push(
                         queue.PrioritizedItem(priority=score, item=task),
                     )
-                    count_tasks += 1
+                    tasks_count += 1
 
-        if count_tasks > 0:
+        if tasks_count > 0:
             self.logger.info(
-                f"Added {count_tasks} boefje tasks to queue [queue_id={self.queues.get('boefjes').id}, count_tasks={count_tasks}]",
+                f"Added {tasks_count} boefje tasks to queue [queue_id={self.queues.get('boefjes').id}, tasks_count={tasks_count}]",
             )
 
     def _run_in_thread(
