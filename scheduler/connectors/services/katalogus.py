@@ -81,7 +81,7 @@ class Katalogus(HTTPService):
 
     def get_plugin_by_org_and_boefje_id(self, organisation_id: str, boefje_id: str) -> Plugin:
         return dict_utils.deep_get(
-            d=self.organisations_plugin_cache,
-            keys=[organisation_id, boefje_id]
+            self.organisations_plugin_cache,
+            [organisation_id, boefje_id]
         )
 
