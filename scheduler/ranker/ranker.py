@@ -11,12 +11,12 @@ class Ranker:
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.ctx: context.AppContext = ctx
 
-    def rank(self, ooi: models.OOI) -> int:
+    def rank(self, obj: Any) -> int:
         raise NotImplementedError()
 
 
 class BoefjeRanker(Ranker):
-    def rank(self, ooi: models.OOI) -> int:
+    def rank(self, obj: Any) -> int:
         return 2
 
 
@@ -28,7 +28,7 @@ class BoefjeRankerTimeBased(Ranker):
     time-based scheduling of jobs.
     """
 
-    def rank(self, ooi: models.OOI) -> int:
+    def rank(self, obj: Any) -> int:
         minimum = datetime.today() + timedelta(days=1)
         maximum = minimum + timedelta(days=7)
         return random.randint(int(minimum.timestamp()), int(maximum.timestamp()))
