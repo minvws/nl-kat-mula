@@ -1,4 +1,5 @@
-import heapq
+from __future__ import annotations
+
 import json
 import logging
 import queue
@@ -38,14 +39,16 @@ class PrioritizedItem:
     def json(self) -> str:
         return json.dumps(self.dict())
 
-    def __attrs(self) -> Tuple[int, Any]:
+    def attrs(self) -> Tuple[int, Any]:
         return (self.priority, self.item)
 
     def __hash__(self) -> int:
-        return hash(self.__attrs())
+        return hash(self.attrs())
 
-    def __eq__(self, other: Any) -> bool:
-        return isinstance(other, PrioritizedItem) and self.__attrs() == other.__attrs()
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PrioritizedItem):
+            return False
+        return self.attrs() == other.attrs()
 
 
 class Entry:
@@ -68,11 +71,11 @@ class Entry:
     def dict(self) -> Dict[str, Any]:
         return {"priority": self.priority, "p_item": self.p_item.dict(), "state": self.state.value}
 
-    def __attrs(self) -> Tuple[int, PrioritizedItem, EntryState]:
+    def attrs(self) -> Tuple[int, PrioritizedItem, EntryState]:
         return (self.priority, self.p_item, self.state)
 
     def __hash__(self) -> int:
-        return hash(self.__attrs())
+        return hash(self.attrs())
 
     def __lt__(self, other: Any) -> bool:
         if self.priority < other.priority:
@@ -80,8 +83,10 @@ class Entry:
 
         return False
 
-    def __eq__(self, other: Any) -> bool:
-        return isinstance(other, Entry) and self.__attrs() == other.__attrs()
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Entry):
+            return False
+        return self.attrs() == other.attrs()
 
 
 class PriorityQueue:
@@ -96,7 +101,7 @@ class PriorityQueue:
     Attributes:
         logger:
             The logger for the class.
-        id:
+        pq_id:
             A sting representing the identifier of the priority queue.
         maxsize:
             A integer representing the maximum size of the queue.
@@ -125,7 +130,7 @@ class PriorityQueue:
 
     def __init__(
         self,
-        id: str,
+        pq_id: str,
         maxsize: int,
         item_type: Type[pydantic.BaseModel],
         allow_replace: bool = False,
@@ -135,7 +140,7 @@ class PriorityQueue:
         """Initialize the priority queue.
 
         Args:
-            id:
+            pq_id:
                 The id of the queue.
             maxsize:
                 The maximum size of the queue.
@@ -143,7 +148,7 @@ class PriorityQueue:
                 The type of the items in the queue.
         """
         self.logger: logging.Logger = logging.getLogger(__name__)
-        self.id: str = id
+        self.pq_id: str = pq_id
         self.maxsize: int = maxsize
         self.item_type: Type[pydantic.BaseModel] = item_type
         self.pq: queue.PriorityQueue[Entry] = queue.PriorityQueue(maxsize=self.maxsize)
@@ -167,8 +172,8 @@ class PriorityQueue:
         """
         while True:
             try:
-                item: Union[PrioritizedItem, None]
-                state: EntryState
+                # item: Union[PrioritizedItem, None]
+                # state: EntryState
 
                 entry = self.pq.get(block=True, timeout=self.timeout)
 
@@ -177,7 +182,10 @@ class PriorityQueue:
                     del self.entry_finder[self.get_item_identifier(entry.p_item.item)]
                     return entry.p_item
             except queue.Empty:
-                self.logger.warning(f"Queue {self.id} is empty")
+                self.logger.warning(
+                    "Queue %s is empty",
+                    self.pq_id
+                )
 
     def push(self, p_item: PrioritizedItem) -> None:
         """Push an item with priority into the queue. When timeout is set it
@@ -317,7 +325,7 @@ class PriorityQueue:
 
     def dict(self) -> Dict[str, Any]:
         return {
-            "id": self.id,
+            "id": self.pq_id,
             "size": self.pq.qsize(),
             "maxsize": self.maxsize,
             "pq": [self.pq.queue[i].dict() for i in range(self.pq.qsize())],  # TODO: maybe overkill

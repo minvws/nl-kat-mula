@@ -19,7 +19,10 @@ exclude = "alembic"
 fail-under=9.0
 max-line-length=120
 check-quote-consistency=true
-disable= [
+extension-pkg-whitelist = [
+    "pydantic",
+]
+disable = [
     "missing-module-docstring",
     "missing-class-docstring",
     "missing-function-docstring",
@@ -27,5 +30,4 @@ disable= [
     "cyclic-import",
     "fixme",
     "invalid-name",
-    "logging-fstring-interpolation",
 ]

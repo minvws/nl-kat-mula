@@ -1,9 +1,8 @@
-import datetime
 import logging
 import socket
 import time
 import urllib.parse
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, Union
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -40,7 +39,7 @@ class HTTPService:
     health_endpoint: Union[str, None] = "/health"
 
     def __init__(self, host: str, source: str, timeout: int = 5, retries: int = 5):
-        """Initializer of the HTTPService class. During initialization thr
+        """Initializer of the HTTPService class. During initialization the
         host will be checked if it is available and healthy.
 
         Args:
@@ -82,7 +81,7 @@ class HTTPService:
         self._do_checks()
 
     def get(
-        self, url: str, payload: Dict[str, Any] = {}, headers: Dict[str, Any] = {}, params: Dict[str, Any] = {}
+        self, url: str, payload: Dict[str, Any] = None, headers: Dict[str, Any] = None, params: Dict[str, Any] = None
     ) -> requests.Response:
         """Execute a HTTP GET request
 
@@ -102,14 +101,17 @@ class HTTPService:
             data=payload,
             timeout=self.timeout,
         )
-        self.logger.debug(f"Made GET request to {url}. [name={self.name}, url={url}]")
+        self.logger.debug(
+            "Made GET request to %s. [name=%s, url=%s]",
+            url, self.name, url,
+        )
 
         self._verify_response(response)
 
         return response
 
     def post(
-        self, url: str, payload: Dict[str, Any], headers: Dict[str, Any] = {}, params: Dict[str, Any] = {}
+        self, url: str, payload: Dict[str, Any], headers: Dict[str, Any] = None, params: Dict[str, Any] = None
     ) -> requests.Response:
         """Execute a HTTP POST request
 
@@ -129,7 +131,10 @@ class HTTPService:
             data=payload,
             timeout=self.timeout,
         )
-        self.logger.debug(f"Made POST request to {url}. [name={self.name}, url={url}, data={payload}]")
+        self.logger.debug(
+            "Made POST request to %s. [name=%s, url=%s, data=%s]",
+            url, self.name, url, payload,
+        )
 
         self._verify_response(response)
 
@@ -187,16 +192,19 @@ class HTTPService:
         while i < 10:
             if func() is True:
                 self.logger.info(
-                    f"Connected to {self.host}. [name={self.name}, host={self.host}, func={func.__name__}]"
+                    "Connected to %s. [name=%s, host=%s, func=%s]",
+                    self.host, self.name, self.host, func.__name__,
                 )
                 return True
-            else:
-                self.logger.warning(
-                    f"Not able to reach host, retrying in {self.timeout} seconds. [name={self.name}, host={self.host}, func={func.__name__}]"
-                )
 
-                i += 1
-                time.sleep(self.timeout)
+            self.logger.warning(
+                "Not able to reach host, retrying in %s seconds. [name=%s, host=%s, func=%s]",
+                self.timeout, self.name, self.host, func.__name__,
+            )
+
+
+            i += 1
+            time.sleep(self.timeout)
 
         return False
 
@@ -210,6 +218,7 @@ class HTTPService:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             self.logger.error(
-                f"Received bad response from {self.host}. [name={self.name}, url={response.url}, {str(response.content)}]"
+                "Received bad response from %s. [name=%s, url=%s, response=%s]",
+                response.url, self.name, response.url, str(response.content),
             )
-            raise (e)
+            raise e

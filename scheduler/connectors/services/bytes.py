@@ -1,5 +1,3 @@
-import json
-
 from .services import HTTPService
 
 

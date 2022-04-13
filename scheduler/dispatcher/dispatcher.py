@@ -1,5 +1,4 @@
 import logging
-import time
 import uuid
 from typing import Any, Type
 
@@ -95,8 +94,9 @@ class Dispatcher:
         Returns:
             None
         """
+        task = self.pq.get_item_identifier(p_item.item)
         self.logger.info(
-            f"Dispatching task {self.pq.get_item_identifier(p_item.item)} [task_id={self.pq.get_item_identifier(p_item.item)}]"
+            "Dispatching task %s [task_id=%s]", task.name, task.task_id,
         )
 
     def run(self) -> None:
@@ -123,7 +123,7 @@ class CeleryDispatcher(Dispatcher):
     Attributes:
         ctx:
             A context.AppContext instance.
-        queue:
+        celery_queue:
             A string descibing the Celery queue to which the tasks need to
             be dispatched.
         task_name:
@@ -135,7 +135,7 @@ class CeleryDispatcher(Dispatcher):
         ctx: context.AppContext,
         pq: queue.PriorityQueue,
         item_type: Type[pydantic.BaseModel],
-        queue: str,
+        celery_queue: str,
         task_name: str,
     ):
         """Initialize the CeleryDispatcher class.
@@ -148,7 +148,7 @@ class CeleryDispatcher(Dispatcher):
             item_type:
                 A pydantic.BaseModel object that specifies the type of item
                 that should be dispatched, this helps with validation.
-            queue:
+            celery_queue:
                 A string descibing the Celery queue to which the tasks need to
                 be dispatched.
             task_name:
@@ -157,7 +157,7 @@ class CeleryDispatcher(Dispatcher):
         super().__init__(pq=pq, item_type=item_type)
 
         self.ctx = ctx
-        self.queue = queue
+        self.celery_queue = celery_queue
         self.task_name = task_name
 
         self.app = celery.Celery(
@@ -179,6 +179,6 @@ class CeleryDispatcher(Dispatcher):
         self.app.send_task(
             name=self.task_name,
             args=(p_item.item.dict(),),
-            queue=self.queue,
+            queue=self.celery_queue,
             task_id=uuid.uuid4().hex,
         )

@@ -1,10 +1,7 @@
 """
 Reference implementation for potential PostgreSQL database connections.
 at the moment this isn't used.
-
 """
-from typing import Any, Optional
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
