@@ -5,7 +5,7 @@ from unittest import mock
 
 import scheduler
 from scheduler import config, connectors, context, dispatcher, models
-from tests.factories import BoefjeFactory, OOIFactory
+from tests.factories import BoefjeFactory, OOIFactory, OrganisationFactory
 
 
 class SchedulerTestCase(unittest.TestCase):
@@ -25,6 +25,9 @@ class SchedulerTestCase(unittest.TestCase):
             spec=connectors.services.Katalogus,
             spec_set=True,
         )
+        self.mock_katalogus.get_organisations.return_value = [
+            OrganisationFactory(),
+        ]
         self.mock_katalogus.get_boefjes_by_ooi_type.return_value = [
             BoefjeFactory(),
         ]
