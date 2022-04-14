@@ -107,7 +107,7 @@ class Scheduler:
         for org in orgs:
 
             # oois = self.ctx.services.octopoes.get_random_objects(org=org, n=10)
-            oois = self.ctx.services.octopoes.get_objects(org=org.id)
+            oois = self.ctx.services.octopoes.get_objects(organisation_id=org.id)
 
             for ooi in oois:
 

@@ -59,7 +59,7 @@ class SchedulerTestCase(unittest.TestCase):
             ctx=self.mock_ctx,
             pq=self.scheduler.queues.get("boefjes"),
             item_type=models.BoefjeTask,
-            queue="boefjes",
+            celery_queue="boefjes",
             task_name="tasks.handle_boefje",
         )
 

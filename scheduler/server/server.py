@@ -3,8 +3,9 @@ import queue as _queue
 from typing import Any, Dict, List
 
 import fastapi
+import scheduler
 import uvicorn
-from scheduler import __version__, context, models, queue
+from scheduler import context, models, queue
 
 
 # TODO: decide if we need AppContext here, since we're only using host and
@@ -71,7 +72,7 @@ class Server:
         return models.ServiceHealth(
             service="scheduler",
             healthy=True,
-            version=__version__,
+            version=scheduler.__version__,
         )
 
     async def get_queues(self) -> Any:

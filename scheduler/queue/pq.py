@@ -206,10 +206,18 @@ class PriorityQueue:
             raise queue.Full
 
         on_queue = self.is_item_on_queue(p_item.item)
-        entry = self.entry_finder[self.get_item_identifier(p_item.item)]
 
-        item_changed = not on_queue or p_item.item == entry.p_item.item
-        priority_changed = not on_queue or p_item.priority == entry.p_item.priority
+        item_changed = (
+            False
+            if not on_queue or p_item.item == self.entry_finder[self.get_item_identifier(p_item.item)].p_item.item
+            else True
+        )
+
+        priority_changed = (
+            False
+            if not on_queue or p_item.priority == self.entry_finder[self.get_item_identifier(p_item.item)].priority
+            else True
+        )
 
         allowed = False
         if on_queue and self.allow_replace:
