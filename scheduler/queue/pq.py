@@ -182,10 +182,7 @@ class PriorityQueue:
                     del self.entry_finder[self.get_item_identifier(entry.p_item.item)]
                     return entry.p_item
             except queue.Empty:
-                self.logger.warning(
-                    "Queue %s is empty",
-                    self.pq_id
-                )
+                self.logger.warning("Queue %s is empty", self.pq_id)
 
     def push(self, p_item: PrioritizedItem) -> None:
         """Push an item with priority into the queue. When timeout is set it
@@ -211,8 +208,8 @@ class PriorityQueue:
         on_queue = self.is_item_on_queue(p_item.item)
         entry = self.entry_finder[self.get_item_identifier(p_item.item)]
 
-        item_changed = (not on_queue or p_item.item == entry.p_item.item)
-        priority_changed = (not on_queue or p_item.priority == entry.p_item.priority)
+        item_changed = not on_queue or p_item.item == entry.p_item.item
+        priority_changed = not on_queue or p_item.priority == entry.p_item.priority
 
         allowed = False
         if on_queue and self.allow_replace:

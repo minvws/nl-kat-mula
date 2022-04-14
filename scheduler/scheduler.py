@@ -4,8 +4,7 @@ import threading
 import time
 from typing import Any, Callable, Dict
 
-from scheduler import (context, dispatcher, dispatchers, queue, queues, ranker,
-                       server, thread)
+from scheduler import context, dispatcher, dispatchers, queue, queues, ranker, server, thread
 from scheduler.connectors import listeners
 from scheduler.models import BoefjeTask
 
@@ -119,23 +118,30 @@ class Scheduler:
                 if boefjes is None:
                     self.logger.debug(
                         "No boefjes found for type %s [ooi=%s]",
-                        ooi.ooi_type, ooi,
+                        ooi.ooi_type,
+                        ooi,
                     )
                     continue
 
                 self.logger.debug(
                     "Found %s boefjes for ooi %s [ooi=%s, boefjes=%s}",
-                    len(boefjes), ooi, ooi, [boefje.id for boefje in boefjes],
+                    len(boefjes),
+                    ooi,
+                    ooi,
+                    [boefje.id for boefje in boefjes],
                 )
 
                 for boefje in boefjes:
                     plugin = self.ctx.services.katalogus.get_plugin_by_org_and_boefje_id(
-                        organisation_id=org.id, boefje_id=boefje.id,
+                        organisation_id=org.id,
+                        boefje_id=boefje.id,
                     )
                     if plugin is None:
                         self.logger.debug(
                             "No plugin found for boefje %s [org=%s, boefje=%s]",
-                            boefje.id, org.id, boefje.id,
+                            boefje.id,
+                            org.id,
+                            boefje.id,
                         )
                         continue
 
@@ -143,10 +149,7 @@ class Scheduler:
                         self.logger.debug("Boefje %s is disabled", boefje.id)
                         continue
 
-                    task = BoefjeTask(
-                        boefje=boefje,
-                        input_ooi=ooi.id,
-                        organization=org.id)
+                    task = BoefjeTask(boefje=boefje, input_ooi=ooi.id, organization=org.id)
 
                     # When using time-based dispatcher and rankers we don't want
                     # the populator to add tasks to the queue, and we do want
@@ -154,7 +157,9 @@ class Scheduler:
                     if boefjes_queue.is_item_on_queue(task):
                         self.logger.debug(
                             "Boefje task already on queue [boefje=%s input_ooi=%s organization=%s]",
-                            boefje.id, ooi.id, org.id,
+                            boefje.id,
+                            ooi.id,
+                            org.id,
                         )
                         continue
 
@@ -168,7 +173,9 @@ class Scheduler:
         if tasks_count > 0:
             self.logger.info(
                 "Added %s boefje tasks to queue [queue_id=%s, tasks_count=%s]",
-                tasks_count, boefjes_queue.pq_id, tasks_count,
+                tasks_count,
+                boefjes_queue.pq_id,
+                tasks_count,
             )
 
     def _run_in_thread(

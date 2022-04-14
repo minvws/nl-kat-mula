@@ -96,7 +96,9 @@ class Dispatcher:
         """
         task = self.pq.get_item_identifier(p_item.item)
         self.logger.info(
-            "Dispatching task %s [task_id=%s]", task.name, task.task_id,
+            "Dispatching task %s [task_id=%s]",
+            task.name,
+            task.task_id,
         )
 
     def run(self) -> None:

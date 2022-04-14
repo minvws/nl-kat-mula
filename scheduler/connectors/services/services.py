@@ -81,8 +81,11 @@ class HTTPService:
         self._do_checks()
 
     def get(
-        self, url: str, payload: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None,
+        self,
+        url: str,
+        payload: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, Any]] = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """Execute a HTTP GET request
 
@@ -104,7 +107,9 @@ class HTTPService:
         )
         self.logger.debug(
             "Made GET request to %s. [name=%s, url=%s]",
-            url, self.name, url,
+            url,
+            self.name,
+            url,
         )
 
         self._verify_response(response)
@@ -112,8 +117,11 @@ class HTTPService:
         return response
 
     def post(
-        self, url: str, payload: Dict[str, Any],
-        headers: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None,
+        self,
+        url: str,
+        payload: Dict[str, Any],
+        headers: Optional[Dict[str, Any]] = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """Execute a HTTP POST request
 
@@ -135,7 +143,10 @@ class HTTPService:
         )
         self.logger.debug(
             "Made POST request to %s. [name=%s, url=%s, data=%s]",
-            url, self.name, url, payload,
+            url,
+            self.name,
+            url,
+            payload,
         )
 
         self._verify_response(response)
@@ -195,15 +206,20 @@ class HTTPService:
             if func() is True:
                 self.logger.info(
                     "Connected to %s. [name=%s, host=%s, func=%s]",
-                    self.host, self.name, self.host, func.__name__,
+                    self.host,
+                    self.name,
+                    self.host,
+                    func.__name__,
                 )
                 return True
 
             self.logger.warning(
                 "Not able to reach host, retrying in %s seconds. [name=%s, host=%s, func=%s]",
-                self.timeout, self.name, self.host, func.__name__,
+                self.timeout,
+                self.name,
+                self.host,
+                func.__name__,
             )
-
 
             i += 1
             time.sleep(self.timeout)
@@ -221,6 +237,9 @@ class HTTPService:
         except requests.exceptions.HTTPError as e:
             self.logger.error(
                 "Received bad response from %s. [name=%s, url=%s, response=%s]",
-                response.url, self.name, response.url, str(response.content),
+                response.url,
+                self.name,
+                response.url,
+                str(response.content),
             )
             raise e
