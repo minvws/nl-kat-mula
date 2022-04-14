@@ -57,7 +57,7 @@ class RabbitMQ(Listener):
         properties: pika.spec.BasicProperties,
         body: bytes,
     ) -> None:
-        self.logger.debug(" [x] Received %r" % body)
+        self.logger.debug(" [x] Received %r", body)
 
         self.dispatch()
 

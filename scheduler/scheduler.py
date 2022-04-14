@@ -2,12 +2,12 @@ import logging
 import os
 import threading
 import time
-import uuid
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict
 
-from scheduler import context, dispatcher, dispatchers, queue, queues, ranker, server, thread
+from scheduler import (context, dispatcher, dispatchers, queue, queues, ranker,
+                       server, thread)
 from scheduler.connectors import listeners
-from scheduler.models import OOI, Boefje, BoefjeTask, NormalizerTask
+from scheduler.models import BoefjeTask
 
 
 class Scheduler:
@@ -41,7 +41,7 @@ class Scheduler:
         # Initialize queues
         self.queues: Dict[str, queue.PriorityQueue] = {
             "boefjes": queues.BoefjePriorityQueue(
-                id="boefjes",
+                pq_id="boefjes",
                 maxsize=self.ctx.config.pq_maxsize,
                 item_type=BoefjeTask,
                 allow_priority_updates=True,
@@ -68,7 +68,7 @@ class Scheduler:
                 ctx=self.ctx,
                 pq=boefjes_queue,
                 item_type=BoefjeTask,
-                queue="boefjes",
+                celery_queue="boefjes",
                 task_name="tasks.handle_boefje",
             ),
         }
@@ -80,7 +80,7 @@ class Scheduler:
         """Gracefully shutdown the scheduler, and all threads."""
         self.logger.warning("Shutting down...")
 
-        for k, t in self.threads.items():
+        for _, t in self.threads.items():
             t.join(timeout=5)
 
         self.logger.warning("Shutdown complete")
@@ -117,11 +117,15 @@ class Scheduler:
                 ooi.ooi_type,
             )
             if boefjes is None:
-                self.logger.debug(f"No boefjes found for type {ooi.ooi_type} [ooi={ooi}]")
+                self.logger.debug(
+                    "No boefjes found for type %s [ooi=%s]",
+                    ooi.ooi_type, ooi,
+                )
                 continue
 
             self.logger.debug(
-                f"Found {len(boefjes)} boefjes for ooi {ooi} [ooi={ooi}, boefjes={[boefje.id for boefje in boefjes]}"
+                "Found %s boefjes for ooi %s [ooi=%s, boefjes=%s}",
+                len(boefjes), ooi, ooi, [boefje.id for boefje in boefjes],
             )
 
             for boefje in boefjes:
@@ -138,7 +142,8 @@ class Scheduler:
                 # allow the api to update the priority
                 if boefjes_queue.is_item_on_queue(task):
                     self.logger.debug(
-                        f"Boefje task already on queue [boefje={boefje.id} input_ooi={ooi.id} organization={organization}]",
+                        "Boefje task already on queue [boefje=%s input_ooi=%s organization=%s]",
+                        boefje.id, ooi.id, organization,
                     )
                     continue
 
@@ -149,7 +154,8 @@ class Scheduler:
 
         if count_tasks > 0:
             self.logger.info(
-                f"Added {count_tasks} boefje tasks to queue [queue_id={boefjes_queue.id}, count_tasks={count_tasks}]",
+                "Added %s boefje tasks to queue [queue_id=%s, count_tasks=%s]",
+                count_tasks, boefjes_queue.pq_id, count_tasks,
             )
 
     def _run_in_thread(
@@ -199,7 +205,7 @@ class Scheduler:
         for k, q in self.queues.items():
             self._run_in_thread(
                 name=f"{k}_queue_populator",
-                func=getattr(self, f"_populate_{q.id}_queue"),
+                func=getattr(self, f"_populate_{q.pq_id}_queue"),
                 interval=self.ctx.config.pq_populate_interval,
             )
 

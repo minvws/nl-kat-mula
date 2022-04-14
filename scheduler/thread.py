@@ -1,6 +1,6 @@
 import logging
 import threading
-from typing import Any, Callable, Iterable, Mapping, Optional, Tuple
+from typing import Any, Callable, Optional
 
 
 class ThreadRunner(threading.Thread):
@@ -51,7 +51,7 @@ class ThreadRunner(threading.Thread):
         self.stop_event.set()
         super().join(timeout)
 
-        self.logger.debug(f"Thread stopped")
+        self.logger.debug("Thread stopped")
 
     def stop(self) -> None:
         self.stop_event.set()

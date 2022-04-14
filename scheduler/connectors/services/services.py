@@ -2,7 +2,7 @@ import logging
 import socket
 import time
 import urllib.parse
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -81,7 +81,8 @@ class HTTPService:
         self._do_checks()
 
     def get(
-        self, url: str, payload: Dict[str, Any] = None, headers: Dict[str, Any] = None, params: Dict[str, Any] = None
+        self, url: str, payload: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """Execute a HTTP GET request
 
@@ -111,7 +112,8 @@ class HTTPService:
         return response
 
     def post(
-        self, url: str, payload: Dict[str, Any], headers: Dict[str, Any] = None, params: Dict[str, Any] = None
+        self, url: str, payload: Dict[str, Any],
+        headers: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """Execute a HTTP POST request
 
