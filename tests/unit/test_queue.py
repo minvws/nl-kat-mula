@@ -33,7 +33,7 @@ class TestPriorityQueue(queue.PriorityQueue):
 class PriorityQueueTestCase(unittest.TestCase):
     def setUp(self):
         self.pq = TestPriorityQueue(
-            id="test-queue",
+            pq_id="test-queue",
             maxsize=10,
             item_type=TestModel,
         )

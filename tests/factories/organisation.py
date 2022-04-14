@@ -6,5 +6,5 @@ class OrganisationFactory(Factory):
     class Meta:
         model = Organisation
 
-    id: str = Faker('uuid4')
+    id: str = Faker("uuid4")
     name: str = Faker("company")

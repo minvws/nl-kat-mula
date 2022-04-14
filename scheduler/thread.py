@@ -1,6 +1,6 @@
 import logging
 import threading
-from typing import Callable
+from typing import Any, Callable, Optional
 
 
 class ThreadRunner(threading.Thread):
@@ -22,23 +22,22 @@ class ThreadRunner(threading.Thread):
 
     def __init__(
         self,
-        target: Callable,
+        target: Callable[[], Any],
         stop_event: threading.Event,
         interval: float = 0.01,
-        *args,
-        **kwargs,
     ) -> None:
-        self.logger = logging.getLogger(__name__)
-        self.stop_event = stop_event
-        self.interval = interval
-        self.exception = None
+        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.stop_event: threading.Event = stop_event
+        self.interval: float = interval
+        self.exception: Optional[Exception] = None
+        self._target: Callable[[], Any] = target
 
-        super().__init__(target=target, *args, **kwargs)
+        super().__init__()
 
     def run(self) -> None:
         while not self.stop_event.is_set():
             try:
-                self._target(*self._args, **self._kwargs)
+                self._target()
             except Exception as e:
                 self.exception = e
                 self.logger.exception(e)
@@ -46,13 +45,13 @@ class ThreadRunner(threading.Thread):
 
             self.stop_event.wait(self.interval)
 
-    def join(self, timeout=None) -> None:
-        self.logger.debug(f"Stopping thread:")
+    def join(self, timeout: Optional[float] = None) -> None:
+        self.logger.debug("Stopping thread")
 
         self.stop_event.set()
         super().join(timeout)
 
-        self.logger.debug(f"Thread stopped")
+        self.logger.debug("Thread stopped")
 
     def stop(self) -> None:
         self.stop_event.set()

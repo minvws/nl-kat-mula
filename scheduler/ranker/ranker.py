@@ -1,9 +1,9 @@
-import datetime
 import logging
 import random
 from datetime import datetime, timedelta
+from typing import Any
 
-from scheduler import context, models
+from scheduler import context
 
 
 class Ranker:
@@ -32,7 +32,3 @@ class BoefjeRankerTimeBased(Ranker):
         minimum = datetime.today() + timedelta(days=1)
         maximum = minimum + timedelta(days=7)
         return random.randint(int(minimum.timestamp()), int(maximum.timestamp()))
-
-
-class NormalizerRanker(Ranker):
-    pass

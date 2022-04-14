@@ -28,7 +28,7 @@ class TestDispatcher(dispatcher.Dispatcher):
 class DispatcherTestCase(unittest.TestCase):
     def setUp(self):
         self.pq = queue.PriorityQueue(
-            id="test",
+            pq_id="test",
             maxsize=10,
             item_type=TestModel,
         )

@@ -11,7 +11,7 @@ MAKEFLAGS += --no-builtin-rules
 # use HIDE to run commands invisibly, unless VERBOSE defined
 HIDE:=$(if $(VERBOSE),,@)
 
-BLACKFLAGS= --exclude ""
+BLACKFLAGS= --exclude=alembic
 BYTES_VERSION= v0.6.0
 
 # Export cmd line args:
@@ -44,7 +44,7 @@ black: ## Check code style with black.
 pylint: ## Rate the code with pylint.
 	docker-compose -f base.yml -f .ci/docker-compose.yml \
 		run --rm mula \
-		pylint scheduler | grep rated
+		pylint --rcfile pyproject.toml scheduler
 
 fmt: ## Format the code using black.
 	docker-compose -f base.yml -f .ci/docker-compose.yml \

@@ -1,7 +1,6 @@
 import logging
-import time
 import uuid
-from typing import Any
+from typing import Any, Type
 
 import celery
 import pydantic
@@ -30,7 +29,7 @@ class Dispatcher:
             should be dispatched, this helps with validation.
     """
 
-    def __init__(self, pq: queue.PriorityQueue, item_type: pydantic.BaseModel):
+    def __init__(self, pq: queue.PriorityQueue, item_type: Type[pydantic.BaseModel]):
         """Initialize the Dispatcher class
 
         Args:
@@ -43,7 +42,7 @@ class Dispatcher:
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.pq: queue.PriorityQueue = pq
         self.threshold: float = float("inf")
-        self.item_type: pydantic.BaseModel = item_type
+        self.item_type: Type[pydantic.BaseModel] = item_type
 
     def _can_dispatch(self) -> bool:
         """Checks the first item of the priority queue, whether or not items
@@ -69,13 +68,17 @@ class Dispatcher:
         Returns:
             A boolean
         """
-        return isinstance(item, self.item_type)
+        try:
+            self.item_type.parse_obj(item)
+            return True
+        except pydantic.ValidationError:
+            return False
 
-    def get_threshold(self) -> int:
+    def get_threshold(self) -> float:
         """Return the threshold of that needs to be adhered to.
 
         Returns:
-            A integer returning the threshold attribute.
+            A float returning the threshold attribute.
         """
         return self.threshold
 
@@ -91,8 +94,11 @@ class Dispatcher:
         Returns:
             None
         """
+        task_id = self.pq.get_item_identifier(p_item.item)
         self.logger.info(
-            f"Dispatching task {self.pq.get_item_identifier(p_item.item)} [task_id={self.pq.get_item_identifier(p_item.item)}]"
+            "Dispatching task %s [task_id=%s]",
+            task_id,
+            task_id,
         )
 
     def run(self) -> None:
@@ -108,7 +114,7 @@ class Dispatcher:
         p_item = self.pq.pop()
 
         if not self._is_valid_item(p_item.item):
-            raise ValueError(f"Item must be of type {self.item_type.__name__}")
+            raise ValueError(f"Item must be of type {self.item_type}")
 
         self.dispatch(p_item=p_item)
 
@@ -119,7 +125,7 @@ class CeleryDispatcher(Dispatcher):
     Attributes:
         ctx:
             A context.AppContext instance.
-        queue:
+        celery_queue:
             A string descibing the Celery queue to which the tasks need to
             be dispatched.
         task_name:
@@ -130,8 +136,8 @@ class CeleryDispatcher(Dispatcher):
         self,
         ctx: context.AppContext,
         pq: queue.PriorityQueue,
-        item_type: pydantic.BaseModel,
-        queue: str,
+        item_type: Type[pydantic.BaseModel],
+        celery_queue: str,
         task_name: str,
     ):
         """Initialize the CeleryDispatcher class.
@@ -144,7 +150,7 @@ class CeleryDispatcher(Dispatcher):
             item_type:
                 A pydantic.BaseModel object that specifies the type of item
                 that should be dispatched, this helps with validation.
-            queue:
+            celery_queue:
                 A string descibing the Celery queue to which the tasks need to
                 be dispatched.
             task_name:
@@ -153,7 +159,7 @@ class CeleryDispatcher(Dispatcher):
         super().__init__(pq=pq, item_type=item_type)
 
         self.ctx = ctx
-        self.queue = queue
+        self.celery_queue = celery_queue
         self.task_name = task_name
 
         self.app = celery.Celery(
@@ -175,6 +181,6 @@ class CeleryDispatcher(Dispatcher):
         self.app.send_task(
             name=self.task_name,
             args=(p_item.item.dict(),),
-            queue=self.queue,
+            queue=self.celery_queue,
             task_id=uuid.uuid4().hex,
         )

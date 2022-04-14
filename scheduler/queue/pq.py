@@ -1,10 +1,11 @@
-import heapq
+from __future__ import annotations
+
 import json
 import logging
 import queue
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Set, Tuple, Union
+from typing import Any, Dict, Tuple, Type
 
 import pydantic
 
@@ -38,14 +39,16 @@ class PrioritizedItem:
     def json(self) -> str:
         return json.dumps(self.dict())
 
-    def __attrs(self) -> Tuple[int, Any]:
+    def attrs(self) -> Tuple[int, Any]:
         return (self.priority, self.item)
 
     def __hash__(self) -> int:
-        return hash(self.__attrs())
+        return hash(self.attrs())
 
-    def __eq__(self, other) -> bool:
-        return isinstance(other, PrioritizedItem) and self.__attrs() == other.__attrs()
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PrioritizedItem):
+            return False
+        return self.attrs() == other.attrs()
 
 
 class Entry:
@@ -68,17 +71,22 @@ class Entry:
     def dict(self) -> Dict[str, Any]:
         return {"priority": self.priority, "p_item": self.p_item.dict(), "state": self.state.value}
 
-    def __attrs(self) -> Tuple[int, Any]:
+    def attrs(self) -> Tuple[int, PrioritizedItem, EntryState]:
         return (self.priority, self.p_item, self.state)
 
     def __hash__(self) -> int:
-        return hash(self.__attrs())
+        return hash(self.attrs())
 
-    def __lt__(self, other) -> bool:
-        return self.priority < other.priority
+    def __lt__(self, other: Any) -> bool:
+        if self.priority < other.priority:
+            return True
 
-    def __eq__(self, other) -> bool:
-        return isinstance(other, Entry) and self.__attrs() == other.__attrs()
+        return False
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Entry):
+            return False
+        return self.attrs() == other.attrs()
 
 
 class PriorityQueue:
@@ -93,7 +101,7 @@ class PriorityQueue:
     Attributes:
         logger:
             The logger for the class.
-        id:
+        pq_id:
             A sting representing the identifier of the priority queue.
         maxsize:
             A integer representing the maximum size of the queue.
@@ -122,9 +130,9 @@ class PriorityQueue:
 
     def __init__(
         self,
-        id: str,
+        pq_id: str,
         maxsize: int,
-        item_type: pydantic.BaseModel,
+        item_type: Type[pydantic.BaseModel],
         allow_replace: bool = False,
         allow_updates: bool = False,
         allow_priority_updates: bool = False,
@@ -132,7 +140,7 @@ class PriorityQueue:
         """Initialize the priority queue.
 
         Args:
-            id:
+            pq_id:
                 The id of the queue.
             maxsize:
                 The maximum size of the queue.
@@ -140,17 +148,17 @@ class PriorityQueue:
                 The type of the items in the queue.
         """
         self.logger: logging.Logger = logging.getLogger(__name__)
-        self.id: str = id
+        self.pq_id: str = pq_id
         self.maxsize: int = maxsize
-        self.item_type: pydantic.BaseModel = item_type
-        self.pq: queue.PriorityQueue = queue.PriorityQueue(maxsize=self.maxsize)
+        self.item_type: Type[pydantic.BaseModel] = item_type
+        self.pq: queue.PriorityQueue[Entry] = queue.PriorityQueue(maxsize=self.maxsize)
         self.timeout: int = 5
         self.entry_finder: Dict[Any, Entry] = {}
         self.allow_replace: bool = allow_replace
         self.allow_updates: bool = allow_updates
         self.allow_priority_updates: bool = allow_priority_updates
 
-    def pop(self) -> Union[PrioritizedItem, None]:
+    def pop(self) -> PrioritizedItem:
         """Pop the item with the highest priority from the queue. If optional
         args block is true and timeout is None (the default), block if
         necessary until an item is available. If timeout is a positive number,
@@ -164,8 +172,8 @@ class PriorityQueue:
         """
         while True:
             try:
-                item: Union[PrioritizedItem, None]
-                state: EntryState
+                # item: Union[PrioritizedItem, None]
+                # state: EntryState
 
                 entry = self.pq.get(block=True, timeout=self.timeout)
 
@@ -174,8 +182,7 @@ class PriorityQueue:
                     del self.entry_finder[self.get_item_identifier(entry.p_item.item)]
                     return entry.p_item
             except queue.Empty:
-                self.logger.warning(f"Queue {self.id} is empty")
-                return None
+                self.logger.warning("Queue %s is empty", self.pq_id)
 
     def push(self, p_item: PrioritizedItem) -> None:
         """Push an item with priority into the queue. When timeout is set it
@@ -193,21 +200,22 @@ class PriorityQueue:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.put
         """
         if not self._is_valid_item(p_item.item):
-            raise ValueError(f"PrioritizedItem must be of type {self.item_type.__name__}")
+            raise ValueError(f"PrioritizedItem must be of type {self.item_type}")
 
         if self.maxsize is not None and self.maxsize != 0 and self.pq.qsize() == self.maxsize:
             raise queue.Full
 
         on_queue = self.is_item_on_queue(p_item.item)
+
         item_changed = (
             False
             if not on_queue or p_item.item == self.entry_finder[self.get_item_identifier(p_item.item)].p_item.item
             else True
         )
+
         priority_changed = (
             False
-            if not on_queue
-            or p_item.priority == self.entry_finder[self.get_item_identifier(p_item.item)].p_item.priority
+            if not on_queue or p_item.priority == self.entry_finder[self.get_item_identifier(p_item.item)].priority
             else True
         )
 
@@ -251,7 +259,7 @@ class PriorityQueue:
                 An integer describing the index of item on the queue that you
                 want to inspect.
         """
-        item = self.pq.queue[index]
+        item: Entry = self.pq.queue[index]
         return item
 
     def remove(self, p_item: PrioritizedItem) -> None:
@@ -307,7 +315,7 @@ class PriorityQueue:
             A boolean, True if the item is valid, False otherwise.
         """
         try:
-            pydantic.parse_obj_as(self.item_type, item)
+            self.item_type.parse_obj(item)
         except pydantic.ValidationError:
             return False
 
@@ -315,7 +323,7 @@ class PriorityQueue:
 
     def dict(self) -> Dict[str, Any]:
         return {
-            "id": self.id,
+            "id": self.pq_id,
             "size": self.pq.qsize(),
             "maxsize": self.maxsize,
             "pq": [self.pq.queue[i].dict() for i in range(self.pq.qsize())],  # TODO: maybe overkill

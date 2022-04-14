@@ -1,1 +1,1 @@
-from .ranker import BoefjeRanker, BoefjeRankerTimeBased, NormalizerRanker
+from .ranker import BoefjeRanker, BoefjeRankerTimeBased, Ranker

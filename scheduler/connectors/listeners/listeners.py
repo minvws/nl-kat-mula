@@ -18,7 +18,7 @@ class Listener(abc.ABC):
         self.logger = logging.getLogger(__name__)
 
     @abc.abstractmethod
-    def listen(self, *args, **kwargs):
+    def listen(self) -> None:
         raise NotImplementedError
 
 
@@ -41,7 +41,7 @@ class RabbitMQ(Listener):
         self.dsn = dsn
         self.queue = queue
 
-    def dispatch(self, *args, **kwargs) -> None:
+    def dispatch(self) -> None:
         raise NotImplementedError
 
     def listen(self) -> None:
@@ -50,10 +50,15 @@ class RabbitMQ(Listener):
         channel.basic_consume(queue=self.queue, on_message_callback=self.callback)
         channel.start_consuming()
 
-    def callback(self, *args, **kwargs) -> None:
-        channel, method_frame, header_frame, body = args
-        self.logger.debug(" [x] Received %r" % body)
+    def callback(
+        self,
+        channel: pika.channel.Channel,
+        method: pika.spec.Basic.Deliver,
+        properties: pika.spec.BasicProperties,
+        body: bytes,
+    ) -> None:
+        self.logger.debug(" [x] Received %r", body)
 
-        self.dispatch(args, kwargs)
+        self.dispatch()
 
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+        channel.basic_ack(delivery_tag=method.delivery_tag)

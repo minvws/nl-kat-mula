@@ -1,11 +1,11 @@
 import logging
-from typing import Any, Dict, List, Optional
+import queue as _queue
+from typing import Any, Dict, List
 
-import _queue
 import fastapi
 import scheduler
 import uvicorn
-from scheduler import context, datastore, models, queue
+from scheduler import context, models, queue
 
 
 # TODO: decide if we need AppContext here, since we're only using host and
@@ -99,11 +99,11 @@ class Server:
         try:
             item = q.pop()
             return models.QueuePrioritizedItem(**item.dict())
-        except _queue.Empty:
+        except _queue.Empty as exc_empty:
             raise fastapi.HTTPException(
                 status_code=400,
                 detail="queue is empty",
-            )
+            ) from exc_empty
 
     async def push_queue(self, queue_id: str, item: models.QueuePrioritizedItem) -> Any:
         q = self.queues.get(queue_id)
@@ -115,16 +115,16 @@ class Server:
 
         try:
             q.push(queue.PrioritizedItem(**item.dict()))
-        except _queue.Full:
+        except _queue.Full as exc_full:
             raise fastapi.HTTPException(
                 status_code=400,
                 detail="queue is full",
-            )
-        except ValueError:
+            ) from exc_full
+        except ValueError as exc_value:
             raise fastapi.HTTPException(
                 status_code=400,
                 detail="invalid item",
-            )
+            ) from exc_value
 
         return fastapi.Response(status_code=204)
 

@@ -2,13 +2,11 @@ import logging
 import os
 import threading
 import time
-import uuid
-from typing import Callable, Dict
+from typing import Any, Callable, Dict
 
-from scheduler import (context, dispatchers, queue, queues, ranker, server,
-                       thread)
+from scheduler import context, dispatcher, dispatchers, queue, queues, ranker, server, thread
 from scheduler.connectors import listeners
-from scheduler.models import OOI, Boefje, BoefjeTask, NormalizerTask
+from scheduler.models import BoefjeTask
 
 
 class Scheduler:
@@ -34,15 +32,15 @@ class Scheduler:
     """
 
     def __init__(self) -> None:
-        self.logger = logging.getLogger(__name__)
-        self.ctx = context.AppContext()
-        self.threads = {}
-        self.stop_event = threading.Event()
+        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.ctx: context.AppContext = context.AppContext()
+        self.threads: Dict[str, thread.ThreadRunner] = {}
+        self.stop_event: threading.Event = threading.Event()
 
         # Initialize queues
-        self.queues = {
+        self.queues: Dict[str, queue.PriorityQueue] = {
             "boefjes": queues.BoefjePriorityQueue(
-                id="boefjes",
+                pq_id="boefjes",
                 maxsize=self.ctx.config.pq_maxsize,
                 item_type=BoefjeTask,
                 allow_priority_updates=True,
@@ -50,34 +48,38 @@ class Scheduler:
         }
 
         # Initialize rankers
-        self.rankers = {
+        self.rankers: Dict[str, ranker.Ranker] = {
             "boefjes": ranker.BoefjeRankerTimeBased(
                 ctx=self.ctx,
             ),
         }
 
         # Initialize event stream listeners
-        self.listeners = {}
+        self.listeners: Dict[str, listeners.Listener] = {}
 
         # Initialize dispatchers
-        self.dispatchers = {
+        boefjes_queue = self.queues.get("boefjes")
+        if boefjes_queue is None:
+            raise RuntimeError("No boefjes queue found")
+
+        self.dispatchers: Dict[str, dispatcher.Dispatcher] = {
             "boefjes": dispatchers.BoefjeDispatcherTimeBased(
                 ctx=self.ctx,
-                pq=self.queues.get("boefjes"),
+                pq=boefjes_queue,
                 item_type=BoefjeTask,
-                queue="boefjes",
+                celery_queue="boefjes",
                 task_name="tasks.handle_boefje",
             ),
         }
 
         # Initialize API server
-        self.server = server.Server(self.ctx, queues=self.queues)
+        self.server: server.Server = server.Server(self.ctx, queues=self.queues)
 
     def shutdown(self) -> None:
         """Gracefully shutdown the scheduler, and all threads."""
         self.logger.warning("Shutting down...")
 
-        for k, t in self.threads.items():
+        for _, t in self.threads.items():
             t.join(timeout=5)
 
         self.logger.warning("Shutdown complete")
@@ -85,17 +87,19 @@ class Scheduler:
         os._exit(0)
 
     def _populate_normalizers_queue(self) -> None:
-        # TODO: from bytes get boefjes jobs that are done
-        self.logger.info("_populate_normalizers_queue")
-
-    def _add_normalizer_task_to_queue(self, task: NormalizerTask) -> None:
-        self.queues.get("normalizers").push(
-            queue.PrioritizedItem(priority=0, item=task),
-        )
+        raise NotImplementedError()
 
     def _populate_boefjes_queue(self) -> None:
         """Process to add boefje tasks to the boefjes priority queue."""
         tasks_count = 0
+
+        boefjes_queue = self.queues.get("boefjes")
+        if boefjes_queue is None:
+            raise RuntimeError("No boefjes queue found")
+
+        boefjes_ranker = self.rankers.get("boefjes")
+        if boefjes_ranker is None:
+            raise RuntimeError("No boefjes ranker found")
 
         # TODO: make concurrent, since ranker will be doing I/O using external
         # services
@@ -103,69 +107,83 @@ class Scheduler:
         for org in orgs:
 
             # oois = self.ctx.services.octopoes.get_random_objects(org=org, n=10)
-            oois = self.ctx.services.octopoes.get_objects(org=org.id)
+            oois = self.ctx.services.octopoes.get_objects(organisation_id=org.id)
 
             for ooi in oois:
-
-                # TODO: get boefjes for ooi, active boefjes depend on organization
-                # and indemnification?
 
                 # Get available boefjes based on ooi type
                 boefjes = self.ctx.services.katalogus.get_boefjes_by_ooi_type(
                     ooi.ooi_type,
                 )
                 if boefjes is None:
-                    self.logger.debug(f"No boefjes found for type {ooi.ooi_type} [ooi={ooi}]")
+                    self.logger.debug(
+                        "No boefjes found for type %s [ooi=%s]",
+                        ooi.ooi_type,
+                        ooi,
+                    )
                     continue
 
-
                 self.logger.debug(
-                    f"Found {len(boefjes)} boefjes for ooi {ooi} [ooi={ooi}, boefjes={[boefje.id for boefje in boefjes]}"
+                    "Found %s boefjes for ooi %s [ooi=%s, boefjes=%s}",
+                    len(boefjes),
+                    ooi,
+                    ooi,
+                    [boefje.id for boefje in boefjes],
                 )
 
-                boefjes_queue = self.queues.get("boefjes")
                 for boefje in boefjes:
                     plugin = self.ctx.services.katalogus.get_plugin_by_org_and_boefje_id(
-                        organisation_id=org.id, boefje_id=boefje.id,
+                        organisation_id=org.id,
+                        boefje_id=boefje.id,
                     )
                     if plugin is None:
                         self.logger.debug(
-                            f"No plugin found for boefje {boefje.id} [org={org.id}, boefje={boefje.id}]"
+                            "No plugin found for boefje %s [org=%s, boefje=%s]",
+                            boefje.id,
+                            org.id,
+                            boefje.id,
                         )
                         continue
 
                     if plugin.enabled is False:
-                        self.logger.debug(f"Boefje {boefje.id} is disabled")
+                        self.logger.debug("Boefje %s is disabled", boefje.id)
                         continue
 
-                    task = BoefjeTask(
-                        boefje=boefje,
-                        input_ooi=ooi.id,
-                        organization=org.id)
+                    task = BoefjeTask(boefje=boefje, input_ooi=ooi.id, organization=org.id)
 
                     # When using time-based dispatcher and rankers we don't want
                     # the populator to add tasks to the queue, and we do want
                     # allow the api to update the priority
                     if boefjes_queue.is_item_on_queue(task):
                         self.logger.debug(
-                            f"Boefje task already on queue [boefje={boefje.id} input_ooi={ooi.id} organization={org.id}]",
+                            "Boefje task already on queue [boefje=%s input_ooi=%s organization=%s]",
+                            boefje.id,
+                            ooi.id,
+                            org.id,
                         )
                         continue
 
-                    score = self.rankers.get("boefjes").rank(task)
+                    score = boefjes_ranker.rank(task)
 
-                    self.queues.get("boefjes").push(
+                    boefjes_queue.push(
                         queue.PrioritizedItem(priority=score, item=task),
                     )
                     tasks_count += 1
 
         if tasks_count > 0:
             self.logger.info(
-                f"Added {tasks_count} boefje tasks to queue [queue_id={self.queues.get('boefjes').id}, tasks_count={tasks_count}]",
+                "Added %s boefje tasks to queue [queue_id=%s, tasks_count=%s]",
+                tasks_count,
+                boefjes_queue.pq_id,
+                tasks_count,
             )
 
     def _run_in_thread(
-        self, name: str, func: Callable, interval: float = 0.01, daemon: bool = False, *args, **kwargs
+        self,
+        name: str,
+        func: Callable[[], Any],
+        interval: float = 0.01,
+        daemon: bool = False,
     ) -> None:
         """Make a function run in a thread, and add it to the dict of threads.
 
@@ -180,8 +198,6 @@ class Scheduler:
             target=func,
             stop_event=self.stop_event,
             interval=interval,
-            args=args,
-            kwargs=kwargs,
         )
         self.threads[name].setDaemon(daemon)
         self.threads[name].start()
@@ -209,7 +225,7 @@ class Scheduler:
         for k, q in self.queues.items():
             self._run_in_thread(
                 name=f"{k}_queue_populator",
-                func=getattr(self, f"_populate_{q.id}_queue"),
+                func=getattr(self, f"_populate_{q.pq_id}_queue"),
                 interval=self.ctx.config.pq_populate_interval,
             )
 

@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
-from scheduler.models import Base
 
 from .normalizer import Normalizer
 

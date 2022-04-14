@@ -1,7 +1,7 @@
 from typing import Dict, List
 
 from scheduler.models import Boefje, Organisation, Plugin
-from scheduler.utils import cache, dict_utils
+from scheduler.utils import dict_utils
 
 from .services import HTTPService
 
@@ -15,8 +15,8 @@ class Katalogus(HTTPService):
     boefjes_by_ooi_type_cache: Dict[str, List[Boefje]] = {}
     organisations_plugin_cache: Dict[str, Dict[str, Plugin]] = {}
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, host: str, source: str, timeout: int = 5):
+        super().__init__(host, source, timeout)
 
         self.boefjes_by_ooi_type_cache = {}
         self._flush_boefjes_by_ooi_type_cache()
@@ -24,7 +24,7 @@ class Katalogus(HTTPService):
         self.organisations_plugin_cache = {}
         self._flush_organisations_plugin_cache()
 
-    def _flush_boefjes_by_ooi_type_cache(self):
+    def _flush_boefjes_by_ooi_type_cache(self) -> None:
         boefjes = self.get_boefjes()
 
         for boefje in boefjes:
@@ -34,27 +34,13 @@ class Katalogus(HTTPService):
                 else:
                     self.boefjes_by_ooi_type_cache[ooi_type].append(boefje)
 
-    def _flush_organisations_plugin_cache(self):
+    def _flush_organisations_plugin_cache(self) -> None:
         orgs = self.get_organisations()
 
         for org in orgs:
             self.organisations_plugin_cache[org.id] = {
                 plugin.id: plugin for plugin in self.get_plugins_by_organisation(org.id)
             }
-
-    @cache.ttl_lru_cache(ttl=60*10)
-    def _get_boefjes_by_ooi_type(self, ooi_type: str) -> List[Boefje]:
-        boefjes = self.get_boefjes()
-
-        cache_ooi_type = {}
-        for boefje in boefjes:
-            for ooi_type in boefje.consumes:
-                if ooi_type not in cache_ooi_type:
-                    cache_ooi_type[ooi_type] = [boefje]
-                else:
-                    cache_ooi_type[ooi_type].append(boefje)
-
-        return cache_ooi_type.get(ooi_type, [])
 
     def get_boefjes_by_ooi_type(self, ooi_type: str) -> List[Boefje]:
         return self.boefjes_by_ooi_type_cache.get(ooi_type, [])
@@ -80,8 +66,5 @@ class Katalogus(HTTPService):
         return [Plugin(**plugin) for plugin in response.json().values()]
 
     def get_plugin_by_org_and_boefje_id(self, organisation_id: str, boefje_id: str) -> Plugin:
-        return dict_utils.deep_get(
-            self.organisations_plugin_cache,
-            [organisation_id, boefje_id]
-        )
-
+        plugin = dict_utils.deep_get(self.organisations_plugin_cache, [organisation_id, boefje_id])
+        return Plugin(**plugin)
