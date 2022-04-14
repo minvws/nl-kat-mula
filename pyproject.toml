@@ -6,7 +6,7 @@ target-version = ['py38']
 [tool.mypy]
 
 python_version = 3.8
-strict = true
+strict = false
 install_types = true
 non_interactive = true
 ignore_missing_imports = true
@@ -16,7 +16,7 @@ exclude = "alembic"
 
 [tool.pylint.master]
 
-fail-under=9.0
+fail-under=7.0
 max-line-length=120
 check-quote-consistency=true
 extension-pkg-whitelist = [
