@@ -28,7 +28,7 @@ class Bytes(HTTPService):
         )
         return str(response.json()["access_token"])
 
-    def get_latest_run_boefje(self, boefje_id: str, input_ooi: str) -> BoefjeMeta:
+    def get_last_run_boefje(self, boefje_id: str, input_ooi: str) -> BoefjeMeta:
         url = f"{self.host}/boefje_meta"
         response = self.get(
             url=url,

@@ -6,7 +6,7 @@ import time
 from typing import Any, Callable, Dict
 
 from scheduler import (context, dispatcher, dispatchers, queue, queues, ranker,
-                       server)
+                       rankers, server)
 from scheduler.connectors import listeners
 from scheduler.models import BoefjeTask
 from scheduler.utils import thread
@@ -52,7 +52,7 @@ class Scheduler:
 
         # Initialize rankers
         self.rankers: Dict[str, ranker.Ranker] = {
-            "boefjes": ranker.BoefjeRanker(
+            "boefjes": rankers.BoefjeRanker(
                 ctx=self.ctx,
             ),
         }
@@ -171,11 +171,11 @@ class Scheduler:
                         continue
 
                     # Boefjes should not run before the grace period ends
-                    last_run_boefje = self.ctx.services.katalogus.get_last_run_boefje(
+                    last_run_boefje = self.ctx.services.bytes.get_last_run_boefje(
                         boefje_id=boefje.id, input_ooi=ooi.id,
                     )
                     if (last_run_boefje is not None and
-                            datetime.datetime.now() - last_run_boefje.last_run < datetime.timedelta(days=1)):
+                            datetime.datetime.now() - last_run_boefje.ended_at < datetime.timedelta(days=1)):
                         self.logger.debug(
                             "Boefje %s already run for input ooi %s [last_run_boefje=%s]",
                             boefje.id,

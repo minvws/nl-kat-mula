@@ -1,3 +1,4 @@
+import datetime
 import unittest
 import uuid
 from types import SimpleNamespace
@@ -5,7 +6,8 @@ from unittest import mock
 
 import scheduler
 from scheduler import config, connectors, context, dispatcher, models
-from tests.factories import BoefjeFactory, OOIFactory, OrganisationFactory
+from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
+                             OrganisationFactory)
 
 
 class SchedulerTestCase(unittest.TestCase):
@@ -16,8 +18,10 @@ class SchedulerTestCase(unittest.TestCase):
             spec=connectors.services.Octopoes,
             spec_set=True,
         )
+
+        ooi = OOIFactory()
         self.mock_octopoes.get_objects.return_value = [
-            OOIFactory(),
+            ooi
         ]
 
         # Katalogus
@@ -28,9 +32,20 @@ class SchedulerTestCase(unittest.TestCase):
         self.mock_katalogus.get_organisations.return_value = [
             OrganisationFactory(),
         ]
+        boefje = BoefjeFactory()
         self.mock_katalogus.get_boefjes_by_ooi_type.return_value = [
-            BoefjeFactory(),
+            boefje,
         ]
+
+        # Bytes
+        self.mock_bytes = mock.create_autospec(
+            spec=connectors.services.Bytes,
+            spec_set=True,
+        )
+        self.mock_bytes.get_last_run_boefje.return_value = BoefjeMetaFactory(
+            boefje=boefje,
+            input_ooi=ooi.id,
+        )
 
         # Config
         cfg = config.settings.Settings()
@@ -40,6 +55,7 @@ class SchedulerTestCase(unittest.TestCase):
 
         self.mock_ctx.services.octopoes = self.mock_octopoes
         self.mock_ctx.services.katalogus = self.mock_katalogus
+        self.mock_ctx.services.bytes = self.mock_bytes
         self.mock_ctx.return_value.config = cfg
 
         self.scheduler = scheduler.Scheduler()
