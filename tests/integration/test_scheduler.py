@@ -50,6 +50,9 @@ class SchedulerTestCase(unittest.TestCase):
         self.scheduler._populate_boefjes_queue()
         self.assertEqual((len(self.scheduler.queues.get("boefjes"))), 1)
 
+    def test_populate_boefjes_queue_grace_period(self):
+        pass
+
     def test_celery_dispatcher(self):
         # TODO: Add item to queue, instead of populate self.scheduler._populate_boefjes_queue()
         self.scheduler._populate_boefjes_queue()

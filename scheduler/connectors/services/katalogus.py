@@ -61,6 +61,7 @@ class Katalogus(HTTPService):
         return [Organisation(**organisation) for organisation in response.json().values()]
 
     def get_plugins_by_organisation(self, organisation_id: str) -> List[Plugin]:
+        organisation_id = "_dev"
         url = f"{self.host}/v1/organisations/{organisation_id}/plugins"
         response = self.get(url)
         return [Plugin(**plugin) for plugin in response.json().values()]

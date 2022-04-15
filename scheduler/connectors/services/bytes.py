@@ -1,3 +1,5 @@
+from scheduler.models import BoefjeMeta
+
 from .services import HTTPService
 
 
@@ -25,3 +27,16 @@ class Bytes(HTTPService):
             headers={"Content-Type": "application/x-www-form-urlendcoded"},
         )
         return str(response.json()["access_token"])
+
+    def get_latest_run_boefje(self, boefje_id: str, input_ooi: str) -> BoefjeMeta:
+        url = f"{self.host}/boefje_meta"
+        response = self.get(
+            url=url,
+            params={
+                "boefje_id": boefje_id,
+                "input_ooi": input_ooi,
+                "limit": 1,
+                "descending": True,
+            },
+        )
+        return BoefjeMeta(**response.json())

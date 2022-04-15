@@ -1,12 +1,15 @@
+import datetime
 import logging
 import os
 import threading
 import time
 from typing import Any, Callable, Dict
 
-from scheduler import context, dispatcher, dispatchers, queue, queues, ranker, server, thread
+from scheduler import (context, dispatcher, dispatchers, queue, queues, ranker,
+                       server)
 from scheduler.connectors import listeners
 from scheduler.models import BoefjeTask
+from scheduler.utils import thread
 
 
 class Scheduler:
@@ -49,7 +52,7 @@ class Scheduler:
 
         # Initialize rankers
         self.rankers: Dict[str, ranker.Ranker] = {
-            "boefjes": ranker.BoefjeRankerTimeBased(
+            "boefjes": ranker.BoefjeRanker(
                 ctx=self.ctx,
             ),
         }
@@ -63,7 +66,7 @@ class Scheduler:
             raise RuntimeError("No boefjes queue found")
 
         self.dispatchers: Dict[str, dispatcher.Dispatcher] = {
-            "boefjes": dispatchers.BoefjeDispatcherTimeBased(
+            "boefjes": dispatchers.BoefjeDispatcher(
                 ctx=self.ctx,
                 pq=boefjes_queue,
                 item_type=BoefjeTask,
@@ -151,9 +154,13 @@ class Scheduler:
 
                     task = BoefjeTask(boefje=boefje, input_ooi=ooi.id, organization=org.id)
 
-                    # When using time-based dispatcher and rankers we don't want
-                    # the populator to add tasks to the queue, and we do want
-                    # allow the api to update the priority
+                    # We don't want the populator to add/update tasks to the
+                    # queue, when they are already on there. However, we do
+                    # want to allow the api to update the priority. So we
+                    # created the queue with allow_priority_updates=True
+                    # regardless. When the ranker is updated to correctly rank
+                    # tasks, we can allow the populator to also update the
+                    # priority. Then remove the following:
                     if boefjes_queue.is_item_on_queue(task):
                         self.logger.debug(
                             "Boefje task already on queue [boefje=%s input_ooi=%s organization=%s]",
@@ -163,11 +170,25 @@ class Scheduler:
                         )
                         continue
 
-                    score = boefjes_ranker.rank(task)
+                    # Boefjes should not run before the grace period ends
+                    last_run_boefje = self.ctx.services.katalogus.get_last_run_boefje(
+                        boefje_id=boefje.id, input_ooi=ooi.id,
+                    )
+                    if (last_run_boefje is not None and
+                            datetime.datetime.now() - last_run_boefje.last_run < datetime.timedelta(days=1)):
+                        self.logger.debug(
+                            "Boefje %s already run for input ooi %s [last_run_boefje=%s]",
+                            boefje.id,
+                            ooi.id,
+                            last_run_boefje,
+                        )
+                        continue
 
+                    score = boefjes_ranker.rank(task)
                     boefjes_queue.push(
                         queue.PrioritizedItem(priority=score, item=task),
                     )
+
                     tasks_count += 1
 
         if tasks_count > 0:
@@ -190,9 +211,8 @@ class Scheduler:
         Args:
             name: The name of the thread.
             func: The function to run in the thread.
+            interval: The interval to run the function.
             daemon: Whether the thread should be a daemon.
-            *args: Arguments to pass to the function.
-            **kwargs: Keyword arguments to pass to the function.
         """
         self.threads[name] = thread.ThreadRunner(
             target=func,
