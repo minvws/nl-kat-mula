@@ -32,7 +32,7 @@ class ThreadRunner(threading.Thread):
         self.exception: Optional[Exception] = None
         self._target: Callable[[], Any] = target
 
-        super().__init__()
+        super().__init__(target=self._target)
 
     def run(self) -> None:
         while not self.stop_event.is_set():
