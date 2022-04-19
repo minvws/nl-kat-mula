@@ -18,3 +18,4 @@ class Plugin(BaseModel):
     consumes: Union[str, List[str]]
     options: Optional[List[str]]
     produces: List[str]
+    enabled: bool

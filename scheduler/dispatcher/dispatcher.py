@@ -178,9 +178,11 @@ class CeleryDispatcher(Dispatcher):
     def dispatch(self, p_item: queue.PrioritizedItem) -> None:
         super().dispatch(p_item=p_item)
 
+        item_dict = p_item.item.dict()
+
         self.app.send_task(
             name=self.task_name,
-            args=(p_item.item.dict(),),
+            args=(item_dict,),
             queue=self.celery_queue,
-            task_id=uuid.uuid4().hex,
+            task_id=item_dict.get("id"),
         )

@@ -10,18 +10,19 @@ class Boefje(BaseModel):
     """Boefje representation."""
 
     id: str
-    name: str
-    description: str
+    name: Optional[str]
+    description: Optional[str]
     version: Optional[str] = Field(default=None)
     scan_level: Optional[int] = Field(default=None)
-    consumes: List[str]
-    produces: List[str]
+    consumes: Optional[List[str]]
+    produces: Optional[List[str]]
     dispatches: Optional[Dict[str, List[str]]] = Field(default=None)
 
 
 class BoefjeTask(BaseModel):
     """BoefjeTask represent data needed for a Boefje to run."""
 
+    id: Optional[str]
     boefje: Boefje
     input_ooi: str
     organization: str

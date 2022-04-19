@@ -3,7 +3,10 @@ import logging
 import os
 import threading
 import time
+import uuid
 from typing import Any, Callable, Dict
+
+import requests
 
 from scheduler import (context, dispatcher, dispatchers, queue, queues, ranker,
                        rankers, server)
@@ -104,20 +107,27 @@ class Scheduler:
         if boefjes_ranker is None:
             raise RuntimeError("No boefjes ranker found")
 
-        # TODO: make concurrent, since ranker will be doing I/O using external
-        # services
         orgs = self.ctx.services.katalogus.get_organisations()
         for org in orgs:
 
             # oois = self.ctx.services.octopoes.get_random_objects(org=org, n=10)
-            oois = self.ctx.services.octopoes.get_objects(organisation_id=org.id)
+            try:
+                oois = self.ctx.services.octopoes.get_objects(organisation_id=org.id)
+            except (requests.exceptions.RetryError,
+                    requests.exceptions.ConnectionError):
+                self.logger.warning("Could not get objects for organisation %s [org_id=%s]", org.name ,org.id)
+                continue
 
             for ooi in oois:
+                try:
+                    boefjes = self.ctx.services.katalogus.get_boefjes_by_ooi_type(
+                        ooi.ooi_type,
+                    )
+                except (requests.exceptions.RetryError,
+                        requests.exceptions.ConnectionError):
+                    self.logger.warning("Could not get boefjes for ooi_type %s [ooi_type=%s]", ooi.ooi_type, ooi.ooi_type)
+                    continue
 
-                # Get available boefjes based on ooi type
-                boefjes = self.ctx.services.katalogus.get_boefjes_by_ooi_type(
-                    ooi.ooi_type,
-                )
                 if boefjes is None:
                     self.logger.debug(
                         "No boefjes found for type %s [ooi=%s]",
@@ -135,16 +145,20 @@ class Scheduler:
                 )
 
                 for boefje in boefjes:
-                    plugin = self.ctx.services.katalogus.get_plugin_by_org_and_boefje_id(
-                        organisation_id=org.id,
-                        boefje_id=boefje.id,
-                    )
+                    try:
+                        plugin = self.ctx.services.katalogus.get_plugin_by_org_and_boefje_id(
+                            organisation_id=org.id,
+                            boefje_id=boefje.id,
+                        )
+                    except (requests.exceptions.RetryError,
+                            requests.exceptions.ConnectionError):
+                        self.logger.warning("Could not get plugin for org %s and boefje %s [org_id=%s boefje_id=%s]", org.name, boefje.name, org.id, boefje.name)
+                        continue
+
                     if plugin is None:
                         self.logger.debug(
                             "No plugin found for boefje %s [org=%s, boefje=%s]",
-                            boefje.id,
-                            org.id,
-                            boefje.id,
+                            boefje.id, org.id, boefje.id,
                         )
                         continue
 
@@ -152,7 +166,12 @@ class Scheduler:
                         self.logger.debug("Boefje %s is disabled", boefje.id)
                         continue
 
-                    task = BoefjeTask(boefje=boefje, input_ooi=ooi.id, organization=org.id)
+                    task = BoefjeTask(
+                        id=uuid.uuid4().hex,
+                        boefje=boefje,
+                        input_ooi=ooi.id,
+                        organization=org.id,
+                    )
 
                     # We don't want the populator to add/update tasks to the
                     # queue, when they are already on there. However, we do
@@ -164,18 +183,25 @@ class Scheduler:
                     if boefjes_queue.is_item_on_queue(task):
                         self.logger.debug(
                             "Boefje task already on queue [boefje=%s input_ooi=%s organization=%s]",
-                            boefje.id,
-                            ooi.id,
-                            org.id,
+                            boefje.id, ooi.id, org.id,
                         )
                         continue
 
                     # Boefjes should not run before the grace period ends
-                    last_run_boefje = self.ctx.services.bytes.get_last_run_boefje(
-                        boefje_id=boefje.id, input_ooi=ooi.id,
-                    )
+                    try:
+                        last_run_boefje = self.ctx.services.bytes.get_last_run_boefje(
+                            boefje_id=boefje.id, input_ooi=ooi.id,
+                        )
+                    except (requests.exceptions.RetryError,
+                            requests.exceptions.ConnectionError):
+                        self.logger.warning(
+                            "Could not get last run boefje for boefje: '%s' with ooi: '%s' [boefje_id=%s ooi_id=%s]",
+                            boefje.name, ooi.id, boefje.id, ooi.id,
+                        )
+                        continue
+
                     if (last_run_boefje is not None and
-                            datetime.datetime.now() - last_run_boefje.ended_at < datetime.timedelta(days=1)):
+                            datetime.datetime.now().astimezone() - last_run_boefje.ended_at < datetime.timedelta(days=1)):  # FIXME: config or constant
                         self.logger.debug(
                             "Boefje %s already run for input ooi %s [last_run_boefje=%s]",
                             boefje.id,
