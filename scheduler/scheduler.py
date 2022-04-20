@@ -37,9 +37,9 @@ class Scheduler:
             event across threads.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, ctx: context.AppContext) -> None:
         self.logger: logging.Logger = logging.getLogger(__name__)
-        self.ctx: context.AppContext = context.AppContext()
+        self.ctx: context.AppContext = ctx
         self.threads: Dict[str, thread.ThreadRunner] = {}
         self.stop_event: threading.Event = threading.Event()
 
@@ -152,7 +152,10 @@ class Scheduler:
                         )
                     except (requests.exceptions.RetryError,
                             requests.exceptions.ConnectionError):
-                        self.logger.warning("Could not get plugin for org %s and boefje %s [org_id=%s boefje_id=%s]", org.name, boefje.name, org.id, boefje.name)
+                        self.logger.warning(
+                            "Could not get plugin for org %s and boefje %s [org_id=%s, boefje_id=%s]",
+                            org.name, boefje.name, org.id, boefje.name,
+                        )
                         continue
 
                     if plugin is None:
@@ -173,6 +176,9 @@ class Scheduler:
                         organization=org.id,
                     )
 
+                    # TODO: check scanlevel of ooi, boefje, and organizational
+                    # plugin
+
                     # We don't want the populator to add/update tasks to the
                     # queue, when they are already on there. However, we do
                     # want to allow the api to update the priority. So we
@@ -182,7 +188,7 @@ class Scheduler:
                     # priority. Then remove the following:
                     if boefjes_queue.is_item_on_queue(task):
                         self.logger.debug(
-                            "Boefje task already on queue [boefje=%s input_ooi=%s organization=%s]",
+                            "Boefje task already on queue [boefje=%s, input_ooi=%s, organization=%s]",
                             boefje.id, ooi.id, org.id,
                         )
                         continue
@@ -191,17 +197,19 @@ class Scheduler:
                     try:
                         last_run_boefje = self.ctx.services.bytes.get_last_run_boefje(
                             boefje_id=boefje.id, input_ooi=ooi.id,
+                            organization_id=org.id,
                         )
                     except (requests.exceptions.RetryError,
                             requests.exceptions.ConnectionError):
                         self.logger.warning(
-                            "Could not get last run boefje for boefje: '%s' with ooi: '%s' [boefje_id=%s ooi_id=%s]",
-                            boefje.name, ooi.id, boefje.id, ooi.id,
+                            "Could not get last run boefje for boefje: '%s' with ooi: '%s' [boefje_id=%s, ooi_id=%s, org_id=%s]",
+                            boefje.name, ooi.id, boefje.id, ooi.id, org.id,
                         )
                         continue
 
                     if (last_run_boefje is not None and
-                            datetime.datetime.now().astimezone() - last_run_boefje.ended_at < datetime.timedelta(days=1)):  # FIXME: config or constant
+                            datetime.datetime.now().astimezone() - last_run_boefje.ended_at
+                            < datetime.timedelta(seconds=self.ctx.config.pq_populate_grace_period)):
                         self.logger.debug(
                             "Boefje %s already run for input ooi %s [last_run_boefje=%s]",
                             boefje.id,
@@ -277,7 +285,10 @@ class Scheduler:
 
         # Dispatchers directing work from queues to workers
         for k, d in self.dispatchers.items():
-            self._run_in_thread(name=k, func=d.run, daemon=False, interval=5)
+            self._run_in_thread(
+                name=k, func=d.run, daemon=False,
+                interval=self.ctx.config.pq_dispatch_interval,
+            )
 
         # Main thread
         while not self.stop_event.is_set():
