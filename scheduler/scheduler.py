@@ -287,7 +287,7 @@ class Scheduler:
         for k, d in self.dispatchers.items():
             self._run_in_thread(
                 name=k, func=d.run, daemon=False,
-                interval=self.ctx.config.pq_dispatch_interval,
+                interval=self.ctx.config.dsp_interval,
             )
 
         # Main thread

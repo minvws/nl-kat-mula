@@ -28,6 +28,9 @@ class Katalogus(HTTPService):
         boefjes = self.get_boefjes()
 
         for boefje in boefjes:
+            if boefje.consumes is None:
+                continue
+
             for ooi_type in boefje.consumes:
                 if ooi_type not in self.boefjes_by_ooi_type_cache:
                     self.boefjes_by_ooi_type_cache[ooi_type] = [boefje]
