@@ -8,6 +8,7 @@ class ScanProfile(BaseModel):
     level: int
     scan_profile_type: str
 
+
 class OOI(BaseModel):
     """Representation of "Object Of Interests" from Octopoes."""
 

@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
-from factory import Factory, Faker, LazyFunction, PostGenerationMethodCall, Sequence, fuzzy
+from factory import (Factory, Faker, LazyFunction, PostGenerationMethodCall,
+                     Sequence, fuzzy)
 from scheduler.models import Boefje, BoefjeMeta
 
 
@@ -12,7 +13,7 @@ class BoefjeFactory(Factory):
     id: str = Sequence(lambda n: n)
     name: str = Faker("name")
     description: str = Faker("text")
-    scan_level: int = fuzzy.FuzzyInteger(0, 10)
+    scan_level: int = fuzzy.FuzzyInteger(0, 4)
     consumes: List[str] = LazyFunction(lambda: [])
     produces: List[str] = LazyFunction(lambda: [])
 
