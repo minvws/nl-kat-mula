@@ -8,7 +8,8 @@ from typing import Any, Callable, Dict
 
 import requests
 
-from scheduler import context, dispatcher, dispatchers, queue, queues, ranker, rankers, server
+from scheduler import (context, dispatcher, dispatchers, queue, queues, ranker,
+                       rankers, server)
 from scheduler.connectors import listeners
 from scheduler.models import BoefjeTask
 from scheduler.utils import thread
@@ -179,8 +180,38 @@ class Scheduler:
                         organization=org.id,
                     )
 
-                    # TODO: check scanlevel of ooi, boefje, and organizational
-                    # plugin
+                    ooi_scan_level = ooi.scan_profile.level
+                    if ooi_scan_level is None:
+                        self.logger.warning(
+                            "No scan level found for ooi %s [ooi=%s]",
+                            ooi.id,
+                            ooi,
+                        )
+                        continue
+
+                    boefje_scan_level = boefje.scan_level
+                    if boefje_scan_level is None:
+                        self.logger.warning(
+                            "No scan level found for boefje %s [boefje=%s]",
+                            boefje.id,
+                            boefje,
+                        )
+                        continue
+
+                    # Boefje intensity score, ooi clearance level, range
+                    # from 0 to 4. 0 being the highest intensity, and 4 being
+                    # the lowest.
+                    if boefje_scan_level < ooi_scan_level:
+                        self.logger.debug(
+                            "Boefje %s scan level %s is too intense for ooi %s scan level %s [boefje_id=%s, ooi_id=%s]",
+                            boefje.id,
+                            boefje_scan_level,
+                            ooi.id,
+                            ooi_scan_level,
+                            boefje.id,
+                            ooi.id,
+                        )
+                        continue
 
                     # We don't want the populator to add/update tasks to the
                     # queue, when they are already on there. However, we do
