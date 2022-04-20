@@ -45,9 +45,5 @@ class AppContext:
                     password=self.config.host_bytes_password,
                     source=f"scheduler/{scheduler.__version__}",
                 ),
-                # services.Rocky.name: services.Rocky(
-                #     host=self.config.host_rocky,
-                #     source=f"scheduler/{scheduler.__version__}",
-                # ),
             }
         )
