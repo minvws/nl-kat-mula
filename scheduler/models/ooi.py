@@ -1,10 +1,10 @@
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
 
 
 class ScanProfile(BaseModel):
-    reference: str
+    reference: Dict[str, Any]
     level: int
     scan_profile_type: str
 
