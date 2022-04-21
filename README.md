@@ -7,8 +7,7 @@ execution of those tasks are being prioritized / scored by a ranker. The
 tasks are then pushed onto a priority queue. A dispatcher pop's tasks of
 the queue and send those tasks to a worker to be picked up.
 
-Within the project of KAT, the scheduler is tasked with scheduling boefje and
-normalizer tasks.
+Within the project of KAT, the scheduler is tasked with scheduling boefje tasks.
 
 ## Architecture
 
@@ -30,7 +29,7 @@ The scheduler interfaces with the following services:
 |---------|-------|
 | [Octopoes](https://github.com/minvws/nl-rt-tim-abang-octopoes) | Retrieving random OOI's of organizations |
 | [Katalogus](https://github.com/minvws/nl-rt-tim-abang-boefjes/tree/develop/katalogus) | Used for referencing available boefjes, and organizations |
-| [Bytes](https://github.com/minvws/nl-rt-tim-abang-bytes) | TBD |
+| [Bytes](https://github.com/minvws/nl-rt-tim-abang-bytes) | Retrieve last run boefje for organization and OOI |
 | [Boefjes](https://github.com/minvws/nl-rt-tim-abang-boefjes) | Sending boefje task via Celery |
 
 
@@ -39,7 +38,6 @@ The scheduler interfaces with the following services:
 ```
 $ tree -L 3 --dirsfirst
 .
-├── api/                            # swagger api specification
 ├── docs/                           # additional documentation
 ├── scheduler/                      # scheduler python module
 │   ├── config                      # application settings configuration
@@ -54,12 +52,14 @@ $ tree -L 3 --dirsfirst
 │   ├── queue/                      # priority queue
 │   ├── ranker/                     # priority/score calculations
 │   ├── server/                     # scheduler api interface
+│   ├── utils/                      # common utility functions
 │   ├── dispatcher.py               # kat queue tasks dispatcher implementation
 │   ├── __init__.py
 │   ├── __main__.py
-│   ├── queue.py                    # kat priority queue implmentation
+│   ├── dispatchers.py              # kat tasks dispatcher implementation
+│   ├── queues.py                   # kat priority queue implementation
+│   ├── rankers.py                  # kat ranker implementation
 │   ├── scheduler.py                # scheduler app definition
-│   ├── thread.py                   # thread runner implementation support
 │   └── version.py                  # version information
 └─── tests/
     ├── factories/

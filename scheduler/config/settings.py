@@ -33,8 +33,10 @@ class Settings(BaseSettings):
     # Queue settings (0 is infinite)
     pq_maxsize: int = Field(0, env="SHEDULER_PQ_MAXSIZE")
     pq_populate_interval: int = Field(60, env="SHEDULER_PQ_INTERVAL")
+    pq_populate_grace_period: int = Field(86400, env="SHEDULER_PQ_GRACE")
 
     # Dispatcher settings
+    dsp_interval: int = Field(5, env="SHEDULER_DSP_INTERVAL")
     dsp_broker_url: str = Field(..., env="SCHEDULER_DSP_BROKER_URL")
 
     # class Config:

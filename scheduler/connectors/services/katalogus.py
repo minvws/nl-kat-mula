@@ -28,6 +28,9 @@ class Katalogus(HTTPService):
         boefjes = self.get_boefjes()
 
         for boefje in boefjes:
+            if boefje.consumes is None:
+                continue
+
             for ooi_type in boefje.consumes:
                 if ooi_type not in self.boefjes_by_ooi_type_cache:
                     self.boefjes_by_ooi_type_cache[ooi_type] = [boefje]
@@ -66,5 +69,4 @@ class Katalogus(HTTPService):
         return [Plugin(**plugin) for plugin in response.json().values()]
 
     def get_plugin_by_org_and_boefje_id(self, organisation_id: str, boefje_id: str) -> Plugin:
-        plugin = dict_utils.deep_get(self.organisations_plugin_cache, [organisation_id, boefje_id])
-        return Plugin(**plugin)
+        return dict_utils.deep_get(self.organisations_plugin_cache, [organisation_id, boefje_id])

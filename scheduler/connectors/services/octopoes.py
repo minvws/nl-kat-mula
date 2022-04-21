@@ -7,7 +7,7 @@ from .services import HTTPService
 
 class Octopoes(HTTPService):
     name = "octopoes"
-    health_endpoint = "/_dev/health"  # FIXME: _dev
+    health_endpoint = None
 
     def get_objects(self, organisation_id: str) -> List[OOI]:
         url = f"{self.host}/{organisation_id}/objects"

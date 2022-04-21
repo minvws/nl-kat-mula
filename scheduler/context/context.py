@@ -39,15 +39,11 @@ class AppContext:
                     host=self.config.host_katalogus,
                     source=f"scheduler/{scheduler.__version__}",
                 ),
-                # services.Bytes.name: services.Bytes(
-                #     host=self.config.host_bytes,
-                #     user=self.config.host_bytes_user,
-                #     password=self.config.host_bytes_password,
-                #     source=f"scheduler/{scheduler.__version__}",
-                # ),
-                # services.Rocky.name: services.Rocky(
-                #     host=self.config.host_rocky,
-                #     source=f"scheduler/{scheduler.__version__}",
-                # ),
+                services.Bytes.name: services.Bytes(
+                    host=self.config.host_bytes,
+                    user=self.config.host_bytes_user,
+                    password=self.config.host_bytes_password,
+                    source=f"scheduler/{scheduler.__version__}",
+                ),
             }
         )

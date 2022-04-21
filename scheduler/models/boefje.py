@@ -1,4 +1,5 @@
-from typing import Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -9,8 +10,8 @@ class Boefje(BaseModel):
     """Boefje representation."""
 
     id: str
-    name: str
-    description: str
+    name: Optional[str]
+    description: Optional[str]
     version: Optional[str] = Field(default=None)
     scan_level: Optional[int] = Field(default=None)
     consumes: List[str]
@@ -21,6 +22,7 @@ class Boefje(BaseModel):
 class BoefjeTask(BaseModel):
     """BoefjeTask represent data needed for a Boefje to run."""
 
+    id: Optional[str]
     boefje: Boefje
     input_ooi: str
     organization: str
@@ -32,3 +34,15 @@ class BoefjeTask(BaseModel):
         in the PriorityQueue. We hash the combination of the attributes
         input_ooi and boefje.id since this combination is unique."""
         return hash((self.input_ooi, self.boefje.id, self.organization))
+
+
+class BoefjeMeta(BaseModel):
+    """BoefjeMeta is the response object returned by the Bytes API"""
+
+    id: str
+    boefje: Boefje
+    input_ooi: str
+    arguments: Dict[str, Any]
+    organization: str
+    started_at: datetime
+    ended_at: datetime
