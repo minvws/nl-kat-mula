@@ -8,7 +8,8 @@ from typing import Any, Callable, Dict
 
 import requests
 
-from scheduler import context, dispatcher, dispatchers, queue, queues, ranker, rankers, server
+from scheduler import (context, dispatcher, dispatchers, queue, queues, ranker,
+                       rankers, server)
 from scheduler.connectors import listeners
 from scheduler.models import BoefjeTask
 from scheduler.utils import thread
@@ -204,10 +205,11 @@ class Scheduler:
                         )
                         continue
 
-                    # Boefje intensity score, ooi clearance level, range
-                    # from 0 to 4. 0 being the highest intensity, and 4 being
-                    # the lowest.
-                    if boefje_scan_level < ooi_scan_level:
+                    # Boefje intensity score ooi clearance level, range
+                    # from 0 to 4. 4 being the highest intensity, and 0 being
+                    # the lowest. OOI clearance level defines what boefje
+                    # intesity is allowed to run on.
+                    if boefje_scan_level > ooi_scan_level:
                         self.logger.debug(
                             "Boefje %s scan level %s is too intense for ooi %s scan level %s [boefje_id=%s, ooi_id=%s]",
                             boefje.id,
@@ -228,7 +230,6 @@ class Scheduler:
                     # priority. Then remove the following:
                     if boefjes_queue.is_item_on_queue(task):
                         self.logger.debug(
-                            "Boefje task already on queue [boefje=%s, input_ooi=%s, organization=%s]",
                             boefje.id,
                             ooi.id,
                             org.id,
