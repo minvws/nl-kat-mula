@@ -6,8 +6,7 @@ from unittest import mock
 
 import scheduler
 from scheduler import config, connectors, context, dispatcher, models
-from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
-                             OrganisationFactory, ScanProfileFactory)
+from tests.factories import BoefjeFactory, BoefjeMetaFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
 
 
 class SchedulerTestCase(unittest.TestCase):
