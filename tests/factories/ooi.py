@@ -1,4 +1,5 @@
 import uuid
+from typing import Any, Dict
 
 import factory
 from factory import Factory, Faker, LazyFunction, PostGenerationMethodCall, Sequence, fuzzy
@@ -9,7 +10,10 @@ class ScanProfileFactory(Factory):
     class Meta:
         model = ScanProfile
 
-    reference: str = Faker("uuid4")
+    reference: Dict[str, Any] = {
+        "class_": "Network",
+        "natural_key": "internet",
+    }
     level: int = fuzzy.FuzzyInteger(0, 4)
     scan_profile_type: str = Faker(
         "random_element",

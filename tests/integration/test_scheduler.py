@@ -70,6 +70,9 @@ class SchedulerTestCase(unittest.TestCase):
     def test_populate_boefjes_queue_grace_period(self):
         pass
 
+    def test_populate_boefjes_queue_qsize(self):
+        pass
+
     def test_celery_dispatcher(self):
         # TODO: Add item to queue, instead of populate self.scheduler._populate_boefjes_queue()
         self.scheduler._populate_boefjes_queue()

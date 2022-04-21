@@ -106,6 +106,13 @@ class Scheduler:
         if boefjes_ranker is None:
             raise RuntimeError("No boefjes ranker found")
 
+        if boefjes_queue.full() is True:
+            self.logger.warning(
+                "Boefjes queue is full, not populating with new tasks [qsize=%d]",
+                boefjes_queue.pq.qsize(),
+            )
+            return
+
         orgs = self.ctx.services.katalogus.get_organisations()
         for org in orgs:
 

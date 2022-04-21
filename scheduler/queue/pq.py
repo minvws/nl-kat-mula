@@ -305,6 +305,13 @@ class PriorityQueue:
         """
         return item
 
+    def full(self) -> bool:
+        """Return True if the queue is full."""
+        if self.maxsize is None or self.maxsize == 0:
+            return False
+
+        return self.pq.full()
+
     def _is_valid_item(self, item: Any) -> bool:
         """Validate the item to be pushed into the queue.
 
