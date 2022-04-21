@@ -107,7 +107,7 @@ class Scheduler:
         if boefjes_ranker is None:
             raise RuntimeError("No boefjes ranker found")
 
-        if boefjes_queue.full() is True:
+        if boefjes_queue.full():
             self.logger.warning(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d]",
                 boefjes_queue.pq.qsize(),
