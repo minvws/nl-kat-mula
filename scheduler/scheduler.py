@@ -8,7 +8,8 @@ from typing import Any, Callable, Dict
 
 import requests
 
-from scheduler import context, dispatcher, dispatchers, queue, queues, ranker, rankers, server
+from scheduler import (context, dispatcher, dispatchers, queue, queues, ranker,
+                       rankers, server)
 from scheduler.connectors import listeners
 from scheduler.models import BoefjeTask
 from scheduler.utils import thread
@@ -106,6 +107,13 @@ class Scheduler:
         if boefjes_ranker is None:
             raise RuntimeError("No boefjes ranker found")
 
+        if boefjes_queue.full():
+            self.logger.warning(
+                "Boefjes queue is full, not populating with new tasks [qsize=%d]",
+                boefjes_queue.pq.qsize(),
+            )
+            return
+
         orgs = self.ctx.services.katalogus.get_organisations()
         for org in orgs:
 
@@ -179,8 +187,39 @@ class Scheduler:
                         organization=org.id,
                     )
 
-                    # TODO: check scanlevel of ooi, boefje, and organizational
-                    # plugin
+                    ooi_scan_level = ooi.scan_profile.level
+                    if ooi_scan_level is None:
+                        self.logger.warning(
+                            "No scan level found for ooi %s [ooi=%s]",
+                            ooi.id,
+                            ooi,
+                        )
+                        continue
+
+                    boefje_scan_level = boefje.scan_level
+                    if boefje_scan_level is None:
+                        self.logger.warning(
+                            "No scan level found for boefje %s [boefje=%s]",
+                            boefje.id,
+                            boefje,
+                        )
+                        continue
+
+                    # Boefje intensity score ooi clearance level, range
+                    # from 0 to 4. 4 being the highest intensity, and 0 being
+                    # the lowest. OOI clearance level defines what boefje
+                    # intesity is allowed to run on.
+                    if boefje_scan_level > ooi_scan_level:
+                        self.logger.debug(
+                            "Boefje %s scan level %s is too intense for ooi %s scan level %s [boefje_id=%s, ooi_id=%s]",
+                            boefje.id,
+                            boefje_scan_level,
+                            ooi.id,
+                            ooi_scan_level,
+                            boefje.id,
+                            ooi.id,
+                        )
+                        continue
 
                     # We don't want the populator to add/update tasks to the
                     # queue, when they are already on there. However, we do
@@ -191,7 +230,6 @@ class Scheduler:
                     # priority. Then remove the following:
                     if boefjes_queue.is_item_on_queue(task):
                         self.logger.debug(
-                            "Boefje task already on queue [boefje=%s, input_ooi=%s, organization=%s]",
                             boefje.id,
                             ooi.id,
                             org.id,

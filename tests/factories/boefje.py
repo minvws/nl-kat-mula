@@ -12,7 +12,7 @@ class BoefjeFactory(Factory):
     id: str = Sequence(lambda n: n)
     name: str = Faker("name")
     description: str = Faker("text")
-    scan_level: int = fuzzy.FuzzyInteger(0, 10)
+    scan_level: int = fuzzy.FuzzyInteger(0, 4)
     consumes: List[str] = LazyFunction(lambda: [])
     produces: List[str] = LazyFunction(lambda: [])
 

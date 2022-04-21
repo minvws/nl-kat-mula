@@ -6,14 +6,15 @@ from unittest import mock
 
 import scheduler
 from scheduler import config, connectors, context, dispatcher, models
-from tests.factories import BoefjeFactory, BoefjeMetaFactory, OOIFactory, OrganisationFactory
+from tests.factories import BoefjeFactory, BoefjeMetaFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
 
 
 class SchedulerTestCase(unittest.TestCase):
     def setUp(self):
 
         # Octopoes
-        ooi = OOIFactory()
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
 
         self.mock_octopoes = mock.create_autospec(
             spec=connectors.services.Octopoes,
@@ -23,7 +24,7 @@ class SchedulerTestCase(unittest.TestCase):
         self.mock_octopoes.get_objects.return_value = [ooi]
 
         # Katalogus
-        boefje = BoefjeFactory()
+        boefje = BoefjeFactory(scan_level=0)
 
         self.mock_katalogus = mock.create_autospec(
             spec=connectors.services.Katalogus,
@@ -67,6 +68,9 @@ class SchedulerTestCase(unittest.TestCase):
         self.assertEqual((len(self.scheduler.queues.get("boefjes"))), 1)
 
     def test_populate_boefjes_queue_grace_period(self):
+        pass
+
+    def test_populate_boefjes_queue_qsize(self):
         pass
 
     def test_celery_dispatcher(self):

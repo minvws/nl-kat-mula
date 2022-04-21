@@ -14,7 +14,7 @@ class Plugin(BaseModel):
     environment_keys: Optional[List[str]]
     related: Optional[List[str]]
     type: str
-    scan_level: int = 1
+    scan_level: Optional[int]
     consumes: Union[str, List[str]]
     options: Optional[List[str]]
     produces: List[str]
