@@ -6,7 +6,8 @@ from unittest import mock
 
 import scheduler
 from scheduler import config, connectors, context, dispatcher, models
-from tests.factories import BoefjeFactory, BoefjeMetaFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
+from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
+                             OrganisationFactory, ScanProfileFactory)
 
 
 class SchedulerTestCase(unittest.TestCase):
@@ -24,7 +25,7 @@ class SchedulerTestCase(unittest.TestCase):
         self.mock_octopoes.get_objects.return_value = [ooi]
 
         # Katalogus
-        boefje = BoefjeFactory(scan_level=4)
+        boefje = BoefjeFactory(scan_level=0)
 
         self.mock_katalogus = mock.create_autospec(
             spec=connectors.services.Katalogus,
