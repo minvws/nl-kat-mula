@@ -8,8 +8,7 @@ from typing import Any, Callable, Dict
 
 import requests
 
-from scheduler import (context, dispatcher, dispatchers, queue, queues, ranker,
-                       rankers, server)
+from scheduler import context, dispatcher, dispatchers, queue, queues, ranker, rankers, server
 from scheduler.connectors import listeners
 from scheduler.models import BoefjeTask
 from scheduler.utils import thread
@@ -116,9 +115,8 @@ class Scheduler:
 
         orgs = self.ctx.services.katalogus.get_organisations()
         for org in orgs:
-
-            # oois = self.ctx.services.octopoes.get_random_objects(org=org, n=10)
             try:
+                # oois = self.ctx.services.octopoes.get_random_objects(org=org, n=10)
                 oois = self.ctx.services.octopoes.get_objects(organisation_id=org.id)
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning("Could not get objects for organisation %s [org_id=%s]", org.name, org.id)
@@ -276,7 +274,7 @@ class Scheduler:
 
         if tasks_count > 0:
             self.logger.info(
-                "Added %s boefje tasks to queue [queue_id=%s, tasks_count=%s]",
+                "Scheduled %d boefje tasks to queue [queue_id=%s, tasks_count=%d]",
                 tasks_count,
                 boefjes_queue.pq_id,
                 tasks_count,
