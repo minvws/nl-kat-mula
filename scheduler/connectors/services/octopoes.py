@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import List
 
 from scheduler.models import OOI
@@ -9,7 +10,14 @@ class Octopoes(HTTPService):
     name = "octopoes"
     health_endpoint = None
 
+    def get_latest_objects_since(self, organisation_id: str, n: int, since: timedelta) -> List[OOI]:
+        """Get all oois from octopoes since a certain date"""
+        url = f"{self.host}/{organisation_id}/objects/latest"
+        response = self.get(url, params={"created_at_gte": since})
+        return [OOI(**ooi) for ooi in response.json()]
+
     def get_objects(self, organisation_id: str) -> List[OOI]:
+        """Get all oois from octopoes"""
         url = f"{self.host}/{organisation_id}/objects"
         response = self.get(url)
         return [OOI(**ooi) for ooi in response.json()]
@@ -21,6 +29,7 @@ class Octopoes(HTTPService):
         return [OOI(**ooi) for ooi in response.json()]
 
     def get_object(self, organisation_id: str, reference: str) -> OOI:
+        """Get an ooi from octopoes"""
         url = f"{self.host}/{organisation_id}"
         response = self.get(url, params={"reference": reference})
         return OOI(**response.json())
