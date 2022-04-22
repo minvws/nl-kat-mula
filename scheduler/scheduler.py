@@ -8,8 +8,7 @@ from typing import Any, Callable, Dict
 
 import requests
 
-from scheduler import (context, dispatcher, dispatchers, queue, queues, ranker,
-                       rankers, server)
+from scheduler import context, dispatcher, dispatchers, queue, queues, ranker, rankers, server
 from scheduler.connectors import listeners
 from scheduler.models import BoefjeTask
 from scheduler.utils import thread
