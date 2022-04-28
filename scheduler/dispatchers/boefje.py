@@ -1,13 +1,11 @@
-import time
-
-from scheduler import dispatcher
+from .dispatcher import CeleryDispatcher
 
 
-class BoefjeDispatcher(dispatcher.CeleryDispatcher):
+class BoefjeDispatcher(CeleryDispatcher):
     pass
 
 
-class BoefjeDispatcherTimeBased(dispatcher.CeleryDispatcher):
+class BoefjeDispatcherTimeBased(CeleryDispatcher):
     """A time-based BoefjeDispatcher allows for executing jobs at a certain
     time. The threshold of dispatching jobs is the current time, and based
     on the time-based priority score of the jobs on the queue. The dispatcher

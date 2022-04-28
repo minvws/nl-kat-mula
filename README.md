@@ -46,7 +46,6 @@ $ tree -L 3 --dirsfirst
 │   │   ├── services                # api connectors
 │   │   └── __init__.py
 │   ├── context/                    # shared application context
-│   ├── datastore/                  # datastore connections
 │   ├── dispatcher/                 # queue task dispatcher
 │   ├── models/                     # internal model definitions
 │   ├── queue/                      # priority queue

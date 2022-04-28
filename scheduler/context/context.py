@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import scheduler
 from scheduler.config import settings
-from scheduler.connectors import services
+from scheduler.connectors import listeners, services
 
 
 class AppContext:
@@ -44,6 +44,9 @@ class AppContext:
                     user=self.config.host_bytes_user,
                     password=self.config.host_bytes_password,
                     source=f"scheduler/{scheduler.__version__}",
+                ),
+                listeners.ScanProfile.name: listeners.ScanProfile(
+                    dsn=self.config.host_scanprofile,
                 ),
             }
         )

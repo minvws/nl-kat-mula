@@ -5,8 +5,9 @@ from types import SimpleNamespace
 from unittest import mock
 
 import scheduler
-from scheduler import config, connectors, context, dispatcher, models
-from tests.factories import BoefjeFactory, BoefjeMetaFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
+from scheduler import config, connectors, context, dispatchers, models
+from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
+                             OrganisationFactory, ScanProfileFactory)
 
 
 class SchedulerTestCase(unittest.TestCase):
@@ -60,7 +61,7 @@ class SchedulerTestCase(unittest.TestCase):
         self.mock_ctx.services.bytes = self.mock_bytes
         self.mock_ctx.config = cfg
 
-        self.scheduler = scheduler.Scheduler(self.mock_ctx)
+        self.scheduler = scheduler.App(self.mock_ctx)
 
     def test_populate_boefjes_queue(self):
         """Should populate the boefjes queue with the correct boefje objects"""

@@ -2,15 +2,15 @@ import random
 from datetime import datetime, timedelta
 from typing import Any
 
-from scheduler import ranker
+from .ranker import Ranker
 
 
-class BoefjeRanker(ranker.Ranker):
+class BoefjeRanker(Ranker):
     def rank(self, obj: Any) -> int:
         return random.randint(2, 100)
 
 
-class BoefjeRankerTimeBased(ranker.Ranker):
+class BoefjeRankerTimeBased(Ranker):
     """A timed-based BoefjeRanker allows for a specific time to be set for the
     task to be ranked. In combination with a time-based dispatcher. You'll be
     able to rank jobs with a specific time element. Epoch time is used allows

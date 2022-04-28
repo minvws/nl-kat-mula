@@ -21,11 +21,12 @@ class Settings(BaseSettings):
     # External services settings
     host_katalogus: str = Field(..., env="KATALOGUS_API")
     host_bytes: str = Field(..., env="BYTES_API")
-    host_octopoes: str = Field(..., env="OCTOPOES_API")
-    # host_rocky: str = Field(..., env="ROCKY_API")
-
     host_bytes_user: str = Field(..., env="BYTES_USERNAME")
     host_bytes_password: str = Field(..., env="BYTES_PASSWORD")
+    host_octopoes: str = Field(..., env="OCTOPOES_API")
+    host_scanprofile: str = Field(..., env="SCHEDULER_RABBITMQ_DSN")
+    # host_rocky: str = Field(..., env="ROCKY_API")
+
 
     # Listener settings
     # lst_octopoes: str = Field(..., env="QUEUE_URI")
