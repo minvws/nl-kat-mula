@@ -24,7 +24,7 @@ class Scheduler:
 
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.threads: Dict[str, thread.ThreadRunner] = {}
-        self.stop_event: threading.Event = threading.Event()
+        self.stop_event: threading.Event = self.ctx.stop_event
 
     def populate_queue(self):
         raise NotImplementedError

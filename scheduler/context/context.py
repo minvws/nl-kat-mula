@@ -1,5 +1,6 @@
 import json
 import logging.config
+import threading
 from types import SimpleNamespace
 
 import scheduler
@@ -17,6 +18,8 @@ class AppContext:
         services:
             A dict containing all the external services connectors that
             are used and need to be shared in the scheduler application.
+        stop_event: A threading.Event object used for communicating a stop
+            event across threads.
     """
 
     def __init__(self) -> None:
@@ -50,3 +53,5 @@ class AppContext:
                 ),
             }
         )
+
+        self.stop_event: threading.Event = threading.Event()

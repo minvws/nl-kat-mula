@@ -41,7 +41,7 @@ class App:
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.ctx: context.AppContext = ctx
         self.threads: Dict[str, thread.ThreadRunner] = {}
-        self.stop_event: threading.Event = threading.Event()
+        self.stop_event: threading.Event = self.ctx.stop_event
 
         self.schedulers: Dict[str, schedulers.Scheduler] = {}
         self.initialize_boefje_schedulers()
