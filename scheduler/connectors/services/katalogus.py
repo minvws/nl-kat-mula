@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import List
 
 from scheduler.models import Boefje, Organisation, Plugin
 from scheduler.utils import dict_utils
@@ -9,19 +9,13 @@ from .services import HTTPService
 class Katalogus(HTTPService):
     name = "katalogus"
 
-    # NOTE: for now we leverage an in-memory cache for getting
-    # boefjes by ooi_type. When necessary we can use the
-    # _get_boefjes_by_ooi_type which implements a timed lru cache.
-    boefjes_by_ooi_type_cache: Dict[str, List[Boefje]] = {}
-    organisations_plugin_cache: Dict[str, Dict[str, Plugin]] = {}
-
     def __init__(self, host: str, source: str, timeout: int = 5):
         super().__init__(host, source, timeout)
 
-        self.boefjes_by_ooi_type_cache = {}
-        self._flush_boefjes_by_ooi_type_cache()
+        self.boefjes_by_ooi_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict()
+        self.organisations_plugin_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict()
 
-        self.organisations_plugin_cache = {}
+        self._flush_boefjes_by_ooi_type_cache()
         self._flush_organisations_plugin_cache()
 
     def _flush_boefjes_by_ooi_type_cache(self) -> None:
@@ -46,7 +40,11 @@ class Katalogus(HTTPService):
             }
 
     def get_boefjes_by_ooi_type(self, ooi_type: str) -> List[Boefje]:
-        return self.boefjes_by_ooi_type_cache.get(ooi_type, [])
+        try:
+            return self.boefjes_by_ooi_type_cache.get(ooi_type, [])
+        except dict_utils.ExpiredError:
+            self._flush_boefjes_by_ooi_type_cache()
+            return self.boefjes_by_ooi_type_cache.get(ooi_type, [])
 
     def get_boefjes(self) -> List[Boefje]:
         url = f"{self.host}/boefjes"
@@ -69,4 +67,8 @@ class Katalogus(HTTPService):
         return [Plugin(**plugin) for plugin in response.json().values()]
 
     def get_plugin_by_org_and_boefje_id(self, organisation_id: str, boefje_id: str) -> Plugin:
-        return dict_utils.deep_get(self.organisations_plugin_cache, [organisation_id, boefje_id])
+        try:
+            return dict_utils.deep_get(self.organisations_plugin_cache, [organisation_id, boefje_id])
+        except dict_utils.ExpiredError:
+            self._flush_organisations_plugin_cache()
+            return dict_utils.deep_get(self.organisations_plugin_cache, [organisation_id, boefje_id])
