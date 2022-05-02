@@ -4,6 +4,7 @@ import os
 import threading
 import time
 import uuid
+from types import SimpleNamespace
 from typing import Any, Callable, Dict
 
 import requests
@@ -265,7 +266,15 @@ class Scheduler:
                         )
                         continue
 
-                    score = boefjes_ranker.rank(task)
+                    score = boefjes_ranker.rank(SimpleNamespace(last_run=last_run_boefje.ended_at, task=task))
+                    if score < 0:
+                        self.logger.warning(
+                            "Score too low for boefje %s and input ooi %s",
+                            boefje.id,
+                            ooi.id,
+                        )
+                        continue
+
                     boefjes_queue.push(
                         queue.PrioritizedItem(priority=score, item=task),
                     )
