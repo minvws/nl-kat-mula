@@ -1,2 +1,2 @@
 from .listeners import Listener, RabbitMQ
-from .scanprofile import ScanProfile
+from .scan_profile import ScanProfile

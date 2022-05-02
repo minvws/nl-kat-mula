@@ -49,7 +49,7 @@ class AppContext:
                     source=f"scheduler/{scheduler.__version__}",
                 ),
                 listeners.ScanProfile.name: listeners.ScanProfile(
-                    dsn=self.config.host_scanprofile,
+                    dsn=self.config.host_scan_profile,
                 ),
             }
         )

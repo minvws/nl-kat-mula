@@ -12,7 +12,7 @@ class ScanProfile(BaseModel):
 class OOI(BaseModel):
     """Representation of "Object Of Interests" from Octopoes."""
 
-    id: str = Field(..., alias="__id__")
+    primary_key: str
     name: Optional[str]
     ooi_type: str
-    scan_profile: Optional[ScanProfile]
+    scan_profile: Optional[ScanProfile]  # TODO: check if this optional

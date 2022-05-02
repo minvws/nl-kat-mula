@@ -52,7 +52,8 @@ class App:
 
         # Initialize API server
         self.server: server.Server = server.Server(
-            self.ctx, queues={k: s.queue for k, s in self.schedulers.items()},
+            ctx=self.ctx,
+            priority_queues={k: s.queue for k, s in self.schedulers.items()},
         )
 
     def shutdown(self) -> None:
@@ -118,6 +119,7 @@ class App:
             scheduler = schedulers.BoefjeScheduler(
                 ctx=self.ctx, scheduler_id=org.id, queue=queue,
                 dispatcher=dispatcher, ranker=ranker,
+                organisation=org,
             )
 
             self.schedulers[org.id] = scheduler
@@ -138,6 +140,7 @@ class App:
         for k, l in self.listeners.items():
             self._run_in_thread(name=k, func=l.listen)
 
+        # Start the schedulers
         for k, s in self.schedulers.items():
             s.run()
 

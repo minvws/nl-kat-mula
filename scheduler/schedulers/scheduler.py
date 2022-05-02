@@ -1,7 +1,7 @@
 import logging
 import os
 import threading
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List
 
 from scheduler import context, dispatchers, queues, rankers, utils
 from scheduler.utils import thread
@@ -26,8 +26,33 @@ class Scheduler:
         self.threads: Dict[str, thread.ThreadRunner] = {}
         self.stop_event: threading.Event = self.ctx.stop_event
 
-    def populate_queue(self):
+    def populate_queue(self) -> None:
         raise NotImplementedError
+
+    def add_p_items_to_queue(self, p_items: List[queues.PrioritizedItem]) -> None:
+        """Add items to a priority queue.
+
+        Args:
+            pq: The priority queue to add items to.
+            items: The items to add to the queue.
+        """
+        count = 0
+        for p_item in p_items:
+            if self.queue.full():
+                self.logger.warning(
+                    "Queue %s is full not populating new tasks [queue_id=%s, qsize=%d]",
+                    self.queue.pq_id, self.queue.pq.qsize(),
+                )
+                break
+
+            self.queue.push(p_item)
+            count += 1
+
+        if count > 0:
+            self.logger.info(
+                "Added %d items to queue %s [queue_id=%s, count=%d]",
+                count, self.queue.pq_id, self.queue.pq_id, count,
+            )
 
     def _run_in_thread(
         self,

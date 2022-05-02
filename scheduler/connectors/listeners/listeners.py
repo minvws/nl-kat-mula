@@ -1,4 +1,3 @@
-import abc
 import json
 import logging
 from typing import Dict
@@ -6,7 +5,7 @@ from typing import Dict
 import pika
 
 
-class Listener(abc.ABC):
+class Listener:
     """The Listener base class interface
 
     Attributes:
@@ -20,7 +19,6 @@ class Listener(abc.ABC):
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
 
-    @abc.abstractmethod
     def listen(self) -> None:
         raise NotImplementedError
 
@@ -48,7 +46,7 @@ class RabbitMQ(Listener):
         """
         raise NotImplementedError
 
-    def listen(self, queue: str) -> None:
+    def basic_consume(self, queue: str) -> None:
         connection = pika.BlockingConnection(pika.URLParameters(self.dsn))
         channel = connection.channel()
         channel.basic_consume(queue=queue, on_message_callback=self.callback)

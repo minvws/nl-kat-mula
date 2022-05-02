@@ -40,7 +40,7 @@ class Dispatcher:
                 that should be dispatched, this helps with validation.
         """
         self.logger: logging.Logger = logging.getLogger(__name__)
-        self.pq: queue.PriorityQueue = pq
+        self.pq: queues.PriorityQueue = pq
         self.threshold: float = float("inf")
         self.item_type: Type[pydantic.BaseModel] = item_type
 

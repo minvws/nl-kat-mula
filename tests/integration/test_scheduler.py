@@ -47,7 +47,7 @@ class SchedulerTestCase(unittest.TestCase):
 
         self.mock_bytes.get_last_run_boefje.return_value = BoefjeMetaFactory(
             boefje=boefje,
-            input_ooi=ooi.id,
+            input_ooi=ooi.primary_key,
         )
 
         # Config

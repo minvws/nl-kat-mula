@@ -13,10 +13,10 @@ from scheduler import context, models, queues
 class Server:
     """Server that exposes API endpoints for the scheduler."""
 
-    def __init__(self, ctx: context.AppContext, queues: Dict[str, queues.PriorityQueue]):
+    def __init__(self, ctx: context.AppContext, priority_queues: Dict[str, queues.PriorityQueue]):
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.ctx: context.AppContext = ctx
-        self.queues: Dict[str, queue.PriorityQueue] = queues
+        self.queues: Dict[str, queues.PriorityQueue] = priority_queues
 
         self.api = fastapi.FastAPI()
 
@@ -114,7 +114,7 @@ class Server:
             )
 
         try:
-            q.push(queue.PrioritizedItem(**item.dict()))
+            q.push(queues.PrioritizedItem(**item.dict()))
         except _queue.Full as exc_full:
             raise fastapi.HTTPException(
                 status_code=400,
