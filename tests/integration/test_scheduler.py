@@ -6,8 +6,7 @@ from unittest import mock
 
 import scheduler
 from scheduler import config, connectors, context, dispatchers, models
-from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
-                             OrganisationFactory, ScanProfileFactory)
+from tests.factories import BoefjeFactory, BoefjeMetaFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
 
 
 class SchedulerTestCase(unittest.TestCase):
@@ -24,8 +23,17 @@ class SchedulerTestCase(unittest.TestCase):
 
         self.mock_octopoes.get_objects.return_value = [ooi]
 
+        # Scan profiles
+        self.mock_scan_profiles = mock.create_autospec(
+            spec=connectors.listeners.ScanProfile,
+            spec_set=True,
+        )
+
+        self.mock_scan_profiles.get_latest_objects.return_value = [ooi]
+
         # Katalogus
         boefje = BoefjeFactory(scan_level=0)
+        self.organisation = OrganisationFactory()
 
         self.mock_katalogus = mock.create_autospec(
             spec=connectors.services.Katalogus,
@@ -33,7 +41,7 @@ class SchedulerTestCase(unittest.TestCase):
         )
 
         self.mock_katalogus.get_organisations.return_value = [
-            OrganisationFactory(),
+            self.organisation,
         ]
         self.mock_katalogus.get_boefjes_by_ooi_type.return_value = [
             boefje,
@@ -59,14 +67,19 @@ class SchedulerTestCase(unittest.TestCase):
         self.mock_ctx.services.octopoes = self.mock_octopoes
         self.mock_ctx.services.katalogus = self.mock_katalogus
         self.mock_ctx.services.bytes = self.mock_bytes
+        self.mock_ctx.services.scan_profile = self.mock_scan_profiles
         self.mock_ctx.config = cfg
 
-        self.scheduler = scheduler.App(self.mock_ctx)
+        self.app = scheduler.App(self.mock_ctx)
 
     def test_populate_boefjes_queue(self):
         """Should populate the boefjes queue with the correct boefje objects"""
-        self.scheduler._populate_boefjes_queue()
-        self.assertEqual((len(self.scheduler.queues.get("boefjes"))), 1)
+        self.app.schedulers[self.organisation.id].populate_queue()
+        self.assertEqual(len(self.app.schedulers[self.organisation.id].queue), 1)
+
+    def test_populate_boefjes_queue_correct_priority(self):
+        """Created objects should have the correct priority"""
+        pass
 
     def test_populate_boefjes_queue_grace_period(self):
         pass
@@ -75,18 +88,10 @@ class SchedulerTestCase(unittest.TestCase):
         pass
 
     def test_celery_dispatcher(self):
-        # TODO: Add item to queue, instead of populate self.scheduler._populate_boefjes_queue()
-        self.scheduler._populate_boefjes_queue()
-        self.assertEqual((len(self.scheduler.queues.get("boefjes"))), 1)
+        self.app.schedulers[self.organisation.id].populate_queue()
+        self.assertEqual(len(self.app.schedulers[self.organisation.id].queue), 1)
 
-        d = dispatcher.CeleryDispatcher(
-            ctx=self.mock_ctx,
-            pq=self.scheduler.queues.get("boefjes"),
-            item_type=models.BoefjeTask,
-            celery_queue="boefjes",
-            task_name="tasks.handle_boefje",
-        )
-
+        d = self.app.schedulers[self.organisation.id].dispatcher
         d.app.send_task = mock.Mock()
 
         # Get item and dispatch it

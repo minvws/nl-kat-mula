@@ -14,6 +14,7 @@ class Listener:
         logger:
             The logger for the class.
     """
+
     name: str
 
     def __init__(self) -> None:
@@ -42,8 +43,7 @@ class RabbitMQ(Listener):
         self.dsn = dsn
 
     def dispatch(self, body: bytes) -> None:
-        """Dispatch a message without a return value
-        """
+        """Dispatch a message without a return value"""
         raise NotImplementedError
 
     def basic_consume(self, queue: str) -> None:

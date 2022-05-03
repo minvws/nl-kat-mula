@@ -10,12 +10,6 @@ class Octopoes(HTTPService):
     name = "octopoes"
     health_endpoint = None
 
-    def get_latest_objects_since(self, organisation_id: str, n: int, since: timedelta) -> List[OOI]:
-        """Get all oois from octopoes since a certain date"""
-        url = f"{self.host}/{organisation_id}/objects/latest"
-        response = self.get(url, params={"created_at_gte": since})
-        return [OOI(**ooi) for ooi in response.json()]
-
     def get_objects(self, organisation_id: str) -> List[OOI]:
         """Get all oois from octopoes"""
         url = f"{self.host}/{organisation_id}/objects"

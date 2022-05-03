@@ -4,11 +4,11 @@ import unittest
 import uuid
 
 import pydantic
-from scheduler import queue
+from scheduler import queues
 
 
 def create_p_item(priority: int):
-    return queue.PrioritizedItem(
+    return queues.PrioritizedItem(
         priority=priority,
         item=TestModel(
             id=uuid.uuid4().hex,
@@ -25,7 +25,7 @@ class TestModel(pydantic.BaseModel):
         return hash((self.id, self.name))
 
 
-class TestPriorityQueue(queue.PriorityQueue):
+class TestPriorityQueue(queues.PriorityQueue):
     def get_item_identifier(self, item: TestModel):
         return item.id
 
@@ -233,18 +233,18 @@ class PriorityQueueTestCase(unittest.TestCase):
         # Last item should be an item with, EntryState.REMOVED
         self.assertEqual(last_entry.priority, 2)
         self.assertEqual(last_entry.p_item, initial_item)
-        self.assertEqual(last_entry.state, queue.EntryState.REMOVED)
+        self.assertEqual(last_entry.state, queues.EntryState.REMOVED)
 
         # First item should be the updated item
         self.assertEqual(first_entry.priority, 1)
         self.assertEqual(first_entry.p_item, updated_item)
-        self.assertEqual(first_entry.state, queue.EntryState.ADDED)
+        self.assertEqual(first_entry.state, queues.EntryState.ADDED)
 
         # Item in entry_finder should be the updated item
         item = self.pq.entry_finder[self.pq.get_item_identifier(updated_item.item)]
         self.assertEqual(item.priority, updated_item.priority)
         self.assertEqual(item.p_item, updated_item)
-        self.assertEqual(item.state, queue.EntryState.ADDED)
+        self.assertEqual(item.state, queues.EntryState.ADDED)
 
         # When popping off the queue you should end up with the updated_item
         # that now has the highest priority.
@@ -285,18 +285,18 @@ class PriorityQueueTestCase(unittest.TestCase):
         # Last item should be the updated item
         self.assertEqual(last_entry.priority, 2)
         self.assertEqual(last_entry.p_item, updated_item)
-        self.assertEqual(last_entry.state, queue.EntryState.ADDED)
+        self.assertEqual(last_entry.state, queues.EntryState.ADDED)
 
         # First item should be the initial item, with EntryState.REMOVED
         self.assertEqual(first_entry.priority, 1)
         self.assertEqual(first_entry.p_item, initial_item)
-        self.assertEqual(first_entry.state, queue.EntryState.REMOVED)
+        self.assertEqual(first_entry.state, queues.EntryState.REMOVED)
 
         # Item in entry_finder should be the updated item
         item = self.pq.entry_finder[self.pq.get_item_identifier(updated_item.item)]
         self.assertEqual(item.priority, updated_item.priority)
         self.assertEqual(item.p_item, updated_item)
-        self.assertEqual(item.state, queue.EntryState.ADDED)
+        self.assertEqual(item.state, queues.EntryState.ADDED)
 
         # When popping off the queue you should end up with the updated_item
         # that now has the lowest priority.
@@ -327,7 +327,7 @@ class PriorityQueueTestCase(unittest.TestCase):
         # First item should be the item with EntryState.REMOVED
         self.assertEqual(first_entry.priority, 1)
         self.assertEqual(first_entry.p_item, item)
-        self.assertEqual(first_entry.state, queue.EntryState.REMOVED)
+        self.assertEqual(first_entry.state, queues.EntryState.REMOVED)
 
         # The queue should now have 1 item and that was the item marked
         # as removed.
@@ -359,7 +359,7 @@ class PriorityQueueTestCase(unittest.TestCase):
         first_entry = self.pq.peek(0)
         self.assertEqual(first_entry.priority, 1)
         self.assertEqual(first_entry.p_item, first_item)
-        self.assertEqual(first_entry.state, queue.EntryState.ADDED)
+        self.assertEqual(first_entry.state, queues.EntryState.ADDED)
 
     def test_push_maxsize_allowed(self):
         """When pushing an item to the queue, if the maxsize is reached, the
@@ -387,12 +387,12 @@ class PriorityQueueTestCase(unittest.TestCase):
         # added first
         self.assertEqual(first_entry.priority, 1)
         self.assertEqual(first_entry.p_item, first_item)
-        self.assertEqual(first_entry.state, queue.EntryState.ADDED)
+        self.assertEqual(first_entry.state, queues.EntryState.ADDED)
 
         # Last item should be the second item
         self.assertEqual(last_entry.priority, 2)
         self.assertEqual(last_entry.p_item, second_item)
-        self.assertEqual(last_entry.state, queue.EntryState.ADDED)
+        self.assertEqual(last_entry.state, queues.EntryState.ADDED)
 
     def test_pop(self):
         pass

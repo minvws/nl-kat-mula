@@ -1,5 +1,6 @@
 import datetime
 import uuid
+from types import SimpleNamespace
 from typing import List
 
 import pika
@@ -46,13 +47,24 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
-        # Get latest "created" ooi's from octopoes
+        # Get at most `n` random objects to schedule onto the queue.
+        # Set default to 10, when queue is unbounded
+        available_spots = self.queue.maxsize - self.queue.pq.qsize()
+        if self.ctx.config.pq_maxsize == 0:
+            available_spots = 10
+
+        # Get latest "created" ooi's from rabbitmq
         try:
-            latest_oois = self.ctx.services.scan_profile.get(
+            latest_oois = self.ctx.services.scan_profile.get_latest_objects(
                 queue=f"{self.organisation.id}__scan_profile_increments",
+                n=available_spots,
             )
         except (pika.exceptions.ConnectionClosed, pika.exceptions.ChannelClosed, pika.exceptions.ChannelClosedByBroker):
-            self.logger.warning("Could not get objects for organisation: %s [scheduler_id=%s]", self.organisation.id, self.scheduler_id)
+            self.logger.warning(
+                "Could not get latest oois for organisation: %s [scheduler_id=%s]",
+                self.organisation.id,
+                self.scheduler_id,
+            )
             return
 
         # From ooi's create prioritized items to push onto queue
@@ -68,6 +80,7 @@ class BoefjeScheduler(Scheduler):
             return
 
         # Get at most `n` random objects to schedule onto the queue.
+        # Set default to 10, when queue is unbounded
         available_spots = self.queue.maxsize - self.queue.pq.qsize()
         if self.ctx.config.pq_maxsize == 0:
             available_spots = 10
@@ -81,9 +94,16 @@ class BoefjeScheduler(Scheduler):
             return
 
         try:
-            random_oois = self.ctx.services.octopoes.get_random_objects(organisation_id=self.organisation.id, n=available_spots)
+            random_oois = self.ctx.services.octopoes.get_random_objects(
+                organisation_id=self.organisation.id, n=available_spots
+            )
         except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
-            self.logger.warning("Could not get objects for organisation %s [org_id=%s, scheduler_id=%s]", self.organisation.name, self.organisation.id, self.scheduler_id)
+            self.logger.warning(
+                "Could not get random oois for organisation: %s [org_id=%s, scheduler_id=%s]",
+                self.organisation.name,
+                self.organisation.id,
+                self.scheduler_id,
+            )
             return
 
         # From ooi's create prioritized items to push onto queue
@@ -107,13 +127,16 @@ class BoefjeScheduler(Scheduler):
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
-                    "Could not get boefjes for ooi_type %s [ooi_type=%s, scheduler_id=%s]", ooi.ooi_type, ooi.ooi_type, self.scheduler_id,
+                    "Could not get boefjes for ooi_type: %s [ooi_type=%s, scheduler_id=%s]",
+                    ooi.ooi_type,
+                    ooi.ooi_type,
+                    self.scheduler_id,
                 )
                 continue
 
             if boefjes is None:
                 self.logger.debug(
-                    "No boefjes found for type %s [ooi=%s, scheduler_id=%s]",
+                    "No boefjes found for type: %s [ooi=%s, scheduler_id=%s]",
                     ooi.ooi_type,
                     ooi,
                     self.scheduler_id,
@@ -121,8 +144,11 @@ class BoefjeScheduler(Scheduler):
                 continue
 
             self.logger.debug(
-                "Found %s boefjes for ooi %s [ooi=%s, boefjes=%s, scheduler_id=%s]",
-                len(boefjes), ooi, ooi, [boefje.id for boefje in boefjes],
+                "Found %s boefjes for ooi: %s [ooi=%s, boefjes=%s, scheduler_id=%s]",
+                len(boefjes),
+                ooi,
+                ooi,
+                [boefje.id for boefje in boefjes],
                 self.scheduler_id,
             )
 
@@ -134,7 +160,7 @@ class BoefjeScheduler(Scheduler):
                     )
                 except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                     self.logger.warning(
-                        "Could not get plugin for org %s and boefje %s [org_id=%s, boefje_id=%s, scheduler_id=%s]",
+                        "Could not get plugin for org: %s and boefje: %s [org_id=%s, boefje_id=%s, scheduler_id=%s]",
                         self.organisation.name,
                         boefje.name,
                         self.organisation.id,
@@ -145,15 +171,21 @@ class BoefjeScheduler(Scheduler):
 
                 if plugin is None:
                     self.logger.debug(
-                        "No plugin found for boefje %s [org_id=%s, boefje_id=%s, scheduler_id=%s]",
-                        boefje.id, self.organisation.id, boefje.id, self.scheduler_id,
+                        "No plugin found for boefje: %s [org_id=%s, boefje_id=%s, scheduler_id=%s]",
+                        boefje.id,
+                        self.organisation.id,
+                        boefje.id,
+                        self.scheduler_id,
                     )
                     continue
 
                 if plugin.enabled is False:
                     self.logger.debug(
-                        "Boefje %s is disabled [org_id=%s, boefje_id=%s, scheduler_id=%s]",
-                        boefje.id, self.organisation.id, boefje.id, self.scheduler_id,
+                        "Boefje: %s is disabled [org_id=%s, boefje_id=%s, scheduler_id=%s]",
+                        boefje.id,
+                        self.organisation.id,
+                        boefje.id,
+                        self.scheduler_id,
                     )
                     continue
 
@@ -166,24 +198,31 @@ class BoefjeScheduler(Scheduler):
 
                 if ooi.scan_profile is None:
                     self.logger.debug(
-                        "No scan_profile found for ooi %s [ooi=%s, scan_profile=%s, scheduler_id=%s]",
-                        ooi.id, ooi, ooi.scan_profile, self.scheduler_id,
+                        "No scan_profile found for ooi: %s [ooi_id=%s, scan_profile=%s, scheduler_id=%s]",
+                        ooi.primary_key,
+                        ooi,
+                        ooi.scan_profile,
+                        self.scheduler_id,
                     )
                     continue
 
                 ooi_scan_level = ooi.scan_profile.level
                 if ooi_scan_level is None:
                     self.logger.warning(
-                        "No scan level found for ooi %s [ooi=%s, scheduler_id=%s]",
-                        ooi.primary_key, ooi, self.scheduler_id,
+                        "No scan level found for ooi: %s [ooi_id=%s, scheduler_id=%s]",
+                        ooi.primary_key,
+                        ooi,
+                        self.scheduler_id,
                     )
                     continue
 
                 boefje_scan_level = boefje.scan_level
                 if boefje_scan_level is None:
                     self.logger.warning(
-                        "No scan level found for boefje %s [boefje_id=%s, scheduler_id=%s]",
-                        boefje.id, boefje, self.scheduler_id,
+                        "No scan level found for boefje: %s [boefje_id=%s, scheduler_id=%s]",
+                        boefje.id,
+                        boefje,
+                        self.scheduler_id,
                     )
                     continue
 
@@ -193,9 +232,15 @@ class BoefjeScheduler(Scheduler):
                 # intesity is allowed to run on.
                 if boefje_scan_level > ooi_scan_level:
                     self.logger.debug(
-                        "Boefje %s scan level %s is too intense for ooi %s scan level %s [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
-                        boefje.id, boefje_scan_level, ooi.primary_key, ooi_scan_level,
-                        boefje.id, ooi.primary_key, self.organisation.id, self.scheduler_id,
+                        "Boefje: %s scan level %s is too intense for ooi: %s scan level %s [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                        boefje.id,
+                        boefje_scan_level,
+                        ooi.primary_key,
+                        ooi_scan_level,
+                        boefje.id,
+                        ooi.primary_key,
+                        self.organisation.id,
+                        self.scheduler_id,
                     )
                     continue
 
@@ -208,8 +253,11 @@ class BoefjeScheduler(Scheduler):
                 # priority. Then remove the following:
                 if self.queue.is_item_on_queue(task):
                     self.logger.debug(
-                        "Boefje %s is already on queue [boefje_id=%s, ooi_id=%s, scheduler_id=%s]",
-                        boefje.id, boefje.id, ooi.primary_key, self.scheduler_id,
+                        "Boefje: %s is already on queue [boefje_id=%s, ooi_id=%s, scheduler_id=%s]",
+                        boefje.id,
+                        boefje.id,
+                        ooi.primary_key,
+                        self.scheduler_id,
                     )
                     continue
 
@@ -222,24 +270,57 @@ class BoefjeScheduler(Scheduler):
                     )
                 except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                     self.logger.warning(
-                        "Could not get last run boefje for boefje: '%s' with ooi: '%s' [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
-                        boefje.name, ooi.primary_key, boefje.id, ooi.primary_key, self.organisation.id,
+                        "Could not get last run boefje for boefje: %s with ooi: %s [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                        boefje.name,
+                        ooi.primary_key,
+                        boefje.id,
+                        ooi.primary_key,
+                        self.organisation.id,
                         self.scheduler_id,
                     )
                     continue
 
                 if (
                     last_run_boefje is not None
+                    and last_run_boefje.ended_at is None  # TODO: will this be none?
+                    and last_run_boefje.start_time is not None
+                ):
+                    self.logger.debug(
+                        "Boefje %s is already running [boefje_id=%s, ooi_id=%s, scheduler_id=%s]",
+                        boefje.id,
+                        boefje.id,
+                        ooi.primary_key,
+                        self.scheduler_id,
+                    )
+                    continue
+
+                if (
+                    last_run_boefje is not None
+                    and last_run_boefje.ended_at is not None
                     and datetime.datetime.now().astimezone() - last_run_boefje.ended_at
                     < datetime.timedelta(seconds=self.ctx.config.pq_populate_grace_period)
                 ):
                     self.logger.debug(
-                        "Boefje %s already run for input ooi %s [last_run_boefje=%s, scheduler_id=%s]",
-                        boefje.id, ooi.primary_key, last_run_boefje, self.scheduler_id,
+                        "Boefje: %s already run for input ooi %s [last_run_boefje=%s, scheduler_id=%s]",
+                        boefje.id,
+                        ooi.primary_key,
+                        last_run_boefje,
+                        self.scheduler_id,
                     )
                     continue
 
-                score = self.ranker.rank(task)
+                score = self.ranker.rank(SimpleNamespace(last_run_boefje=last_run_boefje, task=task))
+                if score < 0:
+                    self.logger.warning(
+                        "Score too low for boefje: %s and input ooi: %s [boefje_id=%s, ooi_id=%s, scheduler_id=%s]",
+                        boefje.id,
+                        ooi.primary_key,
+                        boefje.id,
+                        ooi.primary_key,
+                        self.scheduler_id,
+                    )
+                    continue
+
                 p_items.append(queues.PrioritizedItem(priority=score, item=task))
 
         return p_items

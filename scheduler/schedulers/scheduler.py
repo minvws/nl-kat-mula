@@ -41,7 +41,8 @@ class Scheduler:
             if self.queue.full():
                 self.logger.warning(
                     "Queue %s is full not populating new tasks [queue_id=%s, qsize=%d]",
-                    self.queue.pq_id, self.queue.pq.qsize(),
+                    self.queue.pq_id,
+                    self.queue.pq.qsize(),
                 )
                 break
 
@@ -50,8 +51,11 @@ class Scheduler:
 
         if count > 0:
             self.logger.info(
-                "Added %d items to queue %s [queue_id=%s, count=%d]",
-                count, self.queue.pq_id, self.queue.pq_id, count,
+                "Added %d items to queue: %s [queue_id=%s, count=%d]",
+                count,
+                self.queue.pq_id,
+                self.queue.pq_id,
+                count,
             )
 
     def _run_in_thread(

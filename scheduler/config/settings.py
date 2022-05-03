@@ -27,7 +27,6 @@ class Settings(BaseSettings):
     host_scan_profile: str = Field(..., env="SCHEDULER_RABBITMQ_DSN")
     # host_rocky: str = Field(..., env="ROCKY_API")
 
-
     # Listener settings
     # lst_octopoes: str = Field(..., env="QUEUE_URI")
 

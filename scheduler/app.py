@@ -117,8 +117,11 @@ class App:
             )
 
             scheduler = schedulers.BoefjeScheduler(
-                ctx=self.ctx, scheduler_id=org.id, queue=queue,
-                dispatcher=dispatcher, ranker=ranker,
+                ctx=self.ctx,
+                scheduler_id=org.id,
+                queue=queue,
+                dispatcher=dispatcher,
+                ranker=ranker,
                 organisation=org,
             )
 
