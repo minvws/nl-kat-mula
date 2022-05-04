@@ -69,7 +69,7 @@ class App:
 
         self.logger.warning("Shutdown complete")
 
-        os._exit(0)
+        exit()
 
     def _run_in_thread(
         self,
