@@ -61,7 +61,7 @@ class RabbitMQ(Listener):
             return None
 
         response = json.loads(body)
-        channel.basic_ack(delivery_tag=method.delivery_tag)
+        channel.basic_ack(method.delivery_tag)
 
         return response
 
