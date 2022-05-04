@@ -49,7 +49,7 @@ class RabbitMQ(Listener):
     def basic_consume(self, queue: str) -> None:
         connection = pika.BlockingConnection(pika.URLParameters(self.dsn))
         channel = connection.channel()
-        channel.basic_consume(queue=queue, on_message_callback=self.callback)
+        channel.basic_consume(queue, on_message_callback=self.callback)
         channel.start_consuming()
 
     def get(self, queue: str) -> Union[Dict[str, object], None]:
