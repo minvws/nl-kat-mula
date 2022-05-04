@@ -76,4 +76,4 @@ class RabbitMQ(Listener):
 
         self.dispatch(body)
 
-        channel.basic_ack(delivery_tag=method.delivery_tag)
+        channel.basic_ack(method.delivery_tag)
