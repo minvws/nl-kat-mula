@@ -55,7 +55,7 @@ class RabbitMQ(Listener):
     def get(self, queue: str) -> Union[Dict[str, object], None]:
         connection = pika.BlockingConnection(pika.URLParameters(self.dsn))
         channel = connection.channel()
-        method, properties, body = channel.basic_get(queue=queue)
+        method, properties, body = channel.basic_get(queue)
 
         if body is None:
             return None
