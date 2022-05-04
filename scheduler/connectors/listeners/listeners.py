@@ -14,6 +14,7 @@ class Listener:
         logger:
             The logger for the class.
     """
+
     name: Optional[str] = None
 
     def __init__(self) -> None:
