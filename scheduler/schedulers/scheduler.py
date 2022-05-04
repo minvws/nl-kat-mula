@@ -122,8 +122,8 @@ class Scheduler:
             target=func,
             stop_event=self.stop_event,
             interval=interval,
+            daemon=daemon,
         )
-        self.threads[name].setDaemon(daemon)
         self.threads[name].start()
 
     def run(self) -> None:

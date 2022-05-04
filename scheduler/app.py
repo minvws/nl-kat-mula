@@ -90,8 +90,8 @@ class App:
             target=func,
             stop_event=self.stop_event,
             interval=interval,
+            daemon=daemon,
         )
-        self.threads[name].setDaemon(daemon)
         self.threads[name].start()
 
     def initialize_boefje_schedulers(self) -> None:
