@@ -8,6 +8,35 @@ from scheduler.utils import thread
 
 
 class Scheduler:
+    """The Scheduler class combines the priority queue, ranker and dispatcher.
+    The scheduler is responsible for populating the queue, ranking, and
+    dispatching tasks.
+
+    An implementation of the Scheduler will likely implement the
+    `populate_queue` method, with the strategy for populating the queue.
+
+    Attributes:
+        logger:
+            The logger for the class
+        ctx:
+            Application context of shared data (e.g. configuration, external
+            services connections).
+        scheduler_id:
+            The id of the scheduler.
+        queue:
+            A queues.PriorityQueue instance
+        ranker:
+            A rankers.Ranker instance.
+        dispatcher:
+            A dispatchers.Dispatcher instance.
+        threads:
+            A dict of ThreadRunner instances, used for runner processes
+            concurrently.
+        stop_event: A threading.Event object used for communicating a stop
+            event across threads.
+
+    """
+
     def __init__(
         self,
         ctx: context.AppContext,
@@ -16,13 +45,29 @@ class Scheduler:
         ranker: rankers.Ranker,
         dispatcher: dispatchers.Dispatcher,
     ):
+        """Initialize the Scheduler.
+
+        Args:
+            ctx:
+                Application context of shared data (e.g. configuration, external
+                services connections).
+            scheduler_id:
+                The id of the scheduler.
+            queue:
+                A queues.PriorityQueue instance
+            ranker:
+                A rankers.Ranker instance.
+            dispatcher:
+                A dispatchers.Dispatcher instance.
+        """
+
+        self.logger: logging.Logger = logging.getLogger(__name__)
         self.ctx: context.AppContext = ctx
         self.scheduler_id = scheduler_id
         self.queue: queues.PriorityQueue = queue
         self.ranker: rankers.Ranker = ranker
         self.dispatcher: dispatchers.Dispatcher = dispatcher
 
-        self.logger: logging.Logger = logging.getLogger(__name__)
         self.threads: Dict[str, thread.ThreadRunner] = {}
         self.stop_event: threading.Event = self.ctx.stop_event
 

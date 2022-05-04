@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict
+from typing import Dict, Union
 
 import pika
 
@@ -52,12 +52,17 @@ class RabbitMQ(Listener):
         channel.basic_consume(queue=queue, on_message_callback=self.callback)
         channel.start_consuming()
 
-    def get(self, queue: str) -> Dict[str, object]:
+    def get(self, queue: str) -> Union[Dict[str, object], None]:
         connection = pika.BlockingConnection(pika.URLParameters(self.dsn))
         channel = connection.channel()
         method, properties, body = channel.basic_get(queue=queue)
+
+        if body is None:
+            return None
+
         response = json.loads(body)
         channel.basic_ack(delivery_tag=method.delivery_tag)
+
         return response
 
     def callback(

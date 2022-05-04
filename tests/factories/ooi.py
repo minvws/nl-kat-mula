@@ -16,10 +16,13 @@ class ScanProfileFactory(Factory):
         "random_element",
         elements=["declared", "empty", "inherited"],
     )
-    reference: Dict[str, Any] = {
-        "class_": "Network",
-        "natural_key": "internet",
-    }
+
+    reference: str = Faker("uuid4")
+
+    ooi_type: str = Faker(
+        "random_element",
+        elements=["Hostname", "Network"],
+    )
 
 
 class OOIFactory(Factory):

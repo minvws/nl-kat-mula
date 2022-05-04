@@ -1,12 +1,8 @@
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
-class ScanProfile(BaseModel):
-    reference: Dict[str, Any]
-    level: int
-    scan_profile_type: str
+from .scan_profile import ScanProfile
 
 
 class OOI(BaseModel):

@@ -111,7 +111,8 @@ class BoefjeScheduler(Scheduler):
         self.add_p_items_to_queue(p_items)
 
     def create_tasks_for_oois(self, oois: List[OOI]) -> List[queues.PrioritizedItem]:
-        """Get a list of prioritized items for a list of OOIs.
+        """For every provided ooi we will create available and enabled boefje
+        tasks.
 
         Args:
             oois: A list of OOIs.
