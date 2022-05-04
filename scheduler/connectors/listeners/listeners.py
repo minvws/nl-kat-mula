@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, Union
+from typing import Dict, Optional
 
 import pika
 
@@ -14,8 +14,7 @@ class Listener:
         logger:
             The logger for the class.
     """
-
-    name: str
+    name: Optional[str] = None
 
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
@@ -52,7 +51,7 @@ class RabbitMQ(Listener):
         channel.basic_consume(queue, on_message_callback=self.callback)
         channel.start_consuming()
 
-    def get(self, queue: str) -> Union[Dict[str, object], None]:
+    def get(self, queue: str) -> Optional[Dict[str, object]]:
         connection = pika.BlockingConnection(pika.URLParameters(self.dsn))
         channel = connection.channel()
         method, properties, body = channel.basic_get(queue)

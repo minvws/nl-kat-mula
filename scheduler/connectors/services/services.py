@@ -2,7 +2,7 @@ import logging
 import socket
 import time
 import urllib.parse
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -35,8 +35,8 @@ class HTTPService:
             An integer defining the timeout of requests.
     """
 
-    name: str
-    health_endpoint: Union[str, None] = "/health"
+    name: Optional[str] = None
+    health_endpoint: Optional[str] = "/health"
 
     def __init__(self, host: str, source: str, timeout: int = 5, retries: int = 5):
         """Initializer of the HTTPService class. During initialization the
