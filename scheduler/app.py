@@ -60,12 +60,12 @@ class App:
         """Gracefully shutdown the scheduler, and all threads."""
         self.logger.warning("Shutting down...")
 
-        for _, s in self.schedulers.items():
-            for _, t in s.threads.items():
-                t.join(timeout=5)
+        for scheduler in self.schedulers.values():
+            for thread in scheduler.threads.values():
+                thread.join(5)
 
-        for _, t in self.threads.items():
-            t.join(timeout=5)
+        for thread in self.threads.values():
+            thread.join(5)
 
         self.logger.warning("Shutdown complete")
 
