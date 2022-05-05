@@ -46,8 +46,7 @@ class App:
         self.schedulers: Dict[str, schedulers.Scheduler] = {}
         self.initialize_boefje_schedulers()
 
-        # FIXME: with scheduler or app?
-        # Initialize event stream listeners
+        # Initialize listeners
         self.listeners: Dict[str, listeners.Listener] = {}
 
         # Initialize API server
@@ -60,12 +59,11 @@ class App:
         """Gracefully shutdown the scheduler, and all threads."""
         self.logger.warning("Shutting down...")
 
-        for scheduler in self.schedulers.values():
-            for thread in scheduler.threads.values():
-                thread.join(5)
+        for s in self.schedulers.values():
+            s.stop()
 
-        for thread in self.threads.values():
-            thread.join(5)
+        for t in self.threads.values():
+            t.join(5)
 
         self.logger.warning("Shutdown complete")
 
@@ -97,35 +95,63 @@ class App:
     def initialize_boefje_schedulers(self) -> None:
         orgs = self.ctx.services.katalogus.get_organisations()
         for org in orgs:
-            queue = queues.BoefjePriorityQueue(
-                pq_id=org.id,
-                maxsize=self.ctx.config.pq_maxsize,
-                item_type=BoefjeTask,
-                allow_priority_updates=True,
-            )
+            s = self.create_scheduler(org)
+            self.schedulers[org.id] = s
 
-            dispatcher = dispatchers.BoefjeDispatcher(
-                ctx=self.ctx,
-                pq=queue,
-                item_type=BoefjeTask,
-                celery_queue="boefjes",
-                task_name="tasks.handle_boefje",
-            )
+    def create_scheduler(self, org: Organisation) -> schedulers.Scheduler:
+        queue = queues.BoefjePriorityQueue(
+            pq_id=org.id,
+            maxsize=self.ctx.config.pq_maxsize,
+            item_type=BoefjeTask,
+            allow_priority_updates=True,
+        )
 
-            ranker = rankers.BoefjeRanker(
-                ctx=self.ctx,
-            )
+        dispatcher = dispatchers.BoefjeDispatcher(
+            ctx=self.ctx,
+            pq=queue,
+            item_type=BoefjeTask,
+            celery_queue="boefjes",
+            task_name="tasks.handle_boefje",
+        )
 
-            scheduler = schedulers.BoefjeScheduler(
-                ctx=self.ctx,
-                scheduler_id=org.id,
-                queue=queue,
-                dispatcher=dispatcher,
-                ranker=ranker,
-                organisation=org,
-            )
+        ranker = rankers.BoefjeRanker(
+            ctx=self.ctx,
+        )
 
-            self.schedulers[org.id] = scheduler
+        scheduler = schedulers.BoefjeScheduler(
+            ctx=self.ctx,
+            scheduler_id=org.id,
+            queue=queue,
+            dispatcher=dispatcher,
+            ranker=ranker,
+            organisation=org,
+        )
+
+        return scheduler
+
+    def monitor_organisations(self) -> None:
+        """Monitor the organisations in the Katalogus service, and add/remove
+        organisations from the schedulers.
+        """
+        scheduler_orgs = set(self.schedulers.keys())
+        katalogus_orgs = set([org.id for org in self.ctx.services.katalogus.get_organisations()])
+
+        removals = katalogus_orgs.difference(scheduler_orgs)
+        additions = scheduler_orgs.difference(katalogus_orgs)
+
+        for org_id in removals:
+            self.schedulers[org_id].stop()
+            del self.schedulers[org_id]
+
+        self.logger.info("Removed %s organisations from scheduler [org_ids=%s]", len(removals), removals)
+
+        for org_id in additions:
+            org = self.ctx.services.katalogus.get_organisation(org_id)
+            s = self.create_scheduler(org)
+            self.schedulers[org.id] = s
+            self.schedulers[org.id].run()
+
+        self.logger.info("Added %s organisations to scheduler [org_ids=%s]", len(additions), additions)
 
     def run(self) -> None:
         """Start the main scheduler application, and run in threads the
@@ -139,13 +165,16 @@ class App:
         # API Server
         self._run_in_thread(name="server", func=self.server.run, daemon=False)
 
-        # Listeners for OOI changes
-        for k, l in self.listeners.items():
-            self._run_in_thread(name=k, func=l.listen)
+        # Start the listeners
+        for name, listener in self.listeners.items():
+            self._run_in_thread(name=name, func=listener.listen)
 
         # Start the schedulers
-        for k, s in self.schedulers.items():
-            s.run()
+        for scheduler in self.schedulers.values():
+            scheduler.run()
+
+        # Start monitors
+        self._run_in_thread(name="monitor_organisations", func=self.monitor_organisations, interval=3600)
 
         # Main thread
         while not self.stop_event.is_set():

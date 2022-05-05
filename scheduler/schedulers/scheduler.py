@@ -126,6 +126,13 @@ class Scheduler:
         )
         self.threads[name].start()
 
+    def stop(self) -> None:
+        """Stop the scheduler."""
+        for t in self.threads.values():
+            t.join(5)
+
+        self.logger.info("Stopped scheduler: %s", self.scheduler_id)
+
     def run(self) -> None:
         # Populator
         self._run_in_thread(
@@ -138,6 +145,5 @@ class Scheduler:
         self._run_in_thread(
             name="dispatcher",  # FIXME
             func=self.dispatcher.run,
-            daemon=False,
             interval=self.ctx.config.dsp_interval,
         )
