@@ -1,4 +1,5 @@
 import datetime
+import time
 import uuid
 from types import SimpleNamespace
 from typing import List
@@ -39,7 +40,35 @@ class BoefjeScheduler(Scheduler):
         self.organisation: Organisation = organisation
 
     def populate_queue(self) -> None:
-        if self.queue.full():
+        while not self.queue.full():
+            try:
+                latest_oois = self.ctx.services.scan_profile.get_latest_objects(
+                    queue=f"{self.organisation.id}__scan_profile_increments",
+                    n=10,
+                )
+            except (pika.exceptions.ConnectionClosed, pika.exceptions.ChannelClosed, pika.exceptions.ChannelClosedByBroker):
+                self.logger.warning(
+                    "Could not get latest oois for organisation: %s [scheduler_id=%s]",
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+                return
+
+            # From ooi's create prioritized items to push onto queue
+            p_items = self.create_tasks_for_oois(latest_oois)
+
+            if len(latest_oois) == 0 or len(p_items) == 0:
+                self.logger.debug(
+                    "No latest oois for organisation: %s [org_id=%s ,scheduler_id=%s]",
+                    self.organisation.name,
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+                break
+
+            self.add_p_items_to_queue(p_items)
+            time.sleep(1)
+        else:
             self.logger.warning(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, scheduler_id=%s]",
                 self.queue.pq.qsize(),
@@ -47,68 +76,42 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
-        # Get at most `n` random objects to schedule onto the queue.
-        # Set default to 10, when queue is unbounded
-        available_spots = self.queue.maxsize - self.queue.pq.qsize()
-        if self.ctx.config.pq_maxsize == 0:
-            available_spots = 10
+        while not self.queue.full():
+            try:
+                random_oois = self.ctx.services.octopoes.get_random_objects(
+                    organisation_id=self.organisation.id, n=10,
+                )
+            except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
+                self.logger.warning(
+                    "Could not get random oois for organisation: %s [org_id=%s, scheduler_id=%s]",
+                    self.organisation.name,
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+                return
 
-        # Get latest "created" ooi's from rabbitmq
-        try:
-            latest_oois = self.ctx.services.scan_profile.get_latest_objects(
-                queue=f"{self.organisation.id}__scan_profile_increments",
-                n=available_spots,
-            )
-        except (pika.exceptions.ConnectionClosed, pika.exceptions.ChannelClosed, pika.exceptions.ChannelClosedByBroker):
-            self.logger.warning(
-                "Could not get latest oois for organisation: %s [scheduler_id=%s]",
-                self.organisation.id,
-                self.scheduler_id,
-            )
-            return
+            # From ooi's create prioritized items to push onto queue
+            p_items = self.create_tasks_for_oois(random_oois)
 
-        # From ooi's create prioritized items to push onto queue
-        p_items = self.create_tasks_for_oois(latest_oois)
-        self.add_p_items_to_queue(p_items)
+            if len(random_oois) == 0 or len(p_items) == 0:
+                self.logger.debug(
+                    "No random oois for organisation: %s [org_id=%s, scheduler_id=%s]",
+                    self.organisation.name,
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+                break
 
-        if self.queue.full():
-            self.logger.warning(
-                "Boefjes queue is full, not populating with new tasks [qsize=%d, scheduler_id=%s]",
-                self.queue.pq.qsize(),
-                self.scheduler_id,
-            )
-            return
+            self.add_p_items_to_queue(p_items)
 
-        # Get at most `n` random objects to schedule onto the queue.
-        # Set default to 10, when queue is unbounded
-        available_spots = self.queue.maxsize - self.queue.pq.qsize()
-        if self.ctx.config.pq_maxsize == 0:
-            available_spots = 10
-
-        if available_spots <= 0:
+            time.sleep(1)
+        else:
             self.logger.warning(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, scheduler_id=%s]",
                 self.queue.pq.qsize(),
                 self.scheduler_id,
             )
             return
-
-        try:
-            random_oois = self.ctx.services.octopoes.get_random_objects(
-                organisation_id=self.organisation.id, n=available_spots
-            )
-        except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
-            self.logger.warning(
-                "Could not get random oois for organisation: %s [org_id=%s, scheduler_id=%s]",
-                self.organisation.name,
-                self.organisation.id,
-                self.scheduler_id,
-            )
-            return
-
-        # From ooi's create prioritized items to push onto queue
-        p_items = self.create_tasks_for_oois(random_oois)
-        self.add_p_items_to_queue(p_items)
 
     def create_tasks_for_oois(self, oois: List[OOI]) -> List[queues.PrioritizedItem]:
         """For every provided ooi we will create available and enabled boefje
