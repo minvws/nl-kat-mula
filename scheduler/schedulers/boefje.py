@@ -1,6 +1,6 @@
-import datetime
 import time
 import uuid
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import List
 
@@ -301,8 +301,8 @@ class BoefjeScheduler(Scheduler):
                 if (
                     last_run_boefje is not None
                     and last_run_boefje.ended_at is not None
-                    and datetime.datetime.now().astimezone() - last_run_boefje.ended_at
-                    < datetime.timedelta(seconds=self.ctx.config.pq_populate_grace_period)
+                    and datetime.now(timezone.utc) - last_run_boefje.ended_at
+                    < timedelta(seconds=self.ctx.config.pq_populate_grace_period)
                 ):
                     self.logger.debug(
                         "Boefje: %s already run for input ooi %s [last_run_boefje=%s, scheduler_id=%s]",

@@ -1,6 +1,6 @@
 import math
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from .ranker import Ranker
@@ -37,7 +37,7 @@ class BoefjeRanker(Ranker):
         # How many after grace period should the priority be 3
         max_days = 7 * (60 * 60 * 24)
 
-        run_since_grace_period = ((datetime.now().astimezone() - obj.last_run_boefje.ended_at) - grace_period).seconds
+        run_since_grace_period = ((datetime.now(timezone.utc) - obj.last_run_boefje.ended_at) - grace_period).seconds
         if run_since_grace_period < 0:
             return -1
 
