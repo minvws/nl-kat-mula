@@ -46,7 +46,11 @@ class BoefjeScheduler(Scheduler):
                     queue=f"{self.organisation.id}__scan_profile_increments",
                     n=10,
                 )
-            except (pika.exceptions.ConnectionClosed, pika.exceptions.ChannelClosed, pika.exceptions.ChannelClosedByBroker):
+            except (
+                pika.exceptions.ConnectionClosed,
+                pika.exceptions.ChannelClosed,
+                pika.exceptions.ChannelClosedByBroker,
+            ):
                 self.logger.warning(
                     "Could not get latest oois for organisation: %s [scheduler_id=%s]",
                     self.organisation.id,
@@ -79,7 +83,8 @@ class BoefjeScheduler(Scheduler):
         while not self.queue.full():
             try:
                 random_oois = self.ctx.services.octopoes.get_random_objects(
-                    organisation_id=self.organisation.id, n=10,
+                    organisation_id=self.organisation.id,
+                    n=10,
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
