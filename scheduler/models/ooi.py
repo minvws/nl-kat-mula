@@ -11,4 +11,4 @@ class OOI(BaseModel):
     primary_key: str
     name: Optional[str]
     ooi_type: str
-    scan_profile: Optional[ScanProfile]  # TODO: check if this optional
+    scan_profile: ScanProfile
