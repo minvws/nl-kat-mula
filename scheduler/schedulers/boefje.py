@@ -42,9 +42,8 @@ class BoefjeScheduler(Scheduler):
     def populate_queue(self) -> None:
         while not self.queue.full():
             try:
-                latest_oois = self.ctx.services.scan_profile.get_latest_objects(
+                latest_ooi = self.ctx.services.scan_profile.get_latest_object(
                     queue=f"{self.organisation.id}__scan_profile_increments",
-                    n=10,
                 )
             except (
                 pika.exceptions.ConnectionClosed,
@@ -58,10 +57,18 @@ class BoefjeScheduler(Scheduler):
                 )
                 return
 
-            # From ooi's create prioritized items to push onto queue
-            p_items = self.create_tasks_for_oois(latest_oois)
+            if not latest_ooi:
+                self.logger.debug(
+                    "No latest oois for organisation: %s [org_id=%s, scheduler_id=%s]",
+                    self.organisation.name,
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+                break
 
-            if len(latest_oois) == 0 or len(p_items) == 0:
+            # From ooi's create prioritized items (tasks) to push onto queue
+            p_items = self.create_tasks_for_oois([latest_ooi])
+            if len(p_items) == 0:
                 self.logger.debug(
                     "No latest oois for organisation: %s [org_id=%s ,scheduler_id=%s]",
                     self.organisation.name,
