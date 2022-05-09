@@ -67,15 +67,11 @@ class BoefjeScheduler(Scheduler):
                 break
 
             # From ooi's create prioritized items (tasks) to push onto queue
+            # continue with the next object (when there are more objects)
+            # to see if there are more tasks to add.
             p_items = self.create_tasks_for_oois([latest_ooi])
             if len(p_items) == 0:
-                self.logger.debug(
-                    "No latest oois for organisation: %s [org_id=%s ,scheduler_id=%s]",
-                    self.organisation.name,
-                    self.organisation.id,
-                    self.scheduler_id,
-                )
-                break
+                continue
 
             self.add_p_items_to_queue(p_items)
             time.sleep(1)
@@ -87,6 +83,7 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
+        tries = 0
         while not self.queue.full():
             try:
                 random_oois = self.ctx.services.octopoes.get_random_objects(
@@ -102,10 +99,7 @@ class BoefjeScheduler(Scheduler):
                 )
                 return
 
-            # From ooi's create prioritized items to push onto queue
-            p_items = self.create_tasks_for_oois(random_oois)
-
-            if len(random_oois) == 0 or len(p_items) == 0:
+            if len(random_oois) == 0:
                 self.logger.debug(
                     "No random oois for organisation: %s [org_id=%s, scheduler_id=%s]",
                     self.organisation.name,
@@ -114,8 +108,26 @@ class BoefjeScheduler(Scheduler):
                 )
                 break
 
-            self.add_p_items_to_queue(p_items)
+            # NOTE: It is possible that a random ooi will not generate any
+            # tasks. When this happens 3 times in a row we will break out
+            # of the loop. We reset the tries counter to 0 when we do
+            # get new tasks from an ooi.
+            p_items = self.create_tasks_for_oois(random_oois)
+            if len(p_items) == 0 and tries < 3:
+                tries += 1
+                continue
+            elif len(p_items) == 0 and tries >= 3:
+                self.logger.warning(
+                    "No random oois for organisation: %s [org_id=%s, scheduler_id=%s, tries=%d]",
+                    self.organisation.name,
+                    self.organisation.id,
+                    self.scheduler_id,
+                    tries,
+                )
+                break
 
+            self.add_p_items_to_queue(p_items)
+            tries = 0
             time.sleep(1)
         else:
             self.logger.warning(
