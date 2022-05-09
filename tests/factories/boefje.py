@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 from factory import Factory, Faker, LazyFunction, PostGenerationMethodCall, Sequence, fuzzy
@@ -24,5 +24,5 @@ class BoefjeMetaFactory(Factory):
     id: str = Sequence(lambda n: n)
     arguments: Dict[str, Any] = {}
     organization: str = Faker("company")
-    started_at: datetime = datetime.now().astimezone() - timedelta(days=2)
-    ended_at: datetime = datetime.now().astimezone() - timedelta(days=2)
+    started_at: datetime = datetime.now(timezone.utc) - timedelta(days=2)
+    ended_at: datetime = datetime.now(timezone.utc) - timedelta(days=2)

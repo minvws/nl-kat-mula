@@ -25,6 +25,7 @@ class ThreadRunner(threading.Thread):
         target: Callable[[], Any],
         stop_event: threading.Event,
         interval: float = 0.01,
+        daemon: bool = False,
     ) -> None:
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.stop_event: threading.Event = stop_event
@@ -32,7 +33,7 @@ class ThreadRunner(threading.Thread):
         self.exception: Optional[Exception] = None
         self._target: Callable[[], Any] = target
 
-        super().__init__(target=self._target)
+        super().__init__(target=self._target, daemon=daemon)
 
     def run(self) -> None:
         while not self.stop_event.is_set():

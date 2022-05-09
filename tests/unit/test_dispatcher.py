@@ -3,11 +3,11 @@ import unittest
 import uuid
 
 import pydantic
-from scheduler import dispatcher, queue
+from scheduler import dispatchers, queues
 
 
 def create_p_item(priority: int):
-    return queue.PrioritizedItem(
+    return queues.PrioritizedItem(
         priority=priority,
         item=TestModel(id=uuid.uuid4().hex, name=uuid.uuid4().hex),
     )
@@ -21,13 +21,13 @@ class TestModel(pydantic.BaseModel):
         return hash((self.id, self.name))
 
 
-class TestDispatcher(dispatcher.Dispatcher):
+class TestDispatcher(dispatchers.Dispatcher):
     pass
 
 
 class DispatcherTestCase(unittest.TestCase):
     def setUp(self):
-        self.pq = queue.PriorityQueue(
+        self.pq = queues.PriorityQueue(
             pq_id="test",
             maxsize=10,
             item_type=TestModel,
@@ -72,12 +72,12 @@ class DispatcherTestCase(unittest.TestCase):
         # First item should be the prio2 item
         self.assertEqual(first_entry.priority, 2)
         self.assertEqual(first_entry.p_item, prio2)
-        self.assertEqual(first_entry.state, queue.EntryState.ADDED)
+        self.assertEqual(first_entry.state, queues.EntryState.ADDED)
 
         # Last item should be the prio3 item
         self.assertEqual(last_entry.priority, 3)
         self.assertEqual(last_entry.p_item, prio3)
-        self.assertEqual(last_entry.state, queue.EntryState.ADDED)
+        self.assertEqual(last_entry.state, queues.EntryState.ADDED)
 
         # Dispatch a second time, should have no effect on the queue
         self.dispatcher.run()
@@ -150,12 +150,12 @@ class DispatcherTestCase(unittest.TestCase):
         # First item should be the prio2 item
         self.assertEqual(first_entry.priority, prio2.priority)
         self.assertEqual(first_entry.p_item, prio2)
-        self.assertEqual(first_entry.state, queue.EntryState.ADDED)
+        self.assertEqual(first_entry.state, queues.EntryState.ADDED)
 
         # Last item should be the prio3 item
         self.assertEqual(last_entry.priority, prio3.priority)
         self.assertEqual(last_entry.p_item, prio3)
-        self.assertEqual(last_entry.state, queue.EntryState.ADDED)
+        self.assertEqual(last_entry.state, queues.EntryState.ADDED)
 
         # Dispatch a second time, should have no effect on the queue
         self.dispatcher.run()

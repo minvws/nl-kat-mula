@@ -172,9 +172,6 @@ class PriorityQueue:
         """
         while True:
             try:
-                # item: Union[PrioritizedItem, None]
-                # state: EntryState
-
                 entry = self.pq.get(block=True, timeout=self.timeout)
 
                 # When we reach an item that isn't removed, we can return it

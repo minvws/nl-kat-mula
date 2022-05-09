@@ -4,7 +4,7 @@ from typing import Any, Type
 
 import celery
 import pydantic
-from scheduler import context, queue
+from scheduler import context, queues
 
 
 class Dispatcher:
@@ -29,7 +29,7 @@ class Dispatcher:
             should be dispatched, this helps with validation.
     """
 
-    def __init__(self, pq: queue.PriorityQueue, item_type: Type[pydantic.BaseModel]):
+    def __init__(self, pq: queues.PriorityQueue, item_type: Type[pydantic.BaseModel]):
         """Initialize the Dispatcher class
 
         Args:
@@ -40,7 +40,7 @@ class Dispatcher:
                 that should be dispatched, this helps with validation.
         """
         self.logger: logging.Logger = logging.getLogger(__name__)
-        self.pq: queue.PriorityQueue = pq
+        self.pq: queues.PriorityQueue = pq
         self.threshold: float = float("inf")
         self.item_type: Type[pydantic.BaseModel] = item_type
 
@@ -82,14 +82,14 @@ class Dispatcher:
         """
         return self.threshold
 
-    def dispatch(self, p_item: queue.PrioritizedItem) -> None:
+    def dispatch(self, p_item: queues.PrioritizedItem) -> None:
         """Pop and dispatch a task item from a priority queue entry. This
         method should be extended by subclasses to implement its specific
         dispatching strategy.
 
         Arguments:
             p_item:
-                A queue.PrioritizedItem instance.
+                A queues.PrioritizedItem instance.
 
         Returns:
             None
@@ -135,7 +135,7 @@ class CeleryDispatcher(Dispatcher):
     def __init__(
         self,
         ctx: context.AppContext,
-        pq: queue.PriorityQueue,
+        pq: queues.PriorityQueue,
         item_type: Type[pydantic.BaseModel],
         celery_queue: str,
         task_name: str,
@@ -175,7 +175,7 @@ class CeleryDispatcher(Dispatcher):
             result_accept_content=["application/json", "application/x-python-serialize"],
         )
 
-    def dispatch(self, p_item: queue.PrioritizedItem) -> None:
+    def dispatch(self, p_item: queues.PrioritizedItem) -> None:
         super().dispatch(p_item=p_item)
 
         item_dict = p_item.item.dict()

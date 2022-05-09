@@ -1,5 +1,5 @@
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Iterator, List, Optional
 
 
@@ -16,7 +16,7 @@ class ExpiredError(Exception):
 class ExpiringDict:
     def __init__(self, lifetime: int = 5):
         self.lifetime: timedelta = timedelta(minutes=lifetime)
-        self.expiration_time: datetime = datetime.now() + self.lifetime
+        self.expiration_time: datetime = datetime.now(timezone.utc) + self.lifetime
         self.lock: threading.Lock = threading.Lock()
         self.cache: Dict[str, Any] = {}
 
@@ -26,9 +26,9 @@ class ExpiringDict:
     def __getitem__(self, key: str) -> Any:
         with self.lock:
             if key in self.cache:
-                if datetime.now() > self.expiration_time:
+                if datetime.now(timezone.utc) > self.expiration_time:
                     self.cache.clear()
-                    self.expiration_time = datetime.now() + self.lifetime
+                    self.expiration_time = datetime.now(timezone.utc) + self.lifetime
                     raise ExpiredError
                 return self.cache[key]
             else:
@@ -37,7 +37,7 @@ class ExpiringDict:
     def __setitem__(self, key: str, value: Any) -> None:
         with self.lock:
             self.cache[key] = value
-            self.expiration_time = datetime.now() + self.lifetime
+            self.expiration_time = datetime.now(timezone.utc) + self.lifetime
 
     def __delitem__(self, key: str) -> None:
         with self.lock:

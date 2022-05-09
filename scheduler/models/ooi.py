@@ -1,18 +1,14 @@
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
-class ScanProfile(BaseModel):
-    reference: Dict[str, Any]
-    level: int
-    scan_profile_type: str
+from .scan_profile import ScanProfile
 
 
 class OOI(BaseModel):
     """Representation of "Object Of Interests" from Octopoes."""
 
-    id: str = Field(..., alias="__id__")
+    primary_key: str
     name: Optional[str]
     ooi_type: str
-    scan_profile: Optional[ScanProfile]
+    scan_profile: ScanProfile

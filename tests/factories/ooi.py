@@ -10,28 +10,30 @@ class ScanProfileFactory(Factory):
     class Meta:
         model = ScanProfile
 
-    reference: Dict[str, Any] = {
-        "class_": "Network",
-        "natural_key": "internet",
-    }
     level: int = fuzzy.FuzzyInteger(0, 4)
+
     scan_profile_type: str = Faker(
         "random_element",
         elements=["declared", "empty", "inherited"],
     )
 
-
-# NOTE: we're not extending the Factory class here, since the OOI model
-# has an alternative field name for `id`. Using that will not work with
-# pydantic and factory boy.
-class OOIFactory(OOI):
-    id = (lambda: uuid.uuid4().hex)()
-
-    name: str = Faker("name")
+    reference: str = Faker("uuid4")
 
     ooi_type: str = Faker(
         "random_element",
         elements=["Hostname", "Network"],
     )
 
+
+class OOIFactory(Factory):
+    class Meta:
+        model = OOI
+
+    primary_key: str = Sequence(lambda n: n)
+    name: str = Faker("name")
     scan_profile: ScanProfile
+
+    ooi_type: str = Faker(
+        "random_element",
+        elements=["Hostname", "Network"],
+    )

@@ -1,10 +1,11 @@
 import json
 import logging.config
+import threading
 from types import SimpleNamespace
 
 import scheduler
 from scheduler.config import settings
-from scheduler.connectors import services
+from scheduler.connectors import listeners, services
 
 
 class AppContext:
@@ -17,6 +18,8 @@ class AppContext:
         services:
             A dict containing all the external services connectors that
             are used and need to be shared in the scheduler application.
+        stop_event: A threading.Event object used for communicating a stop
+            event across threads.
     """
 
     def __init__(self) -> None:
@@ -45,5 +48,10 @@ class AppContext:
                     password=self.config.host_bytes_password,
                     source=f"scheduler/{scheduler.__version__}",
                 ),
+                listeners.ScanProfile.name: listeners.ScanProfile(
+                    dsn=self.config.host_scan_profile,
+                ),
             }
         )
+
+        self.stop_event: threading.Event = threading.Event()

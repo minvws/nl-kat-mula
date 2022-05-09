@@ -1,15 +1,15 @@
 import math
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from scheduler import ranker
+from .ranker import Ranker
 
 
-class BoefjeRanker(ranker.Ranker):
+class BoefjeRanker(Ranker):
     def rank(self, obj: Any) -> int:
         """
-        When a task hasn't run in a while needs to be run sooner. We want
+        When a task hasn't run in a while it needs to be run sooner. We want
         a task to get a priority of 3 when `max_days` days are gone by, and
         thus it should have a lower bound of 3 for every day past those
         `max_days`. This is because priority 0 is reserved for rocky tasks,
@@ -28,13 +28,16 @@ class BoefjeRanker(ranker.Ranker):
         Since we want to have a lower bound of a priority of 3, we will use
         an exponential decay function in decreasing form.
         """
+        if obj.last_run_boefje is None:
+            return 2
+
         max_size = self.ctx.config.pq_maxsize
         grace_period = timedelta(seconds=self.ctx.config.pq_populate_grace_period)
 
         # How many after grace period should the priority be 3
         max_days = 7 * (60 * 60 * 24)
 
-        run_since_grace_period = ((datetime.now().astimezone() - obj.last_run) - grace_period).seconds
+        run_since_grace_period = ((datetime.now(timezone.utc) - obj.last_run_boefje.ended_at) - grace_period).seconds
         if run_since_grace_period < 0:
             return -1
 
@@ -43,7 +46,7 @@ class BoefjeRanker(ranker.Ranker):
         return int(y)
 
 
-class BoefjeRankerTimeBased(ranker.Ranker):
+class BoefjeRankerTimeBased(Ranker):
     """A timed-based BoefjeRanker allows for a specific time to be set for the
     task to be ranked. In combination with a time-based dispatcher. You'll be
     able to rank jobs with a specific time element. Epoch time is used allows
