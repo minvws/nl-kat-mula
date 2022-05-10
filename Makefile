@@ -106,7 +106,7 @@ endif
 
 ifneq ($(file),)
 	docker-compose -f base.yml  -f .ci/docker-compose.yml \
-		run --rm mula_integration python -m unittest tests/integration/{file} ${function}; \
+		run --rm mula_integration python -m unittest tests/integration/${file} ${function}; \
 	docker-compose -f base.yml  -f .ci/docker-compose.yml down
 else
 	docker-compose -f base.yml  -f .ci/docker-compose.yml \

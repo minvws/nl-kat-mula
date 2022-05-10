@@ -51,7 +51,8 @@ class BoefjeScheduler(Scheduler):
                 pika.exceptions.ChannelClosedByBroker,
             ):
                 self.logger.warning(
-                    "Could not get latest oois for organisation: %s [scheduler_id=%s]",
+                    "Could not get latest oois for organisation: %s [org_id=%s, scheduler_id=%s]",
+                    self.organisation.name,
                     self.organisation.id,
                     self.scheduler_id,
                 )
