@@ -105,8 +105,7 @@ class Dispatcher:
         """Continuously dispatch items from the priority queue."""
         if self.pq.empty():
             self.logger.debug(
-                "Queue is empty, sleeping ... [queue_id=%s]",
-                self.pq.pq_id
+                "Queue is empty, sleeping ... [queue_id=%s]", self.pq.pq_id
             )
             return
 

@@ -1,14 +1,13 @@
-import datetime
 import unittest
 import uuid
-from types import SimpleNamespace
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-import scheduler
-from scheduler import (config, connectors, context, dispatchers, models,
-                       queues, rankers, schedulers)
+from scheduler import (config, connectors, dispatchers, models, queues,
+                       rankers, schedulers)
 from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
-                             OrganisationFactory, ScanProfileFactory)
+                             OrganisationFactory, PluginFactory,
+                             ScanProfileFactory)
 
 
 class SchedulerTestCase(unittest.TestCase):
@@ -51,9 +50,6 @@ class SchedulerTestCase(unittest.TestCase):
 
         self.mock_katalogus.get_organisations.return_value = [
             organisation,
-        ]
-        self.mock_katalogus.get_boefjes_by_ooi_type.return_value = [
-            boefje,
         ]
 
         self.mock_ctx.services.katalogus = self.mock_katalogus
@@ -99,12 +95,6 @@ class SchedulerTestCase(unittest.TestCase):
             ranker=ranker,
             organisation=organisation,
         )
-
-        # App
-        # self.app = scheduler.App(self.mock_ctx)
-
-    def tearDown(self):
-        pass
 
     @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
     @mock.patch("scheduler.context.AppContext.services.octopoes.get_random_objects")
@@ -163,12 +153,28 @@ class SchedulerTestCase(unittest.TestCase):
         ]
 
         self.scheduler.populate_queue()
-        self.assertEqual(len(self.scheduler.queue), 1)
-        self.assertEqual(self.scheduler.queue.peek(0).p_item.item, task)
+        self.assertEqual(1, len(self.scheduler.queue))
+        self.assertEqual(task, self.scheduler.queue.peek(0).p_item.item)
 
-    @mock.patch("scheduler.context.AppContext.services.katalogs.get_plugin_by_org_and_boefje_id")
-    @mock.patch("scheduler.context.AppContext.services.katalogs.get_boefjes_by_ooi_type")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_ooi_type")
     def test_create_tasks_for_oois(self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id):
+        """Provided with oois it should return Boefje tasks"""
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        boefjes = [BoefjeFactory(scan_level=0) for _ in range(3)]
+        plugin = PluginFactory()
+
+        mock_get_boefjes_by_ooi_type.return_value = boefjes
+        mock_get_plugin_by_org_and_boefje_id.return_value = plugin
+
+        tasks = self.scheduler.create_tasks_for_oois([ooi])
+        self.assertEqual(3, len(tasks))
+
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_ooi_type")
+    def test_create_tasks_for_oois_plugin_not_found(self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id):
+        """When no plugins are found for boefjes, it should return no boefje tasks"""
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
         boefjes = [BoefjeFactory() for _ in range(3)]
@@ -177,32 +183,154 @@ class SchedulerTestCase(unittest.TestCase):
         mock_get_plugin_by_org_and_boefje_id.return_value = None
 
         tasks = self.scheduler.create_tasks_for_oois([ooi])
-        self.assertEqual(len(tasks), 3)
+        self.assertEqual(0, len(tasks))
 
-    def test_create_tasks_for_oois_plugin_disabled(self):
-        pass
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_ooi_type")
+    def test_create_tasks_for_oois_plugin_disabled(self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id):
+        """When a plugin is disabled, it should not return a boefje task"""
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        boefjes = [BoefjeFactory(scan_level=0) for _ in range(3)]
+        plugin = PluginFactory(enabled=False)
 
-    def test_create_tasks_for_oois_no_boefjes(self):
-        pass
+        mock_get_boefjes_by_ooi_type.return_value = boefjes
+        mock_get_plugin_by_org_and_boefje_id.return_value = plugin
 
-    def test_create_tasks_for_oois_scan_level(self):
-        pass
+        tasks = self.scheduler.create_tasks_for_oois([ooi])
+        self.assertEqual(0, len(tasks))
 
-    def test_create_tasks_for_oois_grace_period(self):
-        pass
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_ooi_type")
+    def test_create_tasks_for_oois_no_boefjes(self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id):
+        """When no boefjes are found for oois, it should return no boefje tasks"""
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+
+        mock_get_boefjes_by_ooi_type.return_value = None
+
+        tasks = self.scheduler.create_tasks_for_oois([ooi])
+        self.assertEqual(0, len(tasks))
+
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_ooi_type")
+    def test_create_tasks_for_oois_scan_level_too_intense(self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id):
+        """When a boefje scan level is too intense for an ooi, it should not return a boefje task"""
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        boefjes = [BoefjeFactory(scan_level=5)]
+        plugin = PluginFactory()
+
+        mock_get_boefjes_by_ooi_type.return_value = boefjes
+        mock_get_plugin_by_org_and_boefje_id.return_value = plugin
+
+        tasks = self.scheduler.create_tasks_for_oois([ooi])
+
+        self.assertEqual(0, len(tasks))
+
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_ooi_type")
+    def test_create_tasks_for_oois_scan_level_allowed(self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id):
+        """When a boefje scan level is allowed for an ooi, it should return a boefje task"""
+        scan_profile = ScanProfileFactory(level=5)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        boefjes = [BoefjeFactory(scan_level=0)]
+        plugin = PluginFactory()
+
+        mock_get_boefjes_by_ooi_type.return_value = boefjes
+        mock_get_plugin_by_org_and_boefje_id.return_value = plugin
+
+        tasks = self.scheduler.create_tasks_for_oois([ooi])
+
+        self.assertEqual(1, len(tasks))
+
+    @mock.patch("scheduler.context.AppContext.services.bytes.get_last_run_boefje")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_ooi_type")
+    def test_create_tasks_for_oois_grace_period_not_passed(self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id, mock_get_last_run_boefje):
+        """When a boefje has been run recently, it should not return a boefje task"""
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        boefjes = [BoefjeFactory(scan_level=0)]
+        plugin = PluginFactory()
+        last_run_boefje = BoefjeMetaFactory(
+            boefje=boefjes[0], input_ooi=ooi.primary_key,
+            ended_at=datetime.now(timezone.utc),
+        )
+
+        mock_get_boefjes_by_ooi_type.return_value = boefjes
+        mock_get_plugin_by_org_and_boefje_id.return_value = plugin
+        mock_get_last_run_boefje.return_value = last_run_boefje
+
+        # Set grace period for a day, when a task has ended_at within this day
+        # it should not return a boefje task
+        self.mock_ctx.config.pq_populate_grace_period = 86400
+
+        tasks = self.scheduler.create_tasks_for_oois([ooi])
+        self.assertEqual(0, len(tasks))
+
+    @mock.patch("scheduler.context.AppContext.services.bytes.get_last_run_boefje")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_ooi_type")
+    def test_create_tasks_for_oois_grace_period_passed(self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id, mock_get_last_run_boefje):
+        """When a boefje has been run recently, when the grace period has passed
+        it should return a boefje task
+        """
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        boefjes = [BoefjeFactory(scan_level=0)]
+        plugin = PluginFactory()
+        last_run_boefje = BoefjeMetaFactory(
+            boefje=boefjes[0], input_ooi=ooi.primary_key,
+            ended_at=datetime.now(timezone.utc) - timedelta(days=1),
+        )
+
+        mock_get_boefjes_by_ooi_type.return_value = boefjes
+        mock_get_plugin_by_org_and_boefje_id.return_value = plugin
+        mock_get_last_run_boefje.return_value = last_run_boefje
+
+        # Set grace period for a day, when a task has ended_at after this day
+        # it should not return a boefje task
+        self.mock_ctx.config.pq_populate_grace_period = 86400
+
+        tasks = self.scheduler.create_tasks_for_oois([ooi])
+        self.assertEqual(1, len(tasks))
 
     @unittest.skip
-    def test_populate_boefjes_queue_correct_priority(self):
-        """Created objects should have the correct priority"""
-        pass
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_ooi_type")
+    def test_populate_boefjes_queue_qsize(self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id):
+        """When the boefje queue is full, it should not return a boefje task"""
+        organisation = OrganisationFactory()
+        queue = queues.BoefjePriorityQueue(
+            pq_id=organisation.id,
+            maxsize=1,
+            item_type=models.BoefjeTask,
+            allow_priority_updates=True,
+        )
 
-    @unittest.skip
-    def test_populate_boefjes_queue_grace_period(self):
-        pass
+        dispatcher = dispatchers.BoefjeDispatcher(
+            ctx=self.mock_ctx,
+            pq=queue,
+            item_type=models.BoefjeTask,
+            celery_queue="boefjes",
+            task_name="tasks.handle_boefje",
+        )
 
-    @unittest.skip
-    def test_populate_boefjes_queue_qsize(self):
-        pass
+        ranker = rankers.BoefjeRanker(
+            ctx=self.mock_ctx,
+        )
+
+        scheduler = schedulers.BoefjeScheduler(
+            ctx=self.mock_ctx,
+            scheduler_id=organisation.id,
+            queue=queue,
+            dispatcher=dispatcher,
+            ranker=ranker,
+            organisation=organisation,
+        )
+
+        # TODO: continue here
 
     @unittest.skip
     def test_celery_dispatcher(self):
