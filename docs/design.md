@@ -2,6 +2,11 @@
 
 ## Purpose
 
+The *scheduler* is tasked with populating and maintaining a priority queue of
+items that are ranked that can be popped off through api calls, or dispatched.
+
+The scheduler is designed to be extensible ...
+
 The *scheduler* maintains a priority queue for discovery tasks to be performed
 by the workers (*boefjes* and *normalizers*). The scheduler is tasked with
 maintaining and updating the priority queue with jobs that can be picked up by
@@ -16,6 +21,12 @@ internal rescheduling processes within the scheduler.
 Calculations in order to determine the priority of a job is performed by logic
 that can/will leverage information from multiple sources, including but not
 limited to octopoes, bytes, katalogus, pichu.
+
+### Architecture / Design
+
+
+### Implementation 
+
 
 ### Requirements
 
@@ -178,4 +189,66 @@ flowchart TB
         PriorityQueue(["PriorityQueue"])
 
     end
+```
+
+C4 Code level (Condensed class diagram)
+
+```mermaid
+    classDiagram
+
+    class App {
+        +AppContext ctx
+        +Dict[str, Scheduler] schedulers
+        +Server server
+        run()
+    }
+
+    class Scheduler {
+        +AppContext ctx
+        +PriorityQueue queue
+        +Ranker ranker
+        +Dispatcher dispatcher
+        populate_queue()
+        run()
+    }
+
+    class PriorityQueue{
+        +PriorityQueue[Entry] pq
+        pop()
+        push()
+        peek()
+        remove()
+    }
+
+    class Entry {
+        +int priority
+        +PrioritizedItem p_item
+        +EntryState state
+    }
+
+    class PrioritizedItem {
+        +int priority
+        +Any item
+    }
+
+
+    class Ranker {
+        +AppContext ctx
+        rank()
+    }
+
+    class Dispatcher {
+        +AppContext ctx
+        dispatch()
+    }
+
+    App --> Scheduler
+
+    Scheduler --> PriorityQueue
+    Scheduler --> Ranker
+    Scheduler --> Dispatcher
+
+    PriorityQueue --> Entry
+
+    Entry --> PrioritizedItem
 ```
