@@ -3,11 +3,15 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from scheduler import (config, connectors, dispatchers, models, queues,
-                       rankers, schedulers)
-from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
-                             OrganisationFactory, PluginFactory,
-                             ScanProfileFactory)
+from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers
+from tests.factories import (
+    BoefjeFactory,
+    BoefjeMetaFactory,
+    OOIFactory,
+    OrganisationFactory,
+    PluginFactory,
+    ScanProfileFactory,
+)
 
 
 class SchedulerTestCase(unittest.TestCase):
