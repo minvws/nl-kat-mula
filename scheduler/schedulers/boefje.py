@@ -74,8 +74,8 @@ class BoefjeScheduler(Scheduler):
             if len(p_items) == 0:
                 continue
 
-            # TODO: is this the best way to do this?
-            while len(p_items) > self.queue.maxsize - self.queue.pq.qsize():
+            # NOTE: maxsize 0 means unlimited
+            while len(p_items) > self.queue.maxsize - self.queue.pq.qsize() and self.queue.maxsize != 0:
                 self.logger.debug(
                     "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d maxsize=%d, scheduler_id=%s]",
                     len(p_items),
@@ -138,8 +138,8 @@ class BoefjeScheduler(Scheduler):
                 )
                 break
 
-            # TODO: is this the best way to do this?
-            while len(p_items) > self.queue.maxsize - self.queue.pq.qsize():
+            # NOTE: maxsize 0 means unlimited
+            while len(p_items) > self.queue.maxsize - self.queue.pq.qsize() and self.queue.maxsize != 0:
                 self.logger.debug(
                     "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d maxsize=%d, scheduler_id=%s]",
                     len(p_items),

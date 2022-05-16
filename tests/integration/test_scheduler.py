@@ -121,8 +121,8 @@ class SchedulerTestCase(unittest.TestCase):
         ]
 
         self.scheduler.populate_queue()
-        self.assertEqual(len(self.scheduler.queue), 1)
-        self.assertEqual(self.scheduler.queue.peek(0).p_item.item, task)
+        self.assertEqual(1, len(self.scheduler.queue))
+        self.assertEqual(task, self.scheduler.queue.peek(0).p_item.item)
 
     def test_populate_boefjes_queue_overflow(self):
         """One ooi has too many boefjes to fit in the queue"""
@@ -146,10 +146,7 @@ class SchedulerTestCase(unittest.TestCase):
         mock_get_latest_object.return_value = None
         mock_get_random_objects.side_effect = [[ooi], [], [], []]
         mock_create_tasks_for_oois.return_value = [
-            queues.PrioritizedItem(
-                priority=0,
-                item=task,
-            ),
+            queues.PrioritizedItem(0, task),
         ]
 
         self.scheduler.populate_queue()
@@ -296,12 +293,13 @@ class SchedulerTestCase(unittest.TestCase):
         tasks = self.scheduler.create_tasks_for_oois([ooi])
         self.assertEqual(1, len(tasks))
 
-    @unittest.skip
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_ooi_type")
     def test_populate_boefjes_queue_qsize(self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id):
         """When the boefje queue is full, it should not return a boefje task"""
         organisation = OrganisationFactory()
+
+        # Make a queue with only one open slot
         queue = queues.BoefjePriorityQueue(
             pq_id=organisation.id,
             maxsize=1,
@@ -309,28 +307,22 @@ class SchedulerTestCase(unittest.TestCase):
             allow_priority_updates=True,
         )
 
-        dispatcher = dispatchers.BoefjeDispatcher(
-            ctx=self.mock_ctx,
-            pq=queue,
-            item_type=models.BoefjeTask,
-            celery_queue="boefjes",
-            task_name="tasks.handle_boefje",
+        # Add a task to the queue to make it full
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        task = models.BoefjeTask(
+            id=uuid.uuid4().hex,
+            boefje=BoefjeFactory(),
+            input_ooi=ooi.primary_key,
+            organization=organisation.id,
         )
+        queue.push(queues.PrioritizedItem(0, task))
 
-        ranker = rankers.BoefjeRanker(
-            ctx=self.mock_ctx,
-        )
+        self.scheduler.queue = queue
 
-        scheduler = schedulers.BoefjeScheduler(
-            ctx=self.mock_ctx,
-            scheduler_id=organisation.id,
-            queue=queue,
-            dispatcher=dispatcher,
-            ranker=ranker,
-            organisation=organisation,
-        )
-
-        # TODO: continue here
+        self.assertEqual(1, len(self.scheduler.queue))
+        self.scheduler.populate_queue()
+        self.assertEqual(1, len(self.scheduler.queue))
 
     @unittest.skip
     def test_celery_dispatcher(self):
