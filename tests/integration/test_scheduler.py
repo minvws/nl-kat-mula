@@ -3,15 +3,11 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers
-from tests.factories import (
-    BoefjeFactory,
-    BoefjeMetaFactory,
-    OOIFactory,
-    OrganisationFactory,
-    PluginFactory,
-    ScanProfileFactory,
-)
+from scheduler import (config, connectors, dispatchers, models, queues,
+                       rankers, schedulers)
+from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
+                             OrganisationFactory, PluginFactory,
+                             ScanProfileFactory)
 
 
 class SchedulerTestCase(unittest.TestCase):
@@ -129,7 +125,7 @@ class SchedulerTestCase(unittest.TestCase):
         ]
 
         self.scheduler.populate_queue()
-        self.assertEqual(1, len(self.scheduler.queue))
+        self.assertEqual(1, self.scheduler.queue.qsize())
         self.assertEqual(task, self.scheduler.queue.peek(0).p_item.item)
 
     def test_populate_boefjes_queue_overflow(self):
@@ -160,7 +156,7 @@ class SchedulerTestCase(unittest.TestCase):
         ]
 
         self.scheduler.populate_queue()
-        self.assertEqual(1, len(self.scheduler.queue))
+        self.assertEqual(1, self.scheduler.queue.qsize())
         self.assertEqual(task, self.scheduler.queue.peek(0).p_item.item)
 
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
@@ -344,16 +340,24 @@ class SchedulerTestCase(unittest.TestCase):
 
         self.scheduler.queue = queue
 
-        self.assertEqual(1, len(self.scheduler.queue))
+        self.assertEqual(1, self.scheduler.queue.qsize())
         self.scheduler.populate_queue()
-        self.assertEqual(1, len(self.scheduler.queue))
+        self.assertEqual(1, self.scheduler.queue.qsize())
 
-    @unittest.skip
     def test_celery_dispatcher(self):
-        self.app.schedulers[self.organisation.id].populate_queue()
-        self.assertEqual(len(self.app.schedulers[self.organisation.id].queue), 1)
+        """When a task is dispatched, it should be added to the queue"""
+        organisation = OrganisationFactory()
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        task = models.BoefjeTask(
+            id=uuid.uuid4().hex,
+            boefje=BoefjeFactory(),
+            input_ooi=ooi.primary_key,
+            organization=organisation.id,
+        )
+        self.scheduler.queue.push(queues.PrioritizedItem(0, task))
 
-        d = self.app.schedulers[self.organisation.id].dispatcher
+        d = self.scheduler.dispatcher
         d.app.send_task = mock.Mock()
 
         # Get item and dispatch it
@@ -367,3 +371,5 @@ class SchedulerTestCase(unittest.TestCase):
             queue="boefjes",
             task_id=item_dict.get("id"),
         )
+
+        self.assertEqual(0, self.scheduler.queue.qsize())
