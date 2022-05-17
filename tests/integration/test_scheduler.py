@@ -3,15 +3,11 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers
-from tests.factories import (
-    BoefjeFactory,
-    BoefjeMetaFactory,
-    OOIFactory,
-    OrganisationFactory,
-    PluginFactory,
-    ScanProfileFactory,
-)
+from scheduler import (config, connectors, dispatchers, models, queues,
+                       rankers, schedulers)
+from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
+                             OrganisationFactory, PluginFactory,
+                             ScanProfileFactory)
 
 
 class SchedulerTestCase(unittest.TestCase):
@@ -29,33 +25,20 @@ class SchedulerTestCase(unittest.TestCase):
             spec=connectors.services.Octopoes,
             spec_set=True,
         )
-
         self.mock_ctx.services.octopoes = self.mock_octopoes
 
         # Mock connectors: Scan profiles
-        scan_profile = ScanProfileFactory(level=0)
-        ooi = OOIFactory(scan_profile=scan_profile)
-
         self.mock_scan_profiles = mock.create_autospec(
             spec=connectors.listeners.ScanProfile,
             spec_set=True,
         )
-
         self.mock_ctx.services.scan_profile = self.mock_scan_profiles
 
         # Mock connectors: Katalogus
-        boefje = BoefjeFactory(scan_level=0)
-        organisation = OrganisationFactory()
-
         self.mock_katalogus = mock.create_autospec(
             spec=connectors.services.Katalogus,
             spec_set=True,
         )
-
-        self.mock_katalogus.get_organisations.return_value = [
-            organisation,
-        ]
-
         self.mock_ctx.services.katalogus = self.mock_katalogus
 
         # Mock connectors: Bytes
@@ -63,17 +46,13 @@ class SchedulerTestCase(unittest.TestCase):
             spec=connectors.services.Bytes,
             spec_set=True,
         )
-
-        self.mock_bytes.get_last_run_boefje.return_value = BoefjeMetaFactory(
-            boefje=boefje,
-            input_ooi=ooi.primary_key,
-        )
-
         self.mock_ctx.services.bytes = self.mock_bytes
 
         # Scheduler
+        self.organisation = OrganisationFactory()
+
         queue = queues.BoefjePriorityQueue(
-            pq_id=organisation.id,
+            pq_id=self.organisation.id,
             maxsize=cfg.pq_maxsize,
             item_type=models.BoefjeTask,
             allow_priority_updates=True,
@@ -93,11 +72,11 @@ class SchedulerTestCase(unittest.TestCase):
 
         self.scheduler = schedulers.BoefjeScheduler(
             ctx=self.mock_ctx,
-            scheduler_id=organisation.id,
+            scheduler_id=self.organisation.id,
             queue=queue,
             dispatcher=dispatcher,
             ranker=ranker,
-            organisation=organisation,
+            organisation=self.organisation,
         )
 
     @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
@@ -107,14 +86,13 @@ class SchedulerTestCase(unittest.TestCase):
         self, mock_create_tasks_for_oois, mock_get_random_objects, mock_get_latest_object
     ):
         """When oois are available, and no random oois"""
-        organisation = OrganisationFactory()
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
         task = models.BoefjeTask(
             id=uuid.uuid4().hex,
             boefje=BoefjeFactory(),
             input_ooi=ooi.primary_key,
-            organization=organisation.id,
+            organization=self.organisation.id,
         )
 
         mock_get_latest_object.side_effect = [ooi, None]
@@ -163,17 +141,24 @@ class SchedulerTestCase(unittest.TestCase):
         self.assertEqual(1, self.scheduler.queue.qsize())
         self.assertEqual(task, self.scheduler.queue.peek(0).p_item.item)
 
+    @mock.patch("scheduler.context.AppContext.services.bytes.get_last_run_boefje")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_ooi_type")
-    def test_create_tasks_for_oois(self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id):
+    def test_create_tasks_for_oois(self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id, mock_get_last_run_boefje):
         """Provided with oois it should return Boefje tasks"""
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
         boefjes = [BoefjeFactory(scan_level=0) for _ in range(3)]
         plugin = PluginFactory()
+        last_run_boefje = BoefjeMetaFactory(
+            boefje=boefjes[0],
+            input_ooi=ooi.primary_key,
+            ended_at=datetime.now(timezone.utc) - timedelta(days=1),
+        )
 
         mock_get_boefjes_by_ooi_type.return_value = boefjes
         mock_get_plugin_by_org_and_boefje_id.return_value = plugin
+        mock_get_last_run_boefje.return_value = last_run_boefje
 
         tasks = self.scheduler.create_tasks_for_oois([ooi])
         self.assertEqual(3, len(tasks))
@@ -241,19 +226,26 @@ class SchedulerTestCase(unittest.TestCase):
 
         self.assertEqual(0, len(tasks))
 
+    @mock.patch("scheduler.context.AppContext.services.bytes.get_last_run_boefje")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_plugin_by_org_and_boefje_id")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_ooi_type")
     def test_create_tasks_for_oois_scan_level_allowed(
-        self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id
+        self, mock_get_boefjes_by_ooi_type, mock_get_plugin_by_org_and_boefje_id, mock_get_last_run_boefje,
     ):
         """When a boefje scan level is allowed for an ooi, it should return a boefje task"""
         scan_profile = ScanProfileFactory(level=5)
         ooi = OOIFactory(scan_profile=scan_profile)
         boefjes = [BoefjeFactory(scan_level=0)]
         plugin = PluginFactory()
+        last_run_boefje = BoefjeMetaFactory(
+            boefje=boefjes[0],
+            input_ooi=ooi.primary_key,
+            ended_at=datetime.now(timezone.utc) - timedelta(days=1),
+        )
 
         mock_get_boefjes_by_ooi_type.return_value = boefjes
         mock_get_plugin_by_org_and_boefje_id.return_value = plugin
+        mock_get_last_run_boefje.return_value = last_run_boefje
 
         tasks = self.scheduler.create_tasks_for_oois([ooi])
 
