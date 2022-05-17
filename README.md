@@ -46,19 +46,16 @@ $ tree -L 3 --dirsfirst
 │   │   ├── services                # api connectors
 │   │   └── __init__.py
 │   ├── context/                    # shared application context
-│   ├── dispatcher/                 # queue task dispatcher
+│   ├── dispatchers/                # queue task dispatcher
 │   ├── models/                     # internal model definitions
-│   ├── queue/                      # priority queue
-│   ├── ranker/                     # priority/score calculations
+│   ├── queues/                     # priority queue
+│   ├── rankers/                    # priority/score calculations
+│   ├── schedulers/                 # scheduler api interface
 │   ├── server/                     # scheduler api interface
 │   ├── utils/                      # common utility functions
-│   ├── dispatcher.py               # kat queue tasks dispatcher implementation
 │   ├── __init__.py
 │   ├── __main__.py
-│   ├── dispatchers.py              # kat tasks dispatcher implementation
-│   ├── queues.py                   # kat priority queue implementation
-│   ├── rankers.py                  # kat ranker implementation
-│   ├── scheduler.py                # scheduler app definition
+│   ├── app.py                      # kat scheduler app implmentation
 │   └── version.py                  # version information
 └─── tests/
     ├── factories/
@@ -66,7 +63,6 @@ $ tree -L 3 --dirsfirst
     ├── simulation/
     ├── unit/
     └── __init__.py
-
 ```
 
 ## Running / Developing
