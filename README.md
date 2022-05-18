@@ -15,11 +15,11 @@ See [design](docs/design.md) document for the architecture.
 
 ### Stack, packages and libraries
 
-| Name           | Version  | Description                                       |
-|----------------|----------|---------------------------------------------------|
-| Python         | 3.8      |                                                   |
-| FastAPI        | 0.73.0   | Used for api server                               |
-| Celery         | 5.2.3    | Used for even listening, and dispatching of tasks |
+| Name           | Version  | Description                                        |
+|----------------|----------|----------------------------------------------------|
+| Python         | 3.8      |                                                    |
+| FastAPI        | 0.73.0   | Used for api server                                |
+| Celery         | 5.2.3    | Used for event listening, and dispatching of tasks |
 
 ### External services
 

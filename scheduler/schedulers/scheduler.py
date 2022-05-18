@@ -147,7 +147,7 @@ class Scheduler(abc.ABC):
 
         # Dispatcher
         self._run_in_thread(
-            name="dispatcher",  # FIXME
+            name="dispatcher",
             func=self.dispatcher.run,
             interval=self.ctx.config.dsp_interval,
         )
