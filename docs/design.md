@@ -213,7 +213,7 @@ Following describes main components of the scheduler application:
 
 Within the scheduler project you'll be able to extend the functionality with
 your own procedures. The most likely customization you'll make will be
-the directives of populating the queue, and ranking tasks. 
+the directives of populating the queue and ranking tasks. 
 
 Examples on how to extend the classes can be found in their respective folders.
 The files are named `boefje.py` that are a specific KAT implementations.
