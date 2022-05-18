@@ -191,43 +191,30 @@ flowchart TB
     Entry --> PrioritizedItem
 ```
 
-
 Following describes main components of the scheduler application:
 
-* App
+* `App` - The main application class, which is responsible for starting the
+  schedulers.
 
-* Scheduler
+* `Scheduler` - The main scheduler class, which is responsible for populating
+  the queue with tasks.
 
-* PriorityQueue
+* `PriorityQueue` - The queue class, which is responsible for storing the
+  tasks.
 
-* Ranker
+* `Ranker` - The ranker class, which is responsible for ranking the tasks.
 
-* Dispatcher
+* `Dispatcher` - The dispatcher class, which is responsible for dispatching
+  the tasks.
 
----
-
-* `schedulers`
-`Queue` - continuous process that populates the priority queue with
-  objects that are ready for scheduling.
-
-* `services`
-
-* `connectors`
-
-* `queues`
-
-* `rankers`
-
-* `dispatchers`
-
-* `Listener` - process that listens on a channel for object changes 
-  (at the moment this is `create_events`), and persists those objects into
-  the database table `frontier`.
-
-* `Ranker` - process that calculates the score of an object based on
-  the change in findings and other factors.
-
-* `Server` allows workers to pop off jobs from the priority queue, filtered by
-   their worker type.
+* `Server` - The server class, which is responsible for handling the HTTP
+  requests.
 
 ### Customizing the scheduler
+
+Within the scheduler project you'll be able to extend the functionality with
+your own procedures. The most likely customization you'll make will be
+the directives of populating the queue, and ranking tasks. 
+
+Examples on how to extend the classes can be found in their respective folders.
+The files are named `boefje.py` that are a specific KAT implementations.
