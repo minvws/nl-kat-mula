@@ -8,7 +8,7 @@ from .ranker import Ranker
 
 class BoefjeRanker(Ranker):
     def rank(self, obj: Any) -> int:
-        """ When a task hasn't run in a while it needs to be run sooner. We
+        """When a task hasn't run in a while it needs to be run sooner. We
         want a task to get a priority of 3 when `max_days` days are gone by,
         and thus it should have a lower bound of 3 for every day past those
         `max_days`. This is because priority 0 is reserved for rocky tasks,
