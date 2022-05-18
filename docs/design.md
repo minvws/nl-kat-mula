@@ -9,7 +9,7 @@ your own rules for the population, prioritization and dispatching of tasks.
 
 The *scheduler* implements a priority queue for prioritization of tasks to be
 performed by the worker(s). In the implementation of the scheduler within KAT
-the scheduler is tasked with populating the priority queue with boefje, and
+the scheduler is tasked with populating the priority queue with boefje and
 normalizer tasks. The scheduler is responsible for maintaining and updating
 its internal priority queue.
 
