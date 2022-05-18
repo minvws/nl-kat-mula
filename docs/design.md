@@ -132,7 +132,7 @@ flowchart TB
 #### C4 Code level (Condensed class diagram)
 
 ```mermaid
-    classDiagram
+classDiagram
 
     class App {
         +AppContext ctx
@@ -168,7 +168,6 @@ flowchart TB
         +int priority
         +Any item
     }
-
 
     class Ranker {
         +AppContext ctx

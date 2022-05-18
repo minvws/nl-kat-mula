@@ -31,7 +31,7 @@ The scheduler interfaces with the following services:
 | [Katalogus](https://github.com/minvws/nl-rt-tim-abang-boefjes/tree/develop/katalogus) | Used for referencing available boefjes, and organizations |
 | [Bytes](https://github.com/minvws/nl-rt-tim-abang-bytes) | Retrieve last run boefje for organization and OOI |
 | [Boefjes](https://github.com/minvws/nl-rt-tim-abang-boefjes) | Sending boefje task via Celery |
-
+| [RabbitMQ]() | Used for retrieving scan profile changes |
 
 ### Project structure
 
@@ -55,7 +55,7 @@ $ tree -L 3 --dirsfirst
 │   ├── utils/                      # common utility functions
 │   ├── __init__.py
 │   ├── __main__.py
-│   ├── app.py                      # kat scheduler app implmentation
+│   ├── app.py                      # kat scheduler app implementation
 │   └── version.py                  # version information
 └─── tests/
     ├── factories/
