@@ -8,7 +8,7 @@ import pika
 import requests
 
 from scheduler import context, dispatchers, queues, rankers, utils
-from scheduler.models import OOI, BoefjeTask, Organisation
+from scheduler.models import OOI, Boefje, BoefjeTask, Organisation
 
 from .scheduler import Scheduler
 
@@ -174,8 +174,8 @@ class BoefjeScheduler(Scheduler):
         p_items: List[queues.PrioritizedItem] = []
         for ooi in oois:
             try:
-                boefjes = self.ctx.services.katalogus.get_boefjes_by_ooi_type(
-                    ooi.ooi_type,
+                boefjes = self.ctx.services.katalogus.get_boefjes_by_type_and_org_id(
+                    ooi.ooi_type, self.organisation.id,
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
@@ -205,44 +205,22 @@ class BoefjeScheduler(Scheduler):
             )
 
             for boefje in boefjes:
-                try:
-                    plugin = self.ctx.services.katalogus.get_plugin_by_id_and_org_id(
-                        boefje.id, self.organisation.id,
-                    )
-                except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
-                    self.logger.warning(
-                        "Could not get plugin for org: %s and boefje: %s [org_id=%s, boefje_id=%s, scheduler_id=%s]",
-                        self.organisation.name,
-                        boefje.name,
-                        self.organisation.id,
-                        boefje.name,
-                        self.scheduler_id,
-                    )
+                if boefje.enabled is False:
+                    # TODO:
+                    # self.logger.debug(
+                    #     "Plugin: %s is disabled [org_id=%s, plugin_id=%s, scheduler_id=%s]",
+                    #     plugin.id,
+                    #     self.organisation.id,
+                    #     plugin.id,
+                    #     self.scheduler_id,
+                    # )
                     continue
 
-                if plugin is None:
-                    self.logger.debug(
-                        "No plugin found for boefje: %s [org_id=%s, boefje_id=%s, scheduler_id=%s]",
-                        boefje.id,
-                        self.organisation.id,
-                        boefje.id,
-                        self.scheduler_id,
-                    )
-                    continue
-
-                if plugin.enabled is False:
-                    self.logger.debug(
-                        "Boefje: %s is disabled [org_id=%s, boefje_id=%s, scheduler_id=%s]",
-                        boefje.id,
-                        self.organisation.id,
-                        boefje.id,
-                        self.scheduler_id,
-                    )
-                    continue
-
+                self.logger.info(f"BOEFJE: {boefje}")
                 task = BoefjeTask(
                     id=uuid.uuid4().hex,
-                    boefje=boefje,
+                    # boefje=boefje,
+                    boefje=Boefje.parse_obj(boefje),  # TODO: boefje is a plugin here, does it need to be a Boefje, check what task runner expects
                     input_ooi=ooi.primary_key,
                     organization=self.organisation.id,
                 )

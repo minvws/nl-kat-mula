@@ -3,7 +3,7 @@ from typing import List
 import requests
 
 from scheduler import context, dispatchers, queues, rankers, utils
-from scheduler.models import Organisation
+from scheduler.models import BoefjeMeta, Organisation
 
 from .scheduler import Scheduler
 
@@ -29,8 +29,9 @@ class NormalizerScheduler(Scheduler):
         self.organisation: Organisation = organisation
 
     def populate_queue(self) -> None:
-        while not self.queue.is_full():
+        while not self.queue.full():
             try:
+                # TODO: would be better to have a queue for this
                 last_run_boefjes = self.ctx.services.bytes.get_last_run_boefje_by_organisation_id(self.organisation.id)
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
@@ -73,7 +74,7 @@ class NormalizerScheduler(Scheduler):
             )
             return
 
-    def create_tasks_for_boefje(self, boefje: BoefjeMeta) -> List[PrioritizedItem]:
+    def create_tasks_for_boefje(self, boefje: BoefjeMeta) -> List[queues.PrioritizedItem]:
         """Create normalizer tasks for every boefje that has been processed.
         """
         p_items: List[queues.PrioritizedItem] = []
@@ -117,14 +118,15 @@ class NormalizerScheduler(Scheduler):
 
             task = NormalizerTask() # TODO
 
-            if self.queue.is_item_on_queue(task)
-                self.logger.debug(
-                    "Boefje: %s is already on queue [boefje_id=%s, ooi_id=%s, scheduler_id=%s]",
-                    boefje.id,
-                    boefje.id,
-                    ooi.primary_key,
-                    self.scheduler_id,
-                )
+            if self.queue.is_item_on_queue(task):
+                # TODO
+                # self.logger.debug(
+                #     "Normalizer task: %s is already on queue [boefje_id=%s, ooi_id=%s, scheduler_id=%s]",
+                #     boefje.id,
+                #     boefje.id,
+                #     ooi.primary_key,
+                #     self.scheduler_id,
+                # )
                 continue
 
             score = self.ranker.rank(SimpleNamespace(task=task))
