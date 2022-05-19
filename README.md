@@ -15,11 +15,11 @@ See [design](docs/design.md) document for the architecture.
 
 ### Stack, packages and libraries
 
-| Name           | Version  | Description                                       |
-|----------------|----------|---------------------------------------------------|
-| Python         | 3.8      |                                                   |
-| FastAPI        | 0.73.0   | Used for api server                               |
-| Celery         | 5.2.3    | Used for even listening, and dispatching of tasks |
+| Name           | Version  | Description                                        |
+|----------------|----------|----------------------------------------------------|
+| Python         | 3.8      |                                                    |
+| FastAPI        | 0.73.0   | Used for api server                                |
+| Celery         | 5.2.3    | Used for event listening, and dispatching of tasks |
 
 ### External services
 
@@ -31,7 +31,7 @@ The scheduler interfaces with the following services:
 | [Katalogus](https://github.com/minvws/nl-rt-tim-abang-boefjes/tree/develop/katalogus) | Used for referencing available boefjes, and organizations |
 | [Bytes](https://github.com/minvws/nl-rt-tim-abang-bytes) | Retrieve last run boefje for organization and OOI |
 | [Boefjes](https://github.com/minvws/nl-rt-tim-abang-boefjes) | Sending boefje task via Celery |
-
+| [RabbitMQ]() | Used for retrieving scan profile changes |
 
 ### Project structure
 
@@ -46,19 +46,16 @@ $ tree -L 3 --dirsfirst
 │   │   ├── services                # api connectors
 │   │   └── __init__.py
 │   ├── context/                    # shared application context
-│   ├── dispatcher/                 # queue task dispatcher
+│   ├── dispatchers/                # queue task dispatcher
 │   ├── models/                     # internal model definitions
-│   ├── queue/                      # priority queue
-│   ├── ranker/                     # priority/score calculations
+│   ├── queues/                     # priority queue
+│   ├── rankers/                    # priority/score calculations
+│   ├── schedulers/                 # scheduler api interface
 │   ├── server/                     # scheduler api interface
 │   ├── utils/                      # common utility functions
-│   ├── dispatcher.py               # kat queue tasks dispatcher implementation
 │   ├── __init__.py
 │   ├── __main__.py
-│   ├── dispatchers.py              # kat tasks dispatcher implementation
-│   ├── queues.py                   # kat priority queue implementation
-│   ├── rankers.py                  # kat ranker implementation
-│   ├── scheduler.py                # scheduler app definition
+│   ├── app.py                      # kat scheduler app implementation
 │   └── version.py                  # version information
 └─── tests/
     ├── factories/
@@ -66,7 +63,6 @@ $ tree -L 3 --dirsfirst
     ├── simulation/
     ├── unit/
     └── __init__.py
-
 ```
 
 ## Running / Developing

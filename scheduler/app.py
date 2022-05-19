@@ -38,6 +38,13 @@ class App:
     """
 
     def __init__(self, ctx: context.AppContext) -> None:
+        """Initialize the application.
+
+        Args:
+            ctx:
+                Application context of shared data (e.g. configuration,
+                external services connections).
+        """
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.ctx: context.AppContext = ctx
         self.threads: Dict[str, thread.ThreadRunner] = {}
@@ -93,12 +100,20 @@ class App:
         self.threads[name].start()
 
     def initialize_boefje_schedulers(self) -> None:
+        """Initialize the schedulers for the Boefje tasks. We will create
+        schedulers for all organisations in the Katalogus service.
+        """
         orgs = self.ctx.services.katalogus.get_organisations()
         for org in orgs:
             s = self.create_scheduler(org)
             self.schedulers[org.id] = s
 
     def create_scheduler(self, org: Organisation) -> schedulers.Scheduler:
+        """Create a scheduler for the given organisation.
+
+        Args:
+            org: The organisation to create a scheduler for.
+        """
         queue = queues.BoefjePriorityQueue(
             pq_id=org.id,
             maxsize=self.ctx.config.pq_maxsize,
@@ -159,7 +174,8 @@ class App:
 
             * api server
             * listeners
-            * queue populators
+            * schedulers
+            * monitors
             * dispatchers
         """
         # API Server
