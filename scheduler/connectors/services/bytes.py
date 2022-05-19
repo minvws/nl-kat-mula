@@ -46,3 +46,18 @@ class Bytes(HTTPService):
             return BoefjeMeta(**response.json()[0])
 
         return None
+
+    def get_last_run_boefje_by_organisation_id(self, organization_id: str) -> Optional[BoefjeMeta]:
+        url = f"{self.host}/bytes/boefje_meta"
+        response = self.get(
+            url=url,
+            params={
+                "organization": organization_id,
+                "limit": 1,
+                "descending": "true",
+            },
+        )
+        if response.status_code == 200 and len(response.json()) > 0:
+            return BoefjeMeta(**response.json()[0])
+
+        return None

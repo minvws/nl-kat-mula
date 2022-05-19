@@ -43,8 +43,10 @@ class App:
         self.threads: Dict[str, thread.ThreadRunner] = {}
         self.stop_event: threading.Event = self.ctx.stop_event
 
+        # Initialize schedulers
         self.schedulers: Dict[str, schedulers.Scheduler] = {}
         self.initialize_boefje_schedulers()
+        self.initialize_normalizer_schedulers()
 
         # Initialize listeners
         self.listeners: Dict[str, listeners.Listener] = {}
@@ -92,13 +94,51 @@ class App:
         )
         self.threads[name].start()
 
+    def initialize_normalizer_schedulers(self) -> None:
+        orgs = self.ctx.services.katalogus.get_organisations()
+        for org in orgs:
+            s = self.create_normalizer_scheduler(org)
+            self.schedulers[s.scheduler_id] = s
+
+    def create_normalizer_scheduler(self, org: Organisation) -> None:
+        """Create a normalizer scheduler for the given organisation."""
+        queue = queues.NormalizerPriorityQueue(
+            pq_id=org.id,
+            maxsize=self.ctx.config.pq_maxsize,
+            item_type=OOI,
+            allow_priority_updates=True,
+        )
+
+        dispatcher = dispatchers.NormalizerDispatcher(
+            ctx=self.ctx,
+            pq=queue,
+            item_type=OOI,
+            celery_queue="normalizer",
+            task_name="tasks.handle_ooi",
+        )
+
+        ranker = rankers.NormalizerRanker(
+            ctx=self.ctx,
+        )
+
+        scheduler = schedulers.NormalizerScheduler(
+            ctx=self.ctx,
+            scheduler_id=f"normalizer-{org.id}",
+            queue=queue,
+            dispatcher=dispatcher,
+            ranker=ranker,
+            organisation=org,
+        )
+
+        return scheduler
+
     def initialize_boefje_schedulers(self) -> None:
         orgs = self.ctx.services.katalogus.get_organisations()
         for org in orgs:
-            s = self.create_scheduler(org)
-            self.schedulers[org.id] = s
+            s = self.create_boefje_scheduler(org)
+            self.schedulers[s.scheduler_id] = s
 
-    def create_scheduler(self, org: Organisation) -> schedulers.Scheduler:
+    def create_boefje_scheduler(self, org: Organisation) -> schedulers.Scheduler:
         queue = queues.BoefjePriorityQueue(
             pq_id=org.id,
             maxsize=self.ctx.config.pq_maxsize,
@@ -120,7 +160,7 @@ class App:
 
         scheduler = schedulers.BoefjeScheduler(
             ctx=self.ctx,
-            scheduler_id=org.id,
+            scheduler_id=f"boefje-{org.id}"",
             queue=queue,
             dispatcher=dispatcher,
             ranker=ranker,

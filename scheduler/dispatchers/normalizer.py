@@ -1,0 +1,2 @@
+class NormalizerDispatcher(CeleryDispatcher):
+    pass

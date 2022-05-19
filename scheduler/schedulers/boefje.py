@@ -206,9 +206,8 @@ class BoefjeScheduler(Scheduler):
 
             for boefje in boefjes:
                 try:
-                    plugin = self.ctx.services.katalogus.get_plugin_by_org_and_boefje_id(
-                        organisation_id=self.organisation.id,
-                        boefje_id=boefje.id,
+                    plugin = self.ctx.services.katalogus.get_plugin_by_id_and_org_id(
+                        boefje.id, self.organisation.id,
                     )
                 except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                     self.logger.warning(

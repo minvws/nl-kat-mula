@@ -14,9 +14,11 @@ class Katalogus(HTTPService):
 
         self.boefjes_by_ooi_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict()
         self.organisations_plugin_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict()
+        self.organisations_normalizer_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict()
 
         self._flush_boefjes_by_ooi_type_cache()
         self._flush_organisations_plugin_cache()
+        self._flush_organisations_normalizer_type_cache()
 
     def _flush_boefjes_by_ooi_type_cache(self) -> None:
         boefjes = self.get_boefjes()
@@ -39,6 +41,21 @@ class Katalogus(HTTPService):
                 plugin.id: plugin for plugin in self.get_plugins_by_organisation(org.id)
             }
 
+    def _flush_organisations_normalizer_type_cache(self) -> None:
+        orgs = self.get_organisations()
+
+        for org in orgs:
+            for plugin in self.get_plugins_by_organisation(org.id):
+                if plugin.type != "normalizer":
+                    continue
+
+                for consume in plugin.consumes:
+                    if consume not in self.organisations_normalizer_type_cache[org.id]:
+                        self.organisations_normalizer_type_cache[org.id][consume] = plugin
+                    else:
+                        self.organisations_normalizer_type_cache[org.id][consume].append(plugin)
+
+    # TODO: perhaps rename to get_boefjes_by_consumes
     def get_boefjes_by_ooi_type(self, ooi_type: str) -> List[Boefje]:
         try:
             return self.boefjes_by_ooi_type_cache.get(ooi_type, [])
@@ -66,9 +83,18 @@ class Katalogus(HTTPService):
         response = self.get(url)
         return [Plugin(**plugin) for plugin in response.json().values()]
 
-    def get_plugin_by_org_and_boefje_id(self, organisation_id: str, boefje_id: str) -> Plugin:
+    def get_plugin_by_id_and_org_id(self, plugin_id: str, organisation_id: str) -> Plugin:
         try:
-            return dict_utils.deep_get(self.organisations_plugin_cache, [organisation_id, boefje_id])
+            return dict_utils.deep_get(self.organisations_plugin_cache, [organisation_id, plugin_id])
         except dict_utils.ExpiredError:
             self._flush_organisations_plugin_cache()
-            return dict_utils.deep_get(self.organisations_plugin_cache, [organisation_id, boefje_id])
+            return dict_utils.deep_get(self.organisations_plugin_cache, [organisation_id, plugin_id])
+
+    # TODO: should return normalizer
+    def get_normalizers_by_org_id_and_type(self, organisation_id: str, normalizer_type: str) -> List[Plugin]:
+        try:
+            return dict_utils.deep_get(self.organisations_normalizer_type_cache, [organisation_id, normalizer_type])
+        except dict_utils.ExpiredError:
+            self._flush_organisations_normalizer_cache()
+            return dict_utils.deep_get(self.organisations_normalizer_type_cache, [organisation_id, normalizer_type])
+
