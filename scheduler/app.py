@@ -11,7 +11,7 @@ import requests
 
 from scheduler import context, dispatchers, queues, rankers, schedulers, server
 from scheduler.connectors import listeners
-from scheduler.models import OOI, BoefjeTask, Organisation
+from scheduler.models import OOI, BoefjeTask, NormalizerTask, Organisation
 from scheduler.utils import thread
 
 
@@ -105,16 +105,16 @@ class App:
         queue = queues.NormalizerPriorityQueue(
             pq_id=org.id,
             maxsize=self.ctx.config.pq_maxsize,
-            item_type=OOI,
+            item_type=NormalizerTask,
             allow_priority_updates=True,  # TODO: check if this is correct
         )
 
         dispatcher = dispatchers.NormalizerDispatcher(
             ctx=self.ctx,
             pq=queue,
-            item_type=OOI,
-            celery_queue="normalizer",
-            task_name="tasks.handle_ooi",  # TODO: check if this is correct
+            item_type=NormalizerTask,
+            celery_queue="normalizers",
+            task_name="tasks.handle_normalizer", # TODO: check this in rbmq
         )
 
         ranker = rankers.NormalizerRanker(
@@ -151,7 +151,7 @@ class App:
             pq=queue,
             item_type=BoefjeTask,
             celery_queue="boefjes",
-            task_name="tasks.handle_boefje",
+            task_name="tasks.handle_boefje",  # TODO: check this in rbmq
         )
 
         ranker = rankers.BoefjeRanker(

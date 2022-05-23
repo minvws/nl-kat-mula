@@ -216,7 +216,6 @@ class BoefjeScheduler(Scheduler):
                     # )
                     continue
 
-                self.logger.info(f"BOEFJE: {boefje}")
                 task = BoefjeTask(
                     id=uuid.uuid4().hex,
                     # boefje=boefje,

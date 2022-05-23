@@ -12,7 +12,7 @@ class Boefje(BaseModel):
     description: Optional[str]
     version: Optional[str] = Field(default=None)
     scan_level: Optional[int] = Field(default=None)
-    consumes: Union[str, List[str]]
+    consumes: Optional[Union[str, List[str]]]
     produces: Optional[List[str]]
     dispatches: Optional[Dict[str, List[str]]] = Field(default=None)
 

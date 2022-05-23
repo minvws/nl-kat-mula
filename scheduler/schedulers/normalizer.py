@@ -1,9 +1,12 @@
+import time
+import uuid
+from types import SimpleNamespace
 from typing import List
 
 import requests
 
 from scheduler import context, dispatchers, queues, rankers, utils
-from scheduler.models import BoefjeMeta, Organisation
+from scheduler.models import BoefjeMeta, NormalizerTask, Organisation
 
 from .scheduler import Scheduler
 
@@ -49,7 +52,7 @@ class NormalizerScheduler(Scheduler):
                 )
                 break
 
-            p_items = self.create_tasks_for_boefjes(last_run_boefjes)
+            p_items = self.create_tasks_for_boefje(last_run_boefjes)
             if len(p_items) == 0:
                 continue
 
@@ -65,7 +68,7 @@ class NormalizerScheduler(Scheduler):
                 time.sleep(1)
 
             self.add_p_items_to_queue(p_items)
-            time.sleep(1)
+            time.sleep(60)
         else:
             self.logger.warning(
                 "Normalizer queue is full, not populating with new tasks [qsize=%d, scheduler_id=%s]",
@@ -74,60 +77,96 @@ class NormalizerScheduler(Scheduler):
             )
             return
 
-    def create_tasks_for_boefje(self, boefje: BoefjeMeta) -> List[queues.PrioritizedItem]:
+    def create_tasks_for_boefje(self, boefje_meta: BoefjeMeta) -> List[queues.PrioritizedItem]:
         """Create normalizer tasks for every boefje that has been processed.
+
+        First we need to know what a boefje has for output (produces), since we
+        only have a boefje id from the boefje meta. We need to retrieve more
+        info about that particular boefje. And from the we need to get all the
+        available normalizers that can run on that output of the boefje.
         """
         p_items: List[queues.PrioritizedItem] = []
 
-        for produces in boefje.produces:
-            try:
-                plugin = self.ctx.services.plugins.get_normalizers_by_org_id_and_type(
-                    self.organisation.id, produces,
-                )
-            except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
-                self.logger.warning(
-                    "Could not get plugin for org: %s and boefje: %s [org_id=%s, boefje_id=%s, scheduler_id=%s]",
-                    self.organisation.name,
-                    boefje.name,
-                    self.organisation.id,
-                    boefje.name,
-                    self.scheduler_id,
-                )
-                continue
+        try:
+            normalizers = self.ctx.services.katalogus.get_normalizers_by_org_id_and_type(
+                self.organisation.id, boefje_meta.boefje.id)
+        except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
+            self.logger.warning(
+                "Could not get normalizers for org: %s and boefje_meta: %s [org_id=%s, boefje_meta_id=%s, scheduler_id=%s]",
+                self.organisation.name,
+                boefje_meta.id,
+                self.organisation.id,
+                boefje_meta.id,
+                self.scheduler_id,
+            )
+            return p_items
 
-            if not plugin:
-                self.logger.warning(
-                    "No plugin found for org: %s and boefje: %s [org_id=%s, boefje_id=%s, scheduler_id=%s]",
-                    self.organisation.name,
-                    boefje.name,
-                    self.organisation.id,
-                    boefje.name,
-                    self.scheduler_id,
-                )
-                continue
+        if normalizers is None:
+            self.logger.debug(
+                "No normalizers found for boefje_id %s [boefje_id=%s, scheduler_id=%s]",
+                boefje_meta.boefje.id,
+                self.scheduler_id,
+            )
+            return p_items
 
-            if plugin.enabled is False:
-                self.logger.debug(
-                    "Plugin: %s is disabled [org_id=%s, plugin_id=%s, scheduler_id=%s]",
-                    plugin.id,
-                    self.organisation.id,
-                    plugin.id,
-                    self.scheduler_id,
-                )
-                continue
+        self.logger.debug(
+            "Found %d normalizers for boefje: %s [boefje_id=%s, normalizers=%s, scheduler_id=%s]",
+            len(normalizers),
+            boefje_meta.boefje.id,
+            boefje_meta.boefje.id,
+            [normalizer.name for normalizer in normalizers],
+            self.scheduler_id,
+        )
 
-            task = NormalizerTask() # TODO
-
-            if self.queue.is_item_on_queue(task):
-                # TODO
+        for normalizer in normalizers:
+            if normalizer.enabled is False:
+                # TODO:
                 # self.logger.debug(
-                #     "Normalizer task: %s is already on queue [boefje_id=%s, ooi_id=%s, scheduler_id=%s]",
-                #     boefje.id,
-                #     boefje.id,
-                #     ooi.primary_key,
+                #     "Plugin: %s is disabled [org_id=%s, plugin_id=%s, scheduler_id=%s]",
+                #     plugin.id,
+                #     self.organisation.id,
+                #     plugin.id,
                 #     self.scheduler_id,
                 # )
                 continue
+
+            # if not plugin:
+            #     self.logger.warning(
+            #         "No plugin found for org: %s and boefje: %s [org_id=%s, boefje_id=%s, scheduler_id=%s]",
+            #         self.organisation.name,
+            #         boefje_meta.boefje.name,
+            #         self.organisation.id,
+            #         boefje_meta.boefje.id,
+            #         self.scheduler_id,
+            #     )
+
+
+            # if plugin.enabled is False:
+            #     self.logger.debug(
+            #         "Plugin: %s is disabled [org_id=%s, plugin_id=%s, scheduler_id=%s]",
+            #         plugin.id,
+            #         self.organisation.id,
+            #         plugin.id,
+            #         self.scheduler_id,
+            #     )
+            #     continue
+
+            task = NormalizerTask(
+                id=uuid.uuid4().hex,
+                normalizer=normalizer,
+                boefje_meta=boefje_meta,
+            )
+
+            if self.queue.is_item_on_queue(task):
+                # TODO
+                self.logger.debug(
+                    "Normalizer task: %s is already on queue [normalizer_id=%s, boefje_meta_id=%s, , scheduler_id=%s]",
+                    normalizer.name,
+                    normalizer.id,
+                    boefje_meta.id,
+                    self.scheduler_id,
+                )
+                return p_items
 
             score = self.ranker.rank(SimpleNamespace(task=task))
             p_items.append(queues.PrioritizedItem(priority=score, item=task))

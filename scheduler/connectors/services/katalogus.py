@@ -53,7 +53,6 @@ class Katalogus(HTTPService):
 
                 for type_ in plugin.consumes:
                     self.organisations_normalizer_type_cache[org.id].setdefault(type_, []).append(plugin)
-        self.logger.info(self.organisations_normalizer_type_cache.cache.items())
 
     def get_boefjes(self) -> List[Boefje]:
         url = f"{self.host}/boefjes"
