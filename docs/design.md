@@ -2,10 +2,16 @@
 
 ## Purpose
 
-The *scheduler* maintains a priority queue for discovery tasks to be performed
-by the workers (*boefjes* and *normalizers*). The scheduler is tasked with
-maintaining and updating the priority queue with jobs that can be picked up by
-the workers.
+The *scheduler* is tasked with populating and maintaining a priority queue of
+items that are ranked, and can be popped off (through api calls), or dispatched.
+The scheduler is designed to be extensible, such that you're able to create
+your own rules for the population, prioritization and dispatching of tasks.
+
+The *scheduler* implements a priority queue for prioritization of tasks to be
+performed by the worker(s). In the implementation of the scheduler within KAT
+the scheduler is tasked with populating the priority queue with boefje and
+normalizer tasks. The scheduler is responsible for maintaining and updating
+its internal priority queue.
 
 A priority queue is used, in as such, that it allows us to determine what jobs
 should be checked first, or more regularly. Because of the use of a priority
@@ -14,110 +20,20 @@ job's created by the user get precedence over jobs that are created by the
 internal rescheduling processes within the scheduler.
 
 Calculations in order to determine the priority of a job is performed by logic
-that can/will leverage information from multiple sources, including but not
-limited to octopoes, bytes, katalogus, pichu.
+that can/will leverage information from multiple (external) sources, called
+`connectors`.
 
-### Requirements
+In this document we will outline what the scheduler does in the setup within
+KAT and how it is used, and its default configuration. Further on we will
+describe how to extend the scheduler to support your specific needs.
 
-**Input**
+### Architecture / Design
 
-Describes how we get initial state of the scheduler system, and how we add,
-update, delete objects.
+In order to get a better overview of how the scheduler is implemented we will
+be using the [C4 model](https://c4model.com/) to give an overview of the
+scheduler system with their respective level of abstraction.
 
-* The input of new jobs can be done by 3 processes:
-
-  1. `populate_queue` takes a random `n` number of OOI's from octopoes and
-     ranks them by their score. This is done continuously until the queue is
-     full.
-
-  2. Creation of a scan job through the API. This supports the creation of
-     jobs that have the highest priority. E.g. scan jobs that are created by
-     by the user.
-
-  3. Message bus listener(s) that subscribes to the events channels and listens
-     to events to update the internal state of the scheduler priority queue,
-     as such update the priority/score of an object.
-
-  For both of the boefjes, and normalizer jobs these two mechanisms need to be
-  supported.
-
-  **Boefjes**
-
-  1. Reference octopoes in order to get new OOI's
-
-  2. Subscribe to event channel of Octopoes
-
-  **Normalizers**
-
-  1. Reference Bytes for Boefjes jobs that are done.
-
-  2. Subscribe to events channel that publishes finished Boefjes jobs
-
-**Scheduling and Rescheduling**
-
-* Scheduling of objects onto the priority queue
-
-  A random set of objects is taken, and are scheduled onto the priority queue.
-  However, that process needs to make sure that newly issued scan jobs from the
-  user  takes precedence and are pushed onto the queue with the highest
-  priority.
-
-* Process of rescheduling of tasks that already have been completed
-
-  Based on the change of findings (and additional scoring features) for a
-  particular object, the score/priority for the object will be updated
-  resulting in objects being rescheduled more/less often. 
-
-**Priority Queue**
-
-* Finite (configurable) number of items in the priority queue
-
-* Priority queue is implemented as a heap and maintained in memory 
-
-* Two queues need to be implemented, one for boefjes, and one for normalizers
-
-* Duplication of jobs is not allowed, and will be removed from the queue
-
-**Calculation**
-
-* Should be able to implement different calculation strategies for determining
-  the priority of a task, and maintaining order. At least it should be able to
-  easily be extended to include more strategies, or other strategies.
-
-* Take into account organization's scan profile level
-
-* Accesses multiple 'external' services to determine the priority of a task
-
-**Output**
-
-* Expose API for tasks to be popped of the priority queue, initially as a
-  RESTful API. Should be extensible to support other API protocols when needed.
-
-* A worker should be able to ask for a specific task for that worker to be
-  popped of the queue. It should have no knowledge of jobs that are are
-  scheduled for other workers.
-
-## Architecture
-
-Following describes main processes of the scheduler:
-
-* `PopulateQueue` - continuous process that populates the priority queue with
-  objects that are ready for scheduling.
-
-* `Listener` - process that listens on a channel for object changes 
-  (at the moment this is `create_events`), and persists those objects into
-  the database table `frontier`.
-
-* `Ranker` - process that calculates the score of an object based on
-  the change in findings and other factors.
-
-* `Server` allows workers to pop off jobs from the priority queue, filtered by
-   their worker type.
-
-See the [C4 model](https://c4model.com/) overview of the scheduler system
-below, with their respective level of abstraction.
-
-C2 Container level *Current situation*:
+#### C2 Container level:
 
 ```mermaid
 graph TB
@@ -125,18 +41,31 @@ graph TB
     Rocky["Rocky<br/>[webapp]"]
     Octopoes["Octopoes<br/>[graph database]"]
     Katalogus["Katalogus<br/>[software system]"]
+    Bytes["Bytes<br/>[software system]"]
     Boefjes["Boefjes<br/>[software system]"]
     Scheduler["Scheduler<br/>[system]"]
+    RabbitMQ["RabbitMQ<br/>[message broker]"]
 
     Rocky--"Create object"-->Octopoes
     Rocky--"Create scan job<br/>HTTP POST"--->Scheduler
-    
-    Katalogus--"Get available boefjes<br/>HTTP GET"-->Scheduler
 
-    Scheduler--"Send task<br/>Celery send task"-->Boefjes
+    Octopoes--"Get random oois<br/>HTTP GET"-->Scheduler
+
+    RabbitMQ--"Get latest created oois<br/>AMQP"-->Scheduler
+
+    Katalogus--"Get available boefjes (plugins)<br/>HTTP GET"-->Scheduler
+    Bytes--"Get last run boefje<br/>HTTP GET"-->Scheduler
+
+    Scheduler--"Send task<br/>CELERY send_task"-->Boefjes
 ```
 
-C3 Component level *Current situation*:
+* The `Scheduler` system combines data from the `Octopoes`, `Katalogus`, `Bytes` and
+  `RabbitMQ` systems. With these data it determines what tasks should be
+  created and dispatched.
+
+* The `Scheduler` system implements multiple `schedulers` per organisation.
+
+#### C3 Component level:
 
 ```mermaid
 flowchart TB
@@ -145,26 +74,30 @@ flowchart TB
     Octopoes["Octopoes<br/>[graph database]"]
     Katalogus["Katalogus<br/>[software system]"]
     Boefjes["Boefjes<br/>[software system]"]
+    Bytes["Bytes<br/>[software system]"]
+    RabbitMQ["RabbitMQ<br/>[message broker]"]
 
 
     Rocky--"Create object"-->Octopoes
     Rocky--"Create scan job<br/>HTTP POST"--->push_queue
     
-    Katalogus--"Get available boefjes<br/>HTTP GET"--->get_boefjes
-    Octopoes--"Get n random ooi's"--->get_random_objects
-
+    Katalogus--"Get available boefjes<br/>HTTP GET"--->create_tasks_for_ooi
+    Bytes--"Check last run of boefje and ooi<br/>HTTP GET"-->create_tasks_for_ooi
+    Octopoes--"Get random ooi"--->get_random_object
+    RabbitMQ--"Get latest created object<br/>(scan level increase)"-->get_latest_object
 
     push_queue--"Push job with highest priority"-->PriorityQueue
     PriorityQueue--"Pop job with highest priority"-->Dispatcher
     Dispatcher--"Send task to Boefjes"-->Boefjes
 
-    get_random_objects-->get_boefjes-->rank-->push-->PriorityQueue
+    get_latest_object-->get_random_object-->create_tasks_for_ooi-->rank-->push-->PriorityQueue
 
     subgraph Scheduler
 
         subgraph populate_queue["populate_queue [method]"]
-            get_random_objects[["get_random_objects"]]
-            get_boefjes[["get_boefjes"]]
+            get_latest_object[["get_latest_object"]]
+            get_random_object[["get_random_object"]]
+            create_tasks_for_ooi[["create_tasks_for_ooi<br/><br/>combine ooi with available <br/>boefjes to create tasks"]]
             rank[["rank"]]
             push[["push"]]
         end
@@ -178,4 +111,109 @@ flowchart TB
         PriorityQueue(["PriorityQueue"])
 
     end
+
 ```
+
+* The `Scheduler` system implements multiple `schedulers`, one per
+  organisation. An individual scheduler contains:
+
+  - A queue
+  - A ranker
+  - A dispatcher
+
+* A `scheduler` implements the `populate_queue` method. It will:
+
+  - Get the latest created object in a loop, it will try to fill up the queue
+    with the latest created objects.
+
+  - When the queue isn't full, it will try and fill up the queue with random
+    objects from the octopoes system.
+
+#### C4 Code level (Condensed class diagram)
+
+```mermaid
+classDiagram
+
+    class App {
+        +AppContext ctx
+        +Dict[str, Scheduler] schedulers
+        +Server server
+        run()
+    }
+
+    class Scheduler {
+        +AppContext ctx
+        +PriorityQueue queue
+        +Ranker ranker
+        +Dispatcher dispatcher
+        populate_queue()
+        run()
+    }
+
+    class PriorityQueue{
+        +PriorityQueue[Entry] pq
+        pop()
+        push()
+        peek()
+        remove()
+    }
+
+    class Entry {
+        +int priority
+        +PrioritizedItem p_item
+        +EntryState state
+    }
+
+    class PrioritizedItem {
+        +int priority
+        +Any item
+    }
+
+    class Ranker {
+        +AppContext ctx
+        rank()
+    }
+
+    class Dispatcher {
+        +AppContext ctx
+        dispatch()
+    }
+
+    App --> Scheduler
+
+    Scheduler --> PriorityQueue
+    Scheduler --> Ranker
+    Scheduler --> Dispatcher
+
+    PriorityQueue --> Entry
+
+    Entry --> PrioritizedItem
+```
+
+Following describes main components of the scheduler application:
+
+* `App` - The main application class, which is responsible for starting the
+  schedulers.
+
+* `Scheduler` - The main scheduler class, which is responsible for populating
+  the queue with tasks.
+
+* `PriorityQueue` - The queue class, which is responsible for storing the
+  tasks.
+
+* `Ranker` - The ranker class, which is responsible for ranking the tasks.
+
+* `Dispatcher` - The dispatcher class, which is responsible for dispatching
+  the tasks.
+
+* `Server` - The server class, which is responsible for handling the HTTP
+  requests.
+
+### Customizing the scheduler
+
+Within the scheduler project you'll be able to extend the functionality with
+your own procedures. The most likely customization you'll make will be
+the directives of populating the queue and ranking tasks. 
+
+Examples on how to extend the classes can be found in their respective folders.
+The files are named `boefje.py` that are a specific KAT implementations.

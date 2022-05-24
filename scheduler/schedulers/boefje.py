@@ -40,6 +40,15 @@ class BoefjeScheduler(Scheduler):
         self.organisation: Organisation = organisation
 
     def populate_queue(self) -> None:
+        """Populate the PriorityQueue.
+
+        While the queue is not full we will try to fill it with items that have
+        been created, e.g. when the scan level was increased (since oois start
+        with a scan level 0 and will not start any boefjes).
+
+        When this is done we will try and fill the reset of the queue with
+        random items from octopoes and scheduler them accordingly.
+        """
         while not self.queue.full():
             try:
                 latest_ooi = self.ctx.services.scan_profile.get_latest_object(
