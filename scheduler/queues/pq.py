@@ -325,6 +325,10 @@ class PriorityQueue:
 
         return True
 
+    def qsize(self) -> int:
+        """Return the size of the queue."""
+        return self.pq.qsize()
+
     def dict(self) -> Dict[str, Any]:
         return {
             "id": self.pq_id,

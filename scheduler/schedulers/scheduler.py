@@ -1,3 +1,4 @@
+import abc
 import logging
 import os
 import threading
@@ -7,13 +8,15 @@ from scheduler import context, dispatchers, queues, rankers, utils
 from scheduler.utils import thread
 
 
-class Scheduler:
+class Scheduler(abc.ABC):
     """The Scheduler class combines the priority queue, ranker and dispatcher.
     The scheduler is responsible for populating the queue, ranking, and
     dispatching tasks.
 
     An implementation of the Scheduler will likely implement the
-    `populate_queue` method, with the strategy for populating the queue.
+    `populate_queue` method, with the strategy for populating the queue. By
+    extending this you can create your own rules of what items should be
+    ranked and put onto the priority queue.
 
     Attributes:
         logger:
@@ -71,6 +74,7 @@ class Scheduler:
         self.threads: Dict[str, thread.ThreadRunner] = {}
         self.stop_event: threading.Event = self.ctx.stop_event
 
+    @abc.abstractmethod
     def populate_queue(self) -> None:
         raise NotImplementedError
 
@@ -143,7 +147,7 @@ class Scheduler:
 
         # Dispatcher
         self._run_in_thread(
-            name="dispatcher",  # FIXME
+            name="dispatcher",
             func=self.dispatcher.run,
             interval=self.ctx.config.dsp_interval,
         )
