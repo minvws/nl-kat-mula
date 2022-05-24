@@ -6,7 +6,7 @@ from typing import List
 import requests
 
 from scheduler import context, dispatchers, queues, rankers, utils
-from scheduler.models import BoefjeMeta, NormalizerTask, Organisation
+from scheduler.models import BoefjeMeta, NormalizerTask, Organisation, RawData
 
 from .scheduler import Scheduler
 
@@ -35,7 +35,12 @@ class NormalizerScheduler(Scheduler):
         while not self.queue.full():
             try:
                 # TODO: would be better to have a queue for this
-                last_run_boefjes = self.ctx.services.bytes.get_last_run_boefje_by_organisation_id(self.organisation.id)
+                # last_run_boefjes = self.ctx.services.bytes.get_last_run_boefje_by_organisation_id(self.organisation.id)
+                last_run_boefje = self.ctx.services.bytes.get_raw(
+                    organisation_id=self.organisation.id,
+                    normalized=False,
+                    limit=1,
+                )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
                     "Could not get last run boefjes [org_id=%s, scheduler_id=%s]",
@@ -44,7 +49,7 @@ class NormalizerScheduler(Scheduler):
                 )
                 continue
 
-            if not last_run_boefjes:
+            if not last_run_boefje:
                 self.logger.info(
                     "No last run boefjes found [org_id=%s, scheduler_id=%s]",
                     self.organisation.id,
@@ -52,7 +57,7 @@ class NormalizerScheduler(Scheduler):
                 )
                 break
 
-            p_items = self.create_tasks_for_boefje(last_run_boefjes)
+            p_items = self.create_tasks_for_boefje(last_run_boefje)
             if len(p_items) == 0:
                 continue
 
@@ -68,7 +73,7 @@ class NormalizerScheduler(Scheduler):
                 time.sleep(1)
 
             self.add_p_items_to_queue(p_items)
-            time.sleep(60)
+            time.sleep(1)
         else:
             self.logger.warning(
                 "Normalizer queue is full, not populating with new tasks [qsize=%d, scheduler_id=%s]",
@@ -77,7 +82,7 @@ class NormalizerScheduler(Scheduler):
             )
             return
 
-    def create_tasks_for_boefje(self, boefje_meta: BoefjeMeta) -> List[queues.PrioritizedItem]:
+    def create_tasks_for_boefje(self, raw_data: RawData) -> List[queues.PrioritizedItem]:
         """Create normalizer tasks for every boefje that has been processed.
 
         First we need to know what a boefje has for output (produces), since we
@@ -89,14 +94,14 @@ class NormalizerScheduler(Scheduler):
 
         try:
             normalizers = self.ctx.services.katalogus.get_normalizers_by_org_id_and_type(
-                self.organisation.id, boefje_meta.boefje.id)
+                self.organisation.id, raw_data.boefje_meta.boefje.id)
         except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
             self.logger.warning(
                 "Could not get normalizers for org: %s and boefje_meta: %s [org_id=%s, boefje_meta_id=%s, scheduler_id=%s]",
                 self.organisation.name,
-                boefje_meta.id,
+                raw_data.boefje_meta.id,
                 self.organisation.id,
-                boefje_meta.id,
+                raw_data.boefje_meta.id,
                 self.scheduler_id,
             )
             return p_items
@@ -104,7 +109,7 @@ class NormalizerScheduler(Scheduler):
         if normalizers is None:
             self.logger.debug(
                 "No normalizers found for boefje_id %s [boefje_id=%s, scheduler_id=%s]",
-                boefje_meta.boefje.id,
+                raw_data.boefje_meta.boefje.id,
                 self.scheduler_id,
             )
             return p_items
@@ -112,8 +117,8 @@ class NormalizerScheduler(Scheduler):
         self.logger.debug(
             "Found %d normalizers for boefje: %s [boefje_id=%s, normalizers=%s, scheduler_id=%s]",
             len(normalizers),
-            boefje_meta.boefje.id,
-            boefje_meta.boefje.id,
+            raw_data.boefje_meta.boefje.id,
+            raw_data.boefje_meta.boefje.id,
             [normalizer.name for normalizer in normalizers],
             self.scheduler_id,
         )
@@ -154,7 +159,7 @@ class NormalizerScheduler(Scheduler):
             task = NormalizerTask(
                 id=uuid.uuid4().hex,
                 normalizer=normalizer,
-                boefje_meta=boefje_meta,
+                boefje_meta=raw_data.boefje_meta,
             )
 
             if self.queue.is_item_on_queue(task):
@@ -163,7 +168,7 @@ class NormalizerScheduler(Scheduler):
                     "Normalizer task: %s is already on queue [normalizer_id=%s, boefje_meta_id=%s, , scheduler_id=%s]",
                     normalizer.name,
                     normalizer.id,
-                    boefje_meta.id,
+                    raw_data.boefje_meta.id,
                     self.scheduler_id,
                 )
                 return p_items

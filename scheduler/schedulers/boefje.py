@@ -109,7 +109,7 @@ class BoefjeScheduler(Scheduler):
             try:
                 random_oois = self.ctx.services.octopoes.get_random_objects(
                     organisation_id=self.organisation.id,
-                    n=1,
+                    n=10,
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(

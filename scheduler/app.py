@@ -110,7 +110,7 @@ class App:
     def create_normalizer_scheduler(self, org: Organisation) -> schedulers.NormalizerScheduler:
         """Create a normalizer scheduler for the given organisation."""
         queue = queues.NormalizerPriorityQueue(
-            pq_id=org.id,
+            pq_id=f"normalizer-{org.id}",
             maxsize=self.ctx.config.pq_maxsize,
             item_type=NormalizerTask,
             allow_priority_updates=True,  # TODO: check if this is correct
@@ -155,7 +155,7 @@ class App:
             org: The organisation to create a scheduler for.
         """
         queue = queues.BoefjePriorityQueue(
-            pq_id=org.id,
+            pq_id=f"boefje-{org.id}",
             maxsize=self.ctx.config.pq_maxsize,
             item_type=BoefjeTask,
             allow_priority_updates=True,
