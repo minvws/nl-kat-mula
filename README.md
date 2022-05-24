@@ -99,5 +99,5 @@ $ make utest
 $ make file=test_file.py utest
 
 # Individually test a function
-$ make file=test_file.py function=-k test_function utest
+$ make file=test_file.py function='-k test_function' utest
 ```

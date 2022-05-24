@@ -60,7 +60,8 @@ class BoefjeScheduler(Scheduler):
                 pika.exceptions.ChannelClosedByBroker,
             ):
                 self.logger.warning(
-                    "Could not get latest oois for organisation: %s [scheduler_id=%s]",
+                    "Could not get latest oois for organisation: %s [org_id=%s, scheduler_id=%s]",
+                    self.organisation.name,
                     self.organisation.id,
                     self.scheduler_id,
                 )
@@ -82,6 +83,17 @@ class BoefjeScheduler(Scheduler):
             if len(p_items) == 0:
                 continue
 
+            # NOTE: maxsize 0 means unlimited
+            while len(p_items) > self.queue.maxsize - self.queue.pq.qsize() and self.queue.maxsize != 0:
+                self.logger.debug(
+                    "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d maxsize=%d, scheduler_id=%s]",
+                    len(p_items),
+                    self.queue.pq.qsize(),
+                    self.queue.maxsize,
+                    self.scheduler_id,
+                )
+                time.sleep(1)
+
             self.add_p_items_to_queue(p_items)
             time.sleep(1)
         else:
@@ -97,7 +109,7 @@ class BoefjeScheduler(Scheduler):
             try:
                 random_oois = self.ctx.services.octopoes.get_random_objects(
                     organisation_id=self.organisation.id,
-                    n=10,
+                    n=1,
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
@@ -118,7 +130,8 @@ class BoefjeScheduler(Scheduler):
                 break
 
             # NOTE: It is possible that a random ooi will not generate any
-            # tasks. When this happens 3 times in a row we will break out
+            # tasks, for instance when all ooi's and their boefjes have already
+            # run. When this happens 3 times in a row we will break out
             # of the loop. We reset the tries counter to 0 when we do
             # get new tasks from an ooi.
             p_items = self.create_tasks_for_oois(random_oois)
@@ -134,6 +147,17 @@ class BoefjeScheduler(Scheduler):
                     tries,
                 )
                 break
+
+            # NOTE: maxsize 0 means unlimited
+            while len(p_items) > self.queue.maxsize - self.queue.pq.qsize() and self.queue.maxsize != 0:
+                self.logger.debug(
+                    "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d maxsize=%d, scheduler_id=%s]",
+                    len(p_items),
+                    self.queue.pq.qsize(),
+                    self.queue.maxsize,
+                    self.scheduler_id,
+                )
+                time.sleep(1)
 
             self.add_p_items_to_queue(p_items)
             tries = 0

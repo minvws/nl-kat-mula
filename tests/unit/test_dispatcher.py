@@ -59,29 +59,29 @@ class DispatcherTestCase(unittest.TestCase):
         prio3 = create_p_item(priority=3)
         self.pq.push(p_item=prio3)
 
-        self.assertEqual(len(self.pq), 3)
+        self.assertEqual(3, len(self.pq))
 
         # Dispatch item on the queue
         self.dispatcher.run()
-        self.assertEqual(len(self.pq), 2)
+        self.assertEqual(2, len(self.pq))
 
         # Check the queue for the correct items
         first_entry = self.pq.peek(0)
         last_entry = self.pq.peek(-1)
 
         # First item should be the prio2 item
-        self.assertEqual(first_entry.priority, 2)
-        self.assertEqual(first_entry.p_item, prio2)
-        self.assertEqual(first_entry.state, queues.EntryState.ADDED)
+        self.assertEqual(2, first_entry.priority)
+        self.assertEqual(prio2, first_entry.p_item)
+        self.assertEqual(queues.EntryState.ADDED, first_entry.state)
 
         # Last item should be the prio3 item
-        self.assertEqual(last_entry.priority, 3)
-        self.assertEqual(last_entry.p_item, prio3)
-        self.assertEqual(last_entry.state, queues.EntryState.ADDED)
+        self.assertEqual(3, last_entry.priority)
+        self.assertEqual(prio3, last_entry.p_item)
+        self.assertEqual(queues.EntryState.ADDED, last_entry.state)
 
         # Dispatch a second time, should have no effect on the queue
         self.dispatcher.run()
-        self.assertEqual(len(self.pq), 2)
+        self.assertEqual(2, len(self.pq))
 
     def test_threshold_not_set(self):
         """When threshold is not set it should dispatch all"""
@@ -94,13 +94,13 @@ class DispatcherTestCase(unittest.TestCase):
         prio3 = create_p_item(priority=1000)
         self.pq.push(p_item=prio3)
 
-        self.assertEqual(len(self.pq), 3)
+        self.assertEqual(3, len(self.pq))
 
         self.dispatcher.run()
         self.dispatcher.run()
         self.dispatcher.run()
 
-        self.assertEqual(len(self.pq), 0)
+        self.assertEqual(0, len(self.pq))
 
     def test_threshold_set_to_zero(self):
         """When threshold is set to zero it should not dispatch any"""
@@ -115,13 +115,13 @@ class DispatcherTestCase(unittest.TestCase):
         prio3 = create_p_item(priority=1000)
         self.pq.push(p_item=prio3)
 
-        self.assertEqual(len(self.pq), 3)
+        self.assertEqual(3, len(self.pq))
 
         self.dispatcher.run()
         self.dispatcher.run()
         self.dispatcher.run()
 
-        self.assertEqual(len(self.pq), 3)
+        self.assertEqual(3, len(self.pq))
 
     def test_threshold_with_time(self):
         """When threshold is set to a time it should only dispatch items
@@ -137,26 +137,26 @@ class DispatcherTestCase(unittest.TestCase):
         prio3 = create_p_item(priority=time.time() + 20)
         self.pq.push(p_item=prio3)
 
-        self.assertEqual(len(self.pq), 3)
+        self.assertEqual(3, len(self.pq))
 
         # Dispatch item on the queue
         self.dispatcher.run()
-        self.assertEqual(len(self.pq), 2)
+        self.assertEqual(2, len(self.pq))
 
         # Check the queue for the correct items
         first_entry = self.pq.peek(0)
         last_entry = self.pq.peek(-1)
 
         # First item should be the prio2 item
-        self.assertEqual(first_entry.priority, prio2.priority)
-        self.assertEqual(first_entry.p_item, prio2)
-        self.assertEqual(first_entry.state, queues.EntryState.ADDED)
+        self.assertEqual(prio2.priority, first_entry.priority)
+        self.assertEqual(prio2, first_entry.p_item)
+        self.assertEqual(queues.EntryState.ADDED, first_entry.state)
 
         # Last item should be the prio3 item
-        self.assertEqual(last_entry.priority, prio3.priority)
-        self.assertEqual(last_entry.p_item, prio3)
-        self.assertEqual(last_entry.state, queues.EntryState.ADDED)
+        self.assertEqual(prio3.priority, last_entry.priority)
+        self.assertEqual(prio3, last_entry.p_item)
+        self.assertEqual(queues.EntryState.ADDED, last_entry.state)
 
         # Dispatch a second time, should have no effect on the queue
         self.dispatcher.run()
-        self.assertEqual(len(self.pq), 2)
+        self.assertEqual(2, len(self.pq))

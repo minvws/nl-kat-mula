@@ -104,7 +104,7 @@ class Dispatcher:
     def run(self) -> None:
         """Continuously dispatch items from the priority queue."""
         if self.pq.empty():
-            self.logger.debug("Queue is empty, sleeping ...")
+            self.logger.debug("Queue is empty, sleeping ... [queue_id=%s]", self.pq.pq_id)
             return
 
         if not self._can_dispatch():
