@@ -96,15 +96,16 @@ class Dispatcher:
         """
         task_id = self.pq.get_item_identifier(p_item.item)
         self.logger.info(
-            "Dispatching task %s [task_id=%s]",
+            "Dispatching task %s [task_id=%s, pq_id=%s]",
             task_id,
             task_id,
+            self.pq.pq_id,
         )
 
     def run(self) -> None:
         """Continuously dispatch items from the priority queue."""
         if self.pq.empty():
-            self.logger.debug("Queue is empty, sleeping ... [queue_id=%s]", self.pq.pq_id)
+            self.logger.debug("Queue is empty, sleeping ... [pq_id=%s]", self.pq.pq_id)
             return
 
         if not self._can_dispatch():
