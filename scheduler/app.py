@@ -50,7 +50,7 @@ class App:
         self.threads: Dict[str, thread.ThreadRunner] = {}
         self.stop_event: threading.Event = self.ctx.stop_event
 
-        self.schedulers: Dict[str, schedulers.Scheduler] = {}
+        self.schedulers: Dict[str, schedulers.BoefjeScheduler] = {}
         self.initialize_boefje_schedulers()
 
         # Initialize listeners
