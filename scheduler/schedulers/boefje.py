@@ -184,12 +184,7 @@ class BoefjeScheduler(Scheduler):
         for ooi in oois:
             try:
                 boefjes = self.ctx.services.katalogus.get_boefjes_by_type_and_org_id(
-<<<<<<< HEAD
                     ooi.ooi_type, self.organisation.id,
-=======
-                    ooi.ooi_type,
-                    self.organisation.id,
->>>>>>> fix/qol
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
