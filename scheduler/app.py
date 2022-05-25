@@ -105,10 +105,10 @@ class App:
         """
         orgs = self.ctx.services.katalogus.get_organisations()
         for org in orgs:
-            s = self.create_scheduler(org)
+            s = self.create_boefje_scheduler(org)
             self.schedulers[s.scheduler_id] = s
 
-    def create_scheduler(self, org: Organisation) -> schedulers.Scheduler:
+    def create_boefje_scheduler(self, org: Organisation) -> schedulers.BoefjeScheduler:
         """Create a scheduler for the given organisation.
 
         Args:
@@ -167,7 +167,7 @@ class App:
         for org_id in additions:
             org = self.ctx.services.katalogus.get_organisation(org_id)
 
-            scheduler_boefje = self.create_scheduler(org)
+            scheduler_boefje = self.create_boefje_scheduler(org)
             self.schedulers[scheduler_boefje.scheduler_id] = scheduler_boefje
 
         self.logger.info("Added %s organisations to scheduler [org_ids=%s]", len(additions), additions)
