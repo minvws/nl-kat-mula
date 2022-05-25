@@ -109,7 +109,7 @@ class BoefjeScheduler(Scheduler):
             try:
                 random_oois = self.ctx.services.octopoes.get_random_objects(
                     organisation_id=self.organisation.id,
-                    n=1,
+                    n=10,
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
@@ -183,8 +183,8 @@ class BoefjeScheduler(Scheduler):
         p_items: List[queues.PrioritizedItem] = []
         for ooi in oois:
             try:
-                boefjes = self.ctx.services.katalogus.get_boefjes_by_ooi_type(
-                    ooi.ooi_type,
+                boefjes = self.ctx.services.katalogus.get_boefjes_by_type_and_org_id(
+                    ooi.ooi_type, self.organisation_id,
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
