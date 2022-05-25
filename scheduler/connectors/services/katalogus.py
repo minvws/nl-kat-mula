@@ -46,12 +46,11 @@ class Katalogus(HTTPService):
             self.organisations_boefje_type_cache[org.id] = {}
 
             for plugin in self.get_plugins_by_organisation(org.id):
-                if  plugin.type != "boefje":
+                if plugin.type != "boefje":
                     continue
 
                 # NOTE: when it is a boefje the consumes field is a string field
                 self.organisations_boefje_type_cache[org.id].setdefault(plugin.consumes, []).append(plugin)
-
 
     def get_boefjes(self) -> List[Boefje]:
         url = f"{self.host}/boefjes"

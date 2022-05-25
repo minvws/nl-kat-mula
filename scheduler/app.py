@@ -148,7 +148,7 @@ class App:
         """Monitor the organisations in the Katalogus service, and add/remove
         organisations from the schedulers.
         """
-        scheduler_orgs =  set([s.organisation.id for s in self.schedulers.values()])
+        scheduler_orgs = set([s.organisation.id for s in self.schedulers.values()])
         katalogus_orgs = set([org.id for org in self.ctx.services.katalogus.get_organisations()])
 
         additions = katalogus_orgs.difference(scheduler_orgs)
