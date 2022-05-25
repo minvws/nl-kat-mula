@@ -72,8 +72,8 @@ class Bytes(HTTPService):
                 "limit": limit,
             },
         )
-        self.logger.info(response.json())
         if response.status_code == 200 and len(response.json()) > 0:
+            self.logger.info(f"RAW RESPONSE: {response.json()}")
             return RawData(**response.json()[0])
 
         return None

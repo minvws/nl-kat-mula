@@ -234,6 +234,7 @@ class App:
             self._run_in_thread(name=name, func=listener.listen)
 
         # Start the schedulers
+        self.logger.info(self.schedulers)
         for scheduler in self.schedulers.values():
             scheduler.run()
 

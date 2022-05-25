@@ -226,8 +226,7 @@ class BoefjeScheduler(Scheduler):
 
                 task = BoefjeTask(
                     id=uuid.uuid4().hex,
-                    # boefje=boefje,
-                    boefje=Boefje.parse_obj(boefje),  # TODO: boefje is a plugin here, does it need to be a Boefje, check what task runner expects
+                    boefje=Boefje.parse_obj(boefje),
                     input_ooi=ooi.primary_key,
                     organization=self.organisation.id,
                 )
