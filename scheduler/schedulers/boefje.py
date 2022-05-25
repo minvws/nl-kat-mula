@@ -184,7 +184,12 @@ class BoefjeScheduler(Scheduler):
         for ooi in oois:
             try:
                 boefjes = self.ctx.services.katalogus.get_boefjes_by_type_and_org_id(
+<<<<<<< HEAD
                     ooi.ooi_type, self.organisation.id,
+=======
+                    ooi.ooi_type,
+                    self.organisation.id,
+>>>>>>> fix/qol
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
@@ -215,14 +220,13 @@ class BoefjeScheduler(Scheduler):
 
             for boefje in boefjes:
                 if boefje.enabled is False:
-                    # TODO:
-                    # self.logger.debug(
-                    #     "Plugin: %s is disabled [org_id=%s, plugin_id=%s, scheduler_id=%s]",
-                    #     plugin.id,
-                    #     self.organisation.id,
-                    #     plugin.id,
-                    #     self.scheduler_id,
-                    # )
+                    self.logger.debug(
+                        "Boefje: %s is disabled [org_id=%s, boefje_id=%s, scheduler_id=%s]",
+                        boefje.name,
+                        self.organisation.id,
+                        boefje.id,
+                        self.scheduler_id,
+                    )
                     continue
 
                 task = BoefjeTask(

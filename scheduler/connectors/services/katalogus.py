@@ -35,7 +35,7 @@ class Katalogus(HTTPService):
             self.organisations_boefje_type_cache[org.id] = {}
 
             for plugin in self.get_plugins_by_organisation(org.id):
-                if  plugin.type != "boefje":
+                if plugin.type != "boefje":
                     continue
 
                 # NOTE: when it is a boefje the consumes field is a string field
@@ -97,5 +97,5 @@ class Katalogus(HTTPService):
         try:
             return dict_utils.deep_get(self.organisations_normalizer_type_cache, [organisation_id, normalizer_type])
         except dict_utils.ExpiredError:
-            self._flush_organisations_normalizer_cache()
+            self._flush_organisations_normalizer_type_cache()
             return dict_utils.deep_get(self.organisations_normalizer_type_cache, [organisation_id, normalizer_type])

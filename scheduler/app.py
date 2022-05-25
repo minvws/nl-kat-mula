@@ -51,7 +51,7 @@ class App:
         self.stop_event: threading.Event = self.ctx.stop_event
 
         # Initialize schedulers
-        self.schedulers: Dict[str, schedulers.Scheduler] = {}
+        self.schedulers: Dict[str, Union[schedulers.BoefjeScheduler, schedulers.NormalizerScheduler]] = {}
         self.initialize_boefje_schedulers()
         self.initialize_normalizer_schedulers()
 
