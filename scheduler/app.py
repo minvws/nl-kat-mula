@@ -106,7 +106,7 @@ class App:
         orgs = self.ctx.services.katalogus.get_organisations()
         for org in orgs:
             s = self.create_scheduler(org)
-            self.schedulers[org.id] = s
+            self.schedulers[s.scheduler_id] = s
 
     def create_scheduler(self, org: Organisation) -> schedulers.Scheduler:
         """Create a scheduler for the given organisation.
@@ -135,7 +135,7 @@ class App:
 
         scheduler = schedulers.BoefjeScheduler(
             ctx=self.ctx,
-            scheduler_id=org.id,
+            scheduler_id=f{"boefje-{org.id}"},
             queue=queue,
             dispatcher=dispatcher,
             ranker=ranker,
@@ -148,23 +148,27 @@ class App:
         """Monitor the organisations in the Katalogus service, and add/remove
         organisations from the schedulers.
         """
-        scheduler_orgs = set(self.schedulers.keys())
+        scheduler_orgs =  set([s.organisation.id for s in self.schedulers.values()])
         katalogus_orgs = set([org.id for org in self.ctx.services.katalogus.get_organisations()])
 
-        removals = katalogus_orgs.difference(scheduler_orgs)
-        additions = scheduler_orgs.difference(katalogus_orgs)
+        additions = katalogus_orgs.difference(scheduler_orgs)
+        removals = scheduler_orgs.difference(katalogus_orgs)
 
         for org_id in removals:
-            self.schedulers[org_id].stop()
-            del self.schedulers[org_id]
+            for s in self.schedulers.values():
+                if s.organisation.id != org_id:
+                    continue
+
+                del self.schedulers[s.scheduler_id]
+                break
 
         self.logger.info("Removed %s organisations from scheduler [org_ids=%s]", len(removals), removals)
 
         for org_id in additions:
             org = self.ctx.services.katalogus.get_organisation(org_id)
-            s = self.create_scheduler(org)
-            self.schedulers[org.id] = s
-            self.schedulers[org.id].run()
+
+            scheduler_boefje = self.create_scheduler(org)
+            self.schedulers[scheduler_boefje.scheduler_id] = scheduler_boefje
 
         self.logger.info("Added %s organisations to scheduler [org_ids=%s]", len(additions), additions)
 
@@ -190,7 +194,7 @@ class App:
             scheduler.run()
 
         # Start monitors
-        self._run_in_thread(name="monitor_organisations", func=self.monitor_organisations, interval=3600)
+        self._run_in_thread(name="monitor_organisations", func=self.monitor_organisations, interval=180)
 
         # Main thread
         while not self.stop_event.is_set():
