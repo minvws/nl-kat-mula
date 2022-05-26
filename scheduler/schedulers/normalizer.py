@@ -35,8 +35,7 @@ class NormalizerScheduler(Scheduler):
         while not self.queue.full():
             try:
                 # TODO: would be better to have a queue for this
-                # last_run_boefjes = self.ctx.services.bytes.get_last_run_boefje_by_organisation_id(self.organisation.id)
-                last_run_boefje = self.ctx.services.bytes.get_raw(
+                last_raw_data = self.ctx.services.bytes.get_raw(
                     organisation_id=self.organisation.id,
                     normalized=False,
                     limit=1,
@@ -49,7 +48,7 @@ class NormalizerScheduler(Scheduler):
                 )
                 continue
 
-            if not last_run_boefje:
+            if not last_raw_data:
                 self.logger.info(
                     "No last run boefjes found [org_id=%s, scheduler_id=%s]",
                     self.organisation.id,
@@ -57,7 +56,7 @@ class NormalizerScheduler(Scheduler):
                 )
                 break
 
-            p_items = self.create_tasks_for_boefje(last_run_boefje)
+            p_items = self.create_tasks_for_raw_data(last_raw_data)
             if len(p_items) == 0:
                 time.sleep(5)
                 continue
@@ -83,57 +82,46 @@ class NormalizerScheduler(Scheduler):
             )
             return
 
-    def create_tasks_for_boefje(self, raw_data: RawData) -> List[queues.PrioritizedItem]:
-        """Create normalizer tasks for every boefje that has been processed.
-
-        First we need to know what a boefje has for output (produces), since we
-        only have a boefje id from the boefje meta. We need to retrieve more
-        info about that particular boefje. And from the we need to get all the
-        available normalizers that can run on that output of the boefje.
+    def create_tasks_for_raw_data(self, raw_data: RawData) -> List[queues.PrioritizedItem]:
+        """Create normalizer tasks for every boefje that has been processed,
+        and created raw data in Bytes.
         """
         p_items: List[queues.PrioritizedItem] = []
 
         for mime_type in raw_data.mime_types:
             try:
                 normalizers = self.ctx.services.katalogus.get_normalizers_by_org_id_and_type(
-                    self.organisation.id, raw_data.boefje_meta.boefje.id
+                    self.organisation.id, mime_type,
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
-                    "Could not get normalizers for org: %s and boefje_meta: %s [org_id=%s, boefje_meta_id=%s, scheduler_id=%s]",
-                    self.organisation.name,
-                    raw_data.boefje_meta.id,
-                    self.organisation.id,
-                    raw_data.boefje_meta.id,
-                    self.scheduler_id,
+                    "Could not get normalizers for org: %s and mime_type: %s [boefje_meta_id=%s, org_id=%s, scheduler_id=%s]",
+                    self.organisation.name, mime_type, raw_data.boefje_meta.id, self.organisation.id, self.scheduler_id,
                 )
                 continue
 
             if normalizers is None:
                 self.logger.debug(
-                    "No normalizers found for boefje_id %s [boefje_id=%s, scheduler_id=%s]",
-                    raw_data.boefje_meta.boefje.id,
-                    self.scheduler_id,
+                    "No normalizers found for boefje_id %s [boefje_id=%s, org_id=%s, scheduler_id=%s]",
+                    raw_data.boefje_meta.boefje.id, self.organisation.id, self.scheduler_id,
                 )
                 continue
 
             self.logger.debug(
-                "Found %d normalizers for boefje: %s [boefje_id=%s, normalizers=%s, scheduler_id=%s]",
+                "Found %d normalizers for boefje: %s [boefje_id=%s, normalizers=%s, org_id=%s, scheduler_id=%s]",
                 len(normalizers),
                 raw_data.boefje_meta.boefje.id,
                 raw_data.boefje_meta.boefje.id,
                 [normalizer.name for normalizer in normalizers],
+                self.organisation.id,
                 self.scheduler_id,
             )
 
             for normalizer in normalizers:
                 if normalizer.enabled is False:
                     self.logger.debug(
-                        "Normalizer: %s is disabled [org_id=%s, plugin_id=%s, scheduler_id=%s]",
-                        normalizer.name,
-                        self.organisation.id,
-                        normalizer.id,
-                        self.scheduler_id,
+                        "Normalizer: %s is disabled for org: %s [plugin_id=%s, org_id=%s, scheduler_id=%s]",
+                        normalizer.name, self.organisation.name, normalizer.id, self.organisation.id, self.scheduler_id,
                     )
                     continue
 
@@ -144,12 +132,12 @@ class NormalizerScheduler(Scheduler):
                 )
 
                 if self.queue.is_item_on_queue(task):
-                    # TODO
                     self.logger.debug(
-                        "Normalizer task: %s is already on queue [normalizer_id=%s, boefje_meta_id=%s, , scheduler_id=%s]",
+                        "Normalizer task: %s is already on queue [normalizer_id=%s, boefje_meta_id=%s, org_id=%s, scheduler_id=%s]",
                         normalizer.name,
                         normalizer.id,
                         raw_data.boefje_meta.id,
+                        self.organisation.id,
                         self.scheduler_id,
                     )
                     continue
