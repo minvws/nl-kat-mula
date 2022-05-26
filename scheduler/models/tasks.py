@@ -9,6 +9,7 @@ from .normalizer import Normalizer
 
 class NormalizerTask(BaseModel):
     """NormalizerTask represent data needed for a Normalizer to run."""
+
     id: Optional[str]
     normalizer: Normalizer
     boefje_meta: BoefjeMeta

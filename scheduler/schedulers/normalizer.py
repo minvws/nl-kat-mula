@@ -96,7 +96,8 @@ class NormalizerScheduler(Scheduler):
         for mime_type in raw_data.mime_types:
             try:
                 normalizers = self.ctx.services.katalogus.get_normalizers_by_org_id_and_type(
-                    self.organisation.id, raw_data.boefje_meta.boefje.id)
+                    self.organisation.id, raw_data.boefje_meta.boefje.id
+                )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
                     "Could not get normalizers for org: %s and boefje_meta: %s [org_id=%s, boefje_meta_id=%s, scheduler_id=%s]",

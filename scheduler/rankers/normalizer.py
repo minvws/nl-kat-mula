@@ -9,5 +9,6 @@ class NormalizerRanker(Ranker):
 
     Using timestamp of an incoming job, to resemble a FIFO queue.
     """
+
     def rank(self, obj: Any) -> int:
         return int(datetime.now(timezone.utc).timestamp())

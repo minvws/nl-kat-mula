@@ -121,7 +121,7 @@ class App:
             pq=queue,
             item_type=NormalizerTask,
             celery_queue="normalizers",
-            task_name="tasks.handle_normalizer", # TODO: check this in rbmq
+            task_name="tasks.handle_normalizer",  # TODO: check this in rbmq
         )
 
         ranker = rankers.NormalizerRanker(

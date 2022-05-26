@@ -1,8 +1,7 @@
 import unittest
 from unittest import mock
 
-from scheduler import (config, connectors, dispatchers, models, queues,
-                       rankers, schedulers)
+from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers
 from tests.factories import OrganisationFactory
 
 
