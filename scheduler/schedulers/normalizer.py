@@ -33,6 +33,8 @@ class NormalizerScheduler(Scheduler):
 
     def populate_queue(self) -> None:
         while not self.queue.full():
+            time.sleep(1)
+
             try:
                 # TODO: would be better to have a queue for this
                 last_raw_data = self.ctx.services.bytes.get_raw(
@@ -58,7 +60,6 @@ class NormalizerScheduler(Scheduler):
 
             p_items = self.create_tasks_for_raw_data(last_raw_data)
             if len(p_items) == 0:
-                time.sleep(5)
                 continue
 
             # NOTE: maxsize 0 means unlimited
@@ -70,10 +71,9 @@ class NormalizerScheduler(Scheduler):
                     self.queue.maxsize,
                     self.scheduler_id,
                 )
-                time.sleep(5)
+                time.sleep(1)
 
             self.add_p_items_to_queue(p_items)
-            time.sleep(5)
         else:
             self.logger.warning(
                 "Normalizer queue is full, not populating with new tasks [qsize=%d, scheduler_id=%s]",
@@ -99,6 +99,7 @@ class NormalizerScheduler(Scheduler):
                     self.organisation.name, mime_type, raw_data.boefje_meta.id, self.organisation.id, self.scheduler_id,
                 )
                 continue
+
 
             if normalizers is None:
                 self.logger.debug(
