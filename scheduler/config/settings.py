@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     host_bytes_password: str = Field(..., env="BYTES_PASSWORD")
     host_octopoes: str = Field(..., env="OCTOPOES_API")
     host_scan_profile: str = Field(..., env="SCHEDULER_RABBITMQ_DSN")
+    host_raw_data: str = Field(..., env="SCHEDULER_RABBITMQ_DSN")
     # host_rocky: str = Field(..., env="ROCKY_API")
 
     # Listener settings

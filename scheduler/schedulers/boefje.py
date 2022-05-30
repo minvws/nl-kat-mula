@@ -60,11 +60,12 @@ class BoefjeScheduler(Scheduler):
                 pika.exceptions.ChannelClosedByBroker,
             ):
                 self.logger.warning(
-                    "Could not get latest oois for organisation: %s [org_id=%s, scheduler_id=%s]",
-                    self.organisation.name,
+                    "Could not connect to rabbitmq queue: %s [org_id=%s, scheduler_id=%s]",
+                    f"{self.organisation.id}__scan_profile_increments",
                     self.organisation.id,
                     self.scheduler_id,
                 )
+                time.sleep(5)
                 return
 
             if not latest_ooi:

@@ -3,6 +3,7 @@ import uuid
 from types import SimpleNamespace
 from typing import List
 
+import pika
 import requests
 
 from scheduler import context, dispatchers, queues, rankers, utils
@@ -36,11 +37,8 @@ class NormalizerScheduler(Scheduler):
             time.sleep(1)
 
             try:
-                # TODO: would be better to have a queue for this
-                last_raw_data = self.ctx.services.bytes.get_raw(
-                    organisation_id=self.organisation.id,
-                    normalized=False,
-                    limit=1,
+                last_raw_data =  self.ctx.services.raw_data.get_latest_raw_data(
+                    queue="f{self.organisation.id}__raw_file_received",
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
@@ -48,6 +46,15 @@ class NormalizerScheduler(Scheduler):
                     self.organisation.id,
                     self.scheduler_id,
                 )
+                continue
+            except pika.exceptions.ChannelClosedByBroker:
+                self.logger.warning(
+                    "Could not find rabbitmq queue: %s [org_id=%s, scheduler_id=%s]",
+                    f"{self.organisation.id}__raw_file_received",
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+                time.sleep(5)
                 continue
 
             if not last_raw_data:
