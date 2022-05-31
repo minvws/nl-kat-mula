@@ -68,7 +68,7 @@ class BoefjeScheduler(Scheduler):
                 time.sleep(5)
                 return
 
-            if not latest_ooi:
+            if latest_ooi is None:
                 self.logger.debug(
                     "No latest oois for organisation: %s [org_id=%s, scheduler_id=%s]",
                     self.organisation.name,

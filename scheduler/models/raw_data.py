@@ -16,5 +16,5 @@ class RawData(BaseModel):
 
 class RawDataReceivedEvent(BaseModel):
     created_at: datetime
-    organisation: str
+    organization: str
     raw_data: RawData

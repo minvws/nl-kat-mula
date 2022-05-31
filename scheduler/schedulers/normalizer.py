@@ -37,8 +37,8 @@ class NormalizerScheduler(Scheduler):
             time.sleep(1)
 
             try:
-                last_raw_data =  self.ctx.services.raw_data.get_latest_raw_data(
-                    queue="f{self.organisation.id}__raw_file_received",
+                latest_raw_data =  self.ctx.services.raw_data.get_latest_raw_data(
+                    queue=f"{self.organisation.id}__raw_file_received",
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
@@ -47,9 +47,13 @@ class NormalizerScheduler(Scheduler):
                     self.scheduler_id,
                 )
                 continue
-            except pika.exceptions.ChannelClosedByBroker:
+            except (
+                pika.exceptions.ConnectionClosed,
+                pika.exceptions.ChannelClosed,
+                pika.exceptions.ChannelClosedByBroker,
+            ):
                 self.logger.warning(
-                    "Could not find rabbitmq queue: %s [org_id=%s, scheduler_id=%s]",
+                    "Could not connect to rabbitmq queue: %s [org_id=%s, scheduler_id=%s]",
                     f"{self.organisation.id}__raw_file_received",
                     self.organisation.id,
                     self.scheduler_id,
@@ -57,15 +61,15 @@ class NormalizerScheduler(Scheduler):
                 time.sleep(5)
                 continue
 
-            if not last_raw_data:
+            if latest_raw_data is None:
                 self.logger.info(
-                    "No last run boefjes found [org_id=%s, scheduler_id=%s]",
+                    "No latest raw data found [org_id=%s, scheduler_id=%s]",
                     self.organisation.id,
                     self.scheduler_id,
                 )
                 break
 
-            p_items = self.create_tasks_for_raw_data(last_raw_data)
+            p_items = self.create_tasks_for_raw_data(latest_raw_data)
             if len(p_items) == 0:
                 continue
 
@@ -98,7 +102,7 @@ class NormalizerScheduler(Scheduler):
         for mime_type in raw_data.mime_types:
             try:
                 normalizers = self.ctx.services.katalogus.get_normalizers_by_org_id_and_type(
-                    self.organisation.id, mime_type,
+                    self.organisation.id, mime_type.get("value"),
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
@@ -110,16 +114,16 @@ class NormalizerScheduler(Scheduler):
 
             if normalizers is None:
                 self.logger.debug(
-                    "No normalizers found for boefje_id %s [boefje_id=%s, org_id=%s, scheduler_id=%s]",
-                    raw_data.boefje_meta.boefje.id, self.organisation.id, self.scheduler_id,
+                    "No normalizers found for mime_type: %s [mime_type=%s, org_id=%s, scheduler_id=%s]",
+                    mime_type.get("value"), mime_type.get("value"), self.organisation.id, self.scheduler_id,
                 )
                 continue
 
             self.logger.debug(
-                "Found %d normalizers for boefje: %s [boefje_id=%s, normalizers=%s, org_id=%s, scheduler_id=%s]",
+                "Found %d normalizers for mime_type: %s [mime_type=%s, normalizers=%s, org_id=%s, scheduler_id=%s]",
                 len(normalizers),
-                raw_data.boefje_meta.boefje.id,
-                raw_data.boefje_meta.boefje.id,
+                mime_type.get("value"),
+                mime_type.get("value"),
                 [normalizer.name for normalizer in normalizers],
                 self.organisation.id,
                 self.scheduler_id,
