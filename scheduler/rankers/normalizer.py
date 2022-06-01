@@ -5,8 +5,7 @@ from .ranker import Ranker
 
 
 class NormalizerRanker(Ranker):
-    """Ranking of NormalizerTasks
-    """
+    """Ranking of NormalizerTasks"""
 
     def rank(self, obj: Any) -> int:
         # Features:

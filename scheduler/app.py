@@ -5,7 +5,7 @@ import threading
 import time
 import uuid
 from datetime import timedelta
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Union
 
 import requests
 

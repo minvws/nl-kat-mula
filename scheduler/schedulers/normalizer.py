@@ -37,7 +37,7 @@ class NormalizerScheduler(Scheduler):
             time.sleep(1)
 
             try:
-                latest_raw_data =  self.ctx.services.raw_data.get_latest_raw_data(
+                latest_raw_data = self.ctx.services.raw_data.get_latest_raw_data(
                     queue=f"{self.organisation.id}__raw_file_received",
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
@@ -102,20 +102,27 @@ class NormalizerScheduler(Scheduler):
         for mime_type in raw_data.mime_types:
             try:
                 normalizers = self.ctx.services.katalogus.get_normalizers_by_org_id_and_type(
-                    self.organisation.id, mime_type.get("value"),
+                    self.organisation.id,
+                    mime_type.get("value"),
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
                     "Could not get normalizers for org: %s and mime_type: %s [boefje_meta_id=%s, org_id=%s, scheduler_id=%s]",
-                    self.organisation.name, mime_type, raw_data.boefje_meta.id, self.organisation.id, self.scheduler_id,
+                    self.organisation.name,
+                    mime_type,
+                    raw_data.boefje_meta.id,
+                    self.organisation.id,
+                    self.scheduler_id,
                 )
                 continue
-
 
             if normalizers is None:
                 self.logger.debug(
                     "No normalizers found for mime_type: %s [mime_type=%s, org_id=%s, scheduler_id=%s]",
-                    mime_type.get("value"), mime_type.get("value"), self.organisation.id, self.scheduler_id,
+                    mime_type.get("value"),
+                    mime_type.get("value"),
+                    self.organisation.id,
+                    self.scheduler_id,
                 )
                 continue
 
@@ -133,7 +140,11 @@ class NormalizerScheduler(Scheduler):
                 if normalizer.enabled is False:
                     self.logger.debug(
                         "Normalizer: %s is disabled for org: %s [plugin_id=%s, org_id=%s, scheduler_id=%s]",
-                        normalizer.name, self.organisation.name, normalizer.id, self.organisation.id, self.scheduler_id,
+                        normalizer.name,
+                        self.organisation.name,
+                        normalizer.id,
+                        self.organisation.id,
+                        self.scheduler_id,
                     )
                     continue
 
