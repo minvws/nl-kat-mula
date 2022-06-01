@@ -39,8 +39,14 @@ class Katalogus(HTTPService):
                 if plugin.type != "boefje":
                     continue
 
-                # NOTE: when it is a boefje the consumes field is a string field
-                self.organisations_boefje_type_cache[org.id].setdefault(plugin.consumes, []).append(plugin)
+                # NOTE: backwards compatability, when it is a boefje the
+                # consumes field is a string field.
+                if type(plugin.consumes) == str:
+                    self.organisations_boefje_type_cache[org.id].setdefault(plugin.consumes, []).append(plugin)
+                    continue
+
+                for type_ in plugin.consumes:
+                    self.organisations_boefje_type_cache[org.id].setdefault(type_, []).append(plugin)
 
     def _flush_organisations_normalizer_type_cache(self) -> None:
         """normalizer.consumes -> plugin type normalizer"""
