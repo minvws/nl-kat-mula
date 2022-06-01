@@ -5,9 +5,8 @@ from .ranker import Ranker
 
 
 class NormalizerRanker(Ranker):
-    """Ranking of NormalizerTasks"""
 
     def rank(self, obj: Any) -> int:
-        # Features:
-        # * how many findings with mime_type and normalizer
-        return int(datetime.now(timezone.utc).timestamp())
+        """Ranking of normalizer tasks, we want raw files that have been
+        created a long time ago to be processed earlier."""
+        return int(obj.raw_data.boefje_meta.ended_at.timestamp())

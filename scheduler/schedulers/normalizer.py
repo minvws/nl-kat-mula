@@ -165,7 +165,7 @@ class NormalizerScheduler(Scheduler):
                     )
                     continue
 
-                score = self.ranker.rank(SimpleNamespace(task=task))
+                score = self.ranker.rank(SimpleNamespace(raw_data=raw_data, task=task))
                 p_items.append(queues.PrioritizedItem(priority=score, item=task))
 
         return p_items
