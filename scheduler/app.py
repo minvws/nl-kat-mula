@@ -113,7 +113,7 @@ class App:
             pq_id=f"normalizer-{org.id}",
             maxsize=self.ctx.config.pq_maxsize,
             item_type=NormalizerTask,
-            allow_priority_updates=True,  # TODO: check if this is correct
+            allow_priority_updates=True,
         )
 
         dispatcher = dispatchers.NormalizerDispatcher(
@@ -121,7 +121,7 @@ class App:
             pq=queue,
             item_type=NormalizerTask,
             celery_queue="normalizers",
-            task_name="tasks.handle_normalizer",  # TODO: check this in rbmq
+            task_name="tasks.handle_normalizer",
         )
 
         ranker = rankers.NormalizerRanker(
@@ -166,7 +166,7 @@ class App:
             pq=queue,
             item_type=BoefjeTask,
             celery_queue="boefjes",
-            task_name="tasks.handle_boefje",  # TODO: check this in rbmq
+            task_name="tasks.handle_boefje",
         )
 
         ranker = rankers.BoefjeRanker(
@@ -184,7 +184,6 @@ class App:
 
         return scheduler
 
-    # TODO: write tests for this
     def monitor_organisations(self) -> None:
         """Monitor the organisations in the Katalogus service, and add/remove
         organisations from the schedulers.
@@ -234,12 +233,11 @@ class App:
             self._run_in_thread(name=name, func=listener.listen)
 
         # Start the schedulers
-        self.logger.info(self.schedulers)
         for scheduler in self.schedulers.values():
             scheduler.run()
 
         # Start monitors
-        self._run_in_thread(name="monitor_organisations", func=self.monitor_organisations, interval=180)
+        self._run_in_thread(name="monitor_organisations", func=self.monitor_organisations, interval=3600)
 
         # Main thread
         while not self.stop_event.is_set():

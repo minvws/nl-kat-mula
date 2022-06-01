@@ -87,7 +87,7 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
         ]
 
         self.scheduler.populate_queue()
-        self.assertEqual(self.scheduler.queue.qsize(), 1)
+        self.assertEqual(1, self.scheduler.queue.qsize())
         self.assertEqual(task, self.scheduler.queue.peek(0).p_item.item)
 
     @mock.patch("scheduler.context.AppContext.services.raw_data.get_latest_raw_data")
@@ -95,7 +95,7 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
         mock_get_latest_raw_data.return_value = None
 
         self.scheduler.populate_queue()
-        self.assertEqual(self.scheduler.queue.qsize(), 0)
+        self.assertEqual(0, self.scheduler.queue.qsize())
 
     @mock.patch("scheduler.context.AppContext.services.raw_data.get_latest_raw_data")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_normalizers_by_org_id_and_type")
@@ -139,7 +139,7 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
         mock_get_normalizers.return_value = []
 
         tasks = self.scheduler.create_tasks_for_raw_data(raw_data)
-        self.assertGreaterEqual(len(tasks), 0)
+        self.assertGreaterEqual(0, len(tasks))
 
     @mock.patch("scheduler.context.AppContext.services.raw_data.get_latest_raw_data")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_normalizers_by_org_id_and_type")
@@ -162,4 +162,4 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
         mock_get_normalizers.return_value = [normalizer]
 
         tasks = self.scheduler.create_tasks_for_raw_data(raw_data)
-        self.assertEqual(len(tasks), 0)
+        self.assertEqual(0, len(tasks))

@@ -13,8 +13,8 @@ class Katalogus(HTTPService):
         super().__init__(host, source, timeout)
 
         self.organisations_plugin_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict()
-        self.organisations_boefje_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict()
-        self.organisations_normalizer_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict()
+        self.organisations_boefje_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict(lifetime=1)
+        self.organisations_normalizer_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict(lifetime=1)
 
         self._flush_organisations_plugin_cache()
         self._flush_organisations_normalizer_type_cache()
@@ -29,9 +29,7 @@ class Katalogus(HTTPService):
             }
 
     def _flush_organisations_boefje_type_cache(self) -> None:
-        """
-        boefje.consumes -> plugin type boefje
-        """
+        """boefje.consumes -> plugin type boefje"""
         orgs = self.get_organisations()
 
         for org in orgs:
@@ -45,9 +43,7 @@ class Katalogus(HTTPService):
                 self.organisations_boefje_type_cache[org.id].setdefault(plugin.consumes, []).append(plugin)
 
     def _flush_organisations_normalizer_type_cache(self) -> None:
-        """
-        normalizer.consumes -> plugin type normalizer
-        """
+        """normalizer.consumes -> plugin type normalizer"""
         orgs = self.get_organisations()
 
         for org in orgs:
