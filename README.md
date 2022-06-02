@@ -3,11 +3,12 @@
 ## Purpose
 
 The scheduler is responsible for scheduling the execution of tasks. The
-execution of those tasks are being prioritized / scored by a ranker. The
-tasks are then pushed onto a priority queue. A dispatcher pop's tasks of
-the queue and send those tasks to a worker to be picked up.
+execution of those tasks are being prioritized / scored by a ranker. The tasks
+are then pushed onto a priority queue. A dispatcher pop's tasks of the queue
+and send those tasks to a worker to be picked up.
 
-Within the project of KAT, the scheduler is tasked with scheduling boefje tasks.
+Within the project of KAT, the scheduler is tasked with scheduling boefje and
+normalizer tasks.
 
 ## Architecture
 
@@ -28,10 +29,10 @@ The scheduler interfaces with the following services:
 | Service | Usage |
 |---------|-------|
 | [Octopoes](https://github.com/minvws/nl-rt-tim-abang-octopoes) | Retrieving random OOI's of organizations |
-| [Katalogus](https://github.com/minvws/nl-rt-tim-abang-boefjes/tree/develop/katalogus) | Used for referencing available boefjes, and organizations |
+| [Katalogus](https://github.com/minvws/nl-rt-tim-abang-boefjes/tree/develop/katalogus) | Used for referencing available plugins and organizations |
 | [Bytes](https://github.com/minvws/nl-rt-tim-abang-bytes) | Retrieve last run boefje for organization and OOI |
-| [Boefjes](https://github.com/minvws/nl-rt-tim-abang-boefjes) | Sending boefje task via Celery |
-| [RabbitMQ]() | Used for retrieving scan profile changes |
+| [Boefjes](https://github.com/minvws/nl-rt-tim-abang-boefjes) | Sending boefje, and normalizer tasks to Celery |
+| [RabbitMQ]() | Used for retrieving scan profile changes, and created raw data in bytes  |
 
 ### Project structure
 

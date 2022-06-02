@@ -51,9 +51,9 @@ graph TB
 
     Octopoes--"Get random oois<br/>HTTP GET"-->Scheduler
 
-    RabbitMQ--"Get latest created oois<br/>AMQP"-->Scheduler
+    RabbitMQ--"Get latest created oois<br/>Get latest raw files<br/>AMQP"-->Scheduler
 
-    Katalogus--"Get available boefjes (plugins)<br/>HTTP GET"-->Scheduler
+    Katalogus--"Get available plugins<br/>HTTP GET"-->Scheduler
     Bytes--"Get last run boefje<br/>HTTP GET"-->Scheduler
 
     Scheduler--"Send task<br/>CELERY send_task"-->Boefjes
@@ -74,6 +74,7 @@ flowchart TB
     Octopoes["Octopoes<br/>[graph database]"]
     Katalogus["Katalogus<br/>[software system]"]
     Boefjes["Boefjes<br/>[software system]"]
+    Normalizers["Normalizers<br/>[software system]"]
     Bytes["Bytes<br/>[software system]"]
     RabbitMQ["RabbitMQ<br/>[message broker]"]
 
@@ -81,34 +82,46 @@ flowchart TB
     Rocky--"Create object"-->Octopoes
     Rocky--"Create scan job<br/>HTTP POST"--->push_queue
     
-    Katalogus--"Get available boefjes<br/>HTTP GET"--->create_tasks_for_ooi
     Bytes--"Check last run of boefje and ooi<br/>HTTP GET"-->create_tasks_for_ooi
+    Katalogus--"Get available boefjes<br/>HTTP GET"--->create_tasks_for_ooi
+    Katalogus--"Get availalble normalizers<br/>HTTP GET"-->create_tasks_for_raw_data
     Octopoes--"Get random ooi"--->get_random_object
     RabbitMQ--"Get latest created object<br/>(scan level increase)"-->get_latest_object
+    RabbitMQ--"Get latest raw data file<br/>(boefje finished)"-->get_latest_raw_data
 
-    push_queue--"Push job with highest priority"-->PriorityQueue
-    PriorityQueue--"Pop job with highest priority"-->Dispatcher
-    Dispatcher--"Send task to Boefjes"-->Boefjes
+    push_queue--"Push job with highest priority"-->BoefjePriorityQueue
 
-    get_latest_object-->get_random_object-->create_tasks_for_ooi-->rank-->push-->PriorityQueue
+    BoefjeDispatcher--"Send task to Boefjes"-->Boefjes
+    NormalizerDispatcher--"Send task to Normalizers"-->Normalizers
 
-    subgraph Scheduler
+    get_latest_object-->get_random_object-->create_tasks_for_ooi-->rank_boefje-->push_boefje-->BoefjePriorityQueue-->BoefjeDispatcher
 
-        subgraph populate_queue["populate_queue [method]"]
+    get_latest_raw_data-->create_tasks_for_raw_data-->rank_normalizer-->push_normalizer-->NormalizerPriorityQueue-->NormalizerDispatcher
+
+    subgraph Scheduler["SchedulerApp [module]"]
+
+        subgraph BoefjeScheduler["BoefjeScheduler [class]"]
             get_latest_object[["get_latest_object"]]
             get_random_object[["get_random_object"]]
             create_tasks_for_ooi[["create_tasks_for_ooi<br/><br/>combine ooi with available <br/>boefjes to create tasks"]]
-            rank[["rank"]]
-            push[["push"]]
+            rank_boefje[["rank"]]
+            push_boefje[["push"]]
+            BoefjePriorityQueue(["PriorityQueue"])
+            BoefjeDispatcher[["Dispatcher"]]
+        end
+
+        subgraph NormalizerScheduler["NormalizerScheduler [class]"]
+            get_latest_raw_data[["get_latest_raw_data"]]
+            create_tasks_for_raw_data[["create_tasks_for_raw_data<br/><br/>combine ooi with available <br/>boefjes to create tasks"]]
+            rank_normalizer[["rank"]]
+            push_normalizer[["push"]]
+            NormalizerPriorityQueue(["PriorityQueue"])
+            NormalizerDispatcher[["Dispatcher"]]
         end
 
         subgraph Server
             push_queue[["push_queue<br/>[api endpoint]"]]
         end
-
-        Dispatcher
-
-        PriorityQueue(["PriorityQueue"])
 
     end
 
