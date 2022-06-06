@@ -185,14 +185,14 @@ class BoefjeScheduler(Scheduler):
         for ooi in oois:
             try:
                 boefjes = self.ctx.services.katalogus.get_boefjes_by_type_and_org_id(
-                    ooi.ooi_type,
+                    ooi.object_type,
                     self.organisation.id,
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
-                    "Could not get boefjes for ooi_type: %s [ooi_type=%s, scheduler_id=%s]",
-                    ooi.ooi_type,
-                    ooi.ooi_type,
+                    "Could not get boefjes for object_type: %s [object_type=%s, scheduler_id=%s]",
+                    ooi.object_type,
+                    ooi.object_type,
                     self.scheduler_id,
                 )
                 continue
@@ -200,7 +200,7 @@ class BoefjeScheduler(Scheduler):
             if boefjes is None:
                 self.logger.debug(
                     "No boefjes found for type: %s [ooi=%s, scheduler_id=%s]",
-                    ooi.ooi_type,
+                    ooi.object_type,
                     ooi,
                     self.scheduler_id,
                 )

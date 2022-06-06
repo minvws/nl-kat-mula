@@ -41,7 +41,7 @@ class Katalogus(HTTPService):
 
                 # NOTE: backwards compatability, when it is a boefje the
                 # consumes field is a string field.
-                if type(plugin.consumes) == str:
+                if isinstance(plugin.consumes, str):
                     self.organisations_boefje_type_cache[org.id].setdefault(plugin.consumes, []).append(plugin)
                     continue
 

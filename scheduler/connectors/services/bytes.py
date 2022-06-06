@@ -61,18 +61,3 @@ class Bytes(HTTPService):
             return BoefjeMeta(**response.json()[0])
 
         return None
-
-    def get_raw(self, organisation_id: str, normalized: bool, limit: int) -> Optional[RawData]:
-        url = f"{self.host}/bytes/raw"
-        response = self.get(
-            url=url,
-            params={
-                "organization": organisation_id,
-                "normalized": normalized,
-                "limit": limit,
-            },
-        )
-        if response.status_code == 200 and len(response.json()) > 0:
-            return RawData(**response.json()[0])
-
-        return None
