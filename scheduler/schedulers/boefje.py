@@ -93,10 +93,10 @@ class BoefjeScheduler(Scheduler):
                     self.queue.maxsize,
                     self.scheduler_id,
                 )
-                time.sleep(1)
+                time.sleep(0.01)
 
             self.add_p_items_to_queue(p_items)
-            time.sleep(1)
+            time.sleep(0.01)
         else:
             self.logger.warning(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, scheduler_id=%s]",

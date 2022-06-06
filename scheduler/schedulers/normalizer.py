@@ -34,7 +34,7 @@ class NormalizerScheduler(Scheduler):
 
     def populate_queue(self) -> None:
         while not self.queue.full():
-            time.sleep(1)
+            time.sleep(0.01)
 
             try:
                 latest_raw_data = self.ctx.services.raw_data.get_latest_raw_data(

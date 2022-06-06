@@ -1,3 +1,4 @@
+import random
 import time
 import unittest
 import uuid
@@ -6,9 +7,10 @@ from unittest import mock
 
 from scheduler import (config, connectors, dispatchers, models, queues,
                        rankers, schedulers)
-from tests.factories import (BoefjeMetaFactory, OOIFactory,
+from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
                              OrganisationFactory, PluginFactory,
                              RawDataFactory, ScanProfileFactory)
+from tests.utils import profile_memory
 
 
 class SimulationTestCase(unittest.TestCase):
@@ -78,16 +80,64 @@ class SimulationTestCase(unittest.TestCase):
             organisation=organisation,
         )
 
+    @profile_memory
     @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
     @mock.patch("scheduler.context.AppContext.services.octopoes.get_random_objects")
-    def test_simulation(self, mock_get_random_objects, mock_get_latest_object):
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
+    def test_simulation_boefje_queue(self, mock_create_tasks_for_oois,mock_get_random_objects, mock_get_latest_object):
+        iterations = 10000
+        oois = [OOIFactory(scan_profile=ScanProfileFactory(level=0)) for _ in range(iterations)]
 
-        mock_get_latest_object.return_value = OOIFactory(scan_profile=ScanProfileFactory(level=0))
+        mock_get_latest_object.side_effect = oois + [None]
 
-        mock_get_random_objects.return_value = [OOIFactory(scan_profile=ScanProfileFactory(level=0))]
+        mock_get_random_objects.return_value = []
 
-        # n_scheduler = self.create_normalizer_scheduler_for_organisation(self.organisation)
+        # We just create 1 task for each OOI
+        mock_create_tasks_for_oois.side_effect = [
+            [queues.PrioritizedItem(
+                0, models.BoefjeTask(
+                    id=uuid.uuid4().hex,
+                    boefje=BoefjeFactory(),
+                    input_ooi=ooi.primary_key,
+                    organization=self.organisation.id,
+                ),
+            )] for ooi in oois
+        ]
+
         b_scheduler = self.create_boefje_scheduler_for_organisation(self.organisation)
-
-        # n_scheduler.populate_queue()
         b_scheduler.populate_queue()
+
+        self.assertEqual(iterations, b_scheduler.queue.qsize())
+
+    @profile_memory
+    @mock.patch("scheduler.schedulers.NormalizerScheduler.create_tasks_for_raw_data")
+    @mock.patch("scheduler.context.AppContext.services.raw_data.get_latest_raw_data")
+    def test_simulation_normalizer_queue(self, mock_get_latest_raw_data, mock_create_tasks_for_raw_data):
+        iterations = 10000
+        raw_data = [
+            RawDataFactory(
+                boefje_meta=BoefjeMetaFactory(
+                    boefje=PluginFactory(type="boefje", scan_level=0),
+                    input_ooi=OOIFactory(scan_profile=ScanProfileFactory(level=0)).primary_key,
+                )
+            ) for _ in range(iterations)
+        ]
+
+        mock_get_latest_raw_data.side_effect = raw_data + [None]
+
+        # We just create 1 task for each raw data
+        mock_create_tasks_for_raw_data.side_effect = [
+            [queues.PrioritizedItem(
+                    0,
+                    models.NormalizerTask(
+                        id=uuid.uuid4().hex,
+                        normalizer=PluginFactory(type="normalizer"),
+                        boefje_meta=raw_file.boefje_meta,
+                    )
+            )] for raw_file in raw_data
+        ]
+
+        n_scheduler = self.create_normalizer_scheduler_for_organisation(self.organisation)
+        n_scheduler.populate_queue()
+
+        self.assertEqual(iterations, n_scheduler.queue.qsize())
