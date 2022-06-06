@@ -2,7 +2,8 @@ import uuid
 from typing import Any, Dict
 
 import factory
-from factory import Factory, Faker, LazyFunction, PostGenerationMethodCall, Sequence, fuzzy
+from factory import (Factory, Faker, LazyFunction, PostGenerationMethodCall,
+                     Sequence, fuzzy)
 from scheduler.models import OOI, ScanProfile
 
 
@@ -20,6 +21,11 @@ class ScanProfileFactory(Factory):
     reference: str = Faker("uuid4")
 
     ooi_type: str = Faker(
+        "random_element",
+        elements=["Hostname", "Network"],
+    )
+
+    object_type: str = Faker(
         "random_element",
         elements=["Hostname", "Network"],
     )

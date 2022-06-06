@@ -114,6 +114,11 @@ else
 	docker-compose -f base.yml  -f .ci/docker-compose.yml down
 endif
 
+stest: ## Run the simulation tests.
+	docker-compose -f base.yml  -f .ci/docker-compose.yml \
+		run --rm mula python -m unittest discover -v tests/simulation; \
+	docker-compose -f base.yml  -f .ci/docker-compose.yml down
+
 test: ## Run all tests.
 	make utest
 	make itest
