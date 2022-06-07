@@ -8,7 +8,7 @@ import pika
 import requests
 
 from scheduler import context, dispatchers, queues, rankers, utils
-from scheduler.models import OOI, BoefjeTask, Organisation
+from scheduler.models import OOI, Boefje, BoefjeTask, Organisation
 
 from .scheduler import Scheduler
 
@@ -60,14 +60,15 @@ class BoefjeScheduler(Scheduler):
                 pika.exceptions.ChannelClosedByBroker,
             ):
                 self.logger.warning(
-                    "Could not get latest oois for organisation: %s [org_id=%s, scheduler_id=%s]",
-                    self.organisation.name,
+                    "Could not connect to rabbitmq queue: %s [org_id=%s, scheduler_id=%s]",
+                    f"{self.organisation.id}__scan_profile_increments",
                     self.organisation.id,
                     self.scheduler_id,
                 )
+                time.sleep(5)
                 return
 
-            if not latest_ooi:
+            if latest_ooi is None:
                 self.logger.debug(
                     "No latest oois for organisation: %s [org_id=%s, scheduler_id=%s]",
                     self.organisation.name,
@@ -184,14 +185,14 @@ class BoefjeScheduler(Scheduler):
         for ooi in oois:
             try:
                 boefjes = self.ctx.services.katalogus.get_boefjes_by_type_and_org_id(
-                    ooi.ooi_type,
+                    ooi.object_type,
                     self.organisation.id,
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
-                    "Could not get boefjes for ooi_type: %s [ooi_type=%s, scheduler_id=%s]",
-                    ooi.ooi_type,
-                    ooi.ooi_type,
+                    "Could not get boefjes for object_type: %s [object_type=%s, scheduler_id=%s]",
+                    ooi.object_type,
+                    ooi.object_type,
                     self.scheduler_id,
                 )
                 continue
@@ -199,7 +200,7 @@ class BoefjeScheduler(Scheduler):
             if boefjes is None:
                 self.logger.debug(
                     "No boefjes found for type: %s [ooi=%s, scheduler_id=%s]",
-                    ooi.ooi_type,
+                    ooi.object_type,
                     ooi,
                     self.scheduler_id,
                 )
@@ -227,7 +228,7 @@ class BoefjeScheduler(Scheduler):
 
                 task = BoefjeTask(
                     id=uuid.uuid4().hex,
-                    boefje=boefje,
+                    boefje=Boefje.parse_obj(boefje),
                     input_ooi=ooi.primary_key,
                     organization=self.organisation.id,
                 )

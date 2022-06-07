@@ -13,8 +13,7 @@ class ScanProfile(RabbitMQ):
     name = "scan_profile"
 
     def get_latest_object(self, queue: str) -> Optional[OOI]:
-        response = self.get(queue=queue)
-
+        response = self.get(queue)
         if response is None:
             return None
 

@@ -51,6 +51,9 @@ class AppContext:
                 listeners.ScanProfile.name: listeners.ScanProfile(
                     dsn=self.config.host_scan_profile,
                 ),
+                listeners.RawData.name: listeners.RawData(
+                    dsn=self.config.host_raw_data,
+                ),
             }
         )
 

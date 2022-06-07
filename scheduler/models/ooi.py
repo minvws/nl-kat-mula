@@ -10,5 +10,6 @@ class OOI(BaseModel):
 
     primary_key: str
     name: Optional[str]
-    ooi_type: str
+    ooi_type: Optional[str]
+    object_type: Optional[str]
     scan_profile: ScanProfile

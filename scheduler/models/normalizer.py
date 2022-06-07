@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 
 
 class Normalizer(BaseModel):
+    """Normalizer representation."""
+
     id: str
-    name: str
+    name: Optional[str]
     version: Optional[str] = Field(default=None)
