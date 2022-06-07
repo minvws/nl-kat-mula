@@ -2,11 +2,15 @@ import unittest
 import uuid
 from unittest import mock
 
-from scheduler import (config, connectors, dispatchers, models, queues,
-                       rankers, schedulers)
-from tests.factories import (BoefjeMetaFactory, OOIFactory,
-                             OrganisationFactory, PluginFactory,
-                             RawDataFactory, ScanProfileFactory)
+from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers
+from tests.factories import (
+    BoefjeMetaFactory,
+    OOIFactory,
+    OrganisationFactory,
+    PluginFactory,
+    RawDataFactory,
+    ScanProfileFactory,
+)
 
 
 class NormalizerSchedulerTestCase(unittest.TestCase):
