@@ -46,8 +46,8 @@ class BoefjeScheduler(Scheduler):
         been created, e.g. when the scan level was increased (since oois start
         with a scan level 0 and will not start any boefjes).
 
-        When this is done we will try and fill the reset of the queue with
-        random items from octopoes and scheduler them accordingly.
+        When this is done we will try and fill the rest of the queue with
+        random items from octopoes and schedule them accordingly.
         """
         while not self.queue.full():
             try:
@@ -58,13 +58,16 @@ class BoefjeScheduler(Scheduler):
                 pika.exceptions.ConnectionClosed,
                 pika.exceptions.ChannelClosed,
                 pika.exceptions.ChannelClosedByBroker,
-            ):
+            ) as e:
                 self.logger.warning(
                     "Could not connect to rabbitmq queue: %s [org_id=%s, scheduler_id=%s]",
                     f"{self.organisation.id}__scan_profile_increments",
                     self.organisation.id,
                     self.scheduler_id,
                 )
+                if self.stop_event.is_set():
+                    raise e
+
                 time.sleep(5)
                 return
 
@@ -298,7 +301,9 @@ class BoefjeScheduler(Scheduler):
                     )
                     continue
 
-                # Boefjes should not run before the grace period ends
+                # Boefjes should not run before the grace period ends, thus
+                # we will check when the combination boefje and ooi was last
+                # run.
                 try:
                     last_run_boefje = self.ctx.services.bytes.get_last_run_boefje(
                         boefje_id=boefje.id,

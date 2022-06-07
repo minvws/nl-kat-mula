@@ -51,13 +51,16 @@ class NormalizerScheduler(Scheduler):
                 pika.exceptions.ConnectionClosed,
                 pika.exceptions.ChannelClosed,
                 pika.exceptions.ChannelClosedByBroker,
-            ):
+            ) as e:
                 self.logger.warning(
                     "Could not connect to rabbitmq queue: %s [org_id=%s, scheduler_id=%s]",
                     f"{self.organisation.id}__raw_file_received",
                     self.organisation.id,
                     self.scheduler_id,
                 )
+                if self.stop_event.is_set():
+                    raise e
+
                 time.sleep(5)
                 continue
 
