@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import signal
 import threading
 import time
 import uuid
@@ -24,17 +25,17 @@ class App:
         ctx:
             Application context of shared data (e.g. configuration, external
             services connections).
-        listeners:
-            A dict of connector.Listener instances.
-        queues:
-            A dict of queue.PriorityQueue instances.
-        server:
-            A server.Server instance.
         threads:
             A dict of ThreadRunner instances, used for runner processes
             concurrently.
         stop_event: A threading.Event object used for communicating a stop
             event across threads.
+        schedulers:
+            A dict of schedulers, keyed by scheduler id.
+        listeners:
+            A dict of connector.Listener instances.
+        server:
+            A server.Server instance that handles the API server.
     """
 
     def __init__(self, ctx: context.AppContext) -> None:
@@ -66,7 +67,7 @@ class App:
 
     def shutdown(self) -> None:
         """Gracefully shutdown the scheduler, and all threads."""
-        self.logger.warning("Shutting down...")
+        self.logger.info("Shutting down...")
 
         for s in self.schedulers.values():
             s.stop()
@@ -74,9 +75,12 @@ class App:
         for t in self.threads.values():
             t.join(5)
 
-        self.logger.warning("Shutdown complete")
+        self.logger.info("Shutdown complete")
 
-        exit()
+        # We're calling this here, because we want to issue a shutdown from
+        # within a thread, otherwise it will not exit a docker container.
+        # Source: https://stackoverflow.com/a/1489838/1346257
+        os._exit(1)
 
     def _run_in_thread(
         self,

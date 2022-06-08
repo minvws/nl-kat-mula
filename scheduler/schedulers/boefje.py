@@ -46,10 +46,12 @@ class BoefjeScheduler(Scheduler):
         been created, e.g. when the scan level was increased (since oois start
         with a scan level 0 and will not start any boefjes).
 
-        When this is done we will try and fill the reset of the queue with
-        random items from octopoes and scheduler them accordingly.
+        When this is done we will try and fill the rest of the queue with
+        random items from octopoes and schedule them accordingly.
         """
         while not self.queue.full():
+            time.sleep(1)
+
             try:
                 latest_ooi = self.ctx.services.scan_profile.get_latest_object(
                     queue=f"{self.organisation.id}__scan_profile_increments",
@@ -58,14 +60,17 @@ class BoefjeScheduler(Scheduler):
                 pika.exceptions.ConnectionClosed,
                 pika.exceptions.ChannelClosed,
                 pika.exceptions.ChannelClosedByBroker,
-            ):
+            ) as e:
                 self.logger.warning(
                     "Could not connect to rabbitmq queue: %s [org_id=%s, scheduler_id=%s]",
                     f"{self.organisation.id}__scan_profile_increments",
                     self.organisation.id,
                     self.scheduler_id,
                 )
-                time.sleep(5)
+                if self.stop_event.is_set():
+                    raise e
+
+                time.sleep(60)
                 return
 
             if latest_ooi is None:
@@ -85,28 +90,31 @@ class BoefjeScheduler(Scheduler):
                 continue
 
             # NOTE: maxsize 0 means unlimited
-            while len(p_items) > self.queue.maxsize - self.queue.pq.qsize() and self.queue.maxsize != 0:
+            while len(p_items) > (self.queue.maxsize - self.queue.pq.qsize()) and self.queue.maxsize != 0:
                 self.logger.debug(
-                    "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d maxsize=%d, scheduler_id=%s]",
+                    "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
                     len(p_items),
                     self.queue.pq.qsize(),
                     self.queue.maxsize,
+                    self.organisation.id,
                     self.scheduler_id,
                 )
                 time.sleep(0.01)
 
             self.add_p_items_to_queue(p_items)
-            time.sleep(0.01)
         else:
             self.logger.warning(
-                "Boefjes queue is full, not populating with new tasks [qsize=%d, scheduler_id=%s]",
+                "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
                 self.queue.pq.qsize(),
+                self.organisation.id,
                 self.scheduler_id,
             )
             return
 
         tries = 0
         while not self.queue.full():
+            time.sleep(1)
+
             try:
                 random_oois = self.ctx.services.octopoes.get_random_objects(
                     organisation_id=self.organisation.id,
@@ -141,32 +149,33 @@ class BoefjeScheduler(Scheduler):
                 continue
             elif len(p_items) == 0 and tries >= 3:
                 self.logger.warning(
-                    "No random oois for organisation: %s [org_id=%s, scheduler_id=%s, tries=%d]",
+                    "No random oois for organisation: %s [tries=%d, org_id=%s, scheduler_id=%s]",
                     self.organisation.name,
+                    tries,
                     self.organisation.id,
                     self.scheduler_id,
-                    tries,
                 )
                 break
 
             # NOTE: maxsize 0 means unlimited
-            while len(p_items) > self.queue.maxsize - self.queue.pq.qsize() and self.queue.maxsize != 0:
+            while len(p_items) > (self.queue.maxsize - self.queue.pq.qsize()) and self.queue.maxsize != 0:
                 self.logger.debug(
-                    "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d maxsize=%d, scheduler_id=%s]",
+                    "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
                     len(p_items),
                     self.queue.pq.qsize(),
                     self.queue.maxsize,
+                    self.organisation.id,
                     self.scheduler_id,
                 )
                 time.sleep(1)
 
             self.add_p_items_to_queue(p_items)
             tries = 0
-            time.sleep(1)
         else:
             self.logger.warning(
-                "Boefjes queue is full, not populating with new tasks [qsize=%d, scheduler_id=%s]",
+                "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
                 self.queue.pq.qsize(),
+                self.organisation.id,
                 self.scheduler_id,
             )
             return
@@ -190,38 +199,42 @@ class BoefjeScheduler(Scheduler):
                 )
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
-                    "Could not get boefjes for object_type: %s [object_type=%s, scheduler_id=%s]",
+                    "Could not get boefjes for object_type: %s [object_type=%s, org_id=%s, scheduler_id=%s]",
                     ooi.object_type,
                     ooi.object_type,
+                    self.organisation.id,
                     self.scheduler_id,
                 )
                 continue
 
             if boefjes is None:
                 self.logger.debug(
-                    "No boefjes found for type: %s [ooi=%s, scheduler_id=%s]",
+                    "No boefjes found for type: %s [ooi=%s, org_id=%s, scheduler_id=%s]",
                     ooi.object_type,
                     ooi,
+                    self.organisation.id,
                     self.scheduler_id,
                 )
                 continue
 
             self.logger.debug(
-                "Found %s boefjes for ooi: %s [ooi=%s, boefjes=%s, scheduler_id=%s]",
+                "Found %s boefjes for ooi: %s [ooi=%s, boefjes=%s, org_id=%s, scheduler_id=%s]",
                 len(boefjes),
                 ooi,
                 ooi,
                 [boefje.id for boefje in boefjes],
+                self.organisation.id,
                 self.scheduler_id,
             )
 
             for boefje in boefjes:
                 if boefje.enabled is False:
                     self.logger.debug(
-                        "Boefje: %s is disabled [org_id=%s, boefje_id=%s, scheduler_id=%s]",
+                        "Boefje: %s is disabled [org_id=%s, boefje_id=%s, org_id=%s, scheduler_id=%s]",
                         boefje.name,
                         self.organisation.id,
                         boefje.id,
+                        self.organisation.id,
                         self.scheduler_id,
                     )
                     continue
@@ -235,10 +248,11 @@ class BoefjeScheduler(Scheduler):
 
                 if ooi.scan_profile is None:
                     self.logger.debug(
-                        "No scan_profile found for ooi: %s [ooi_id=%s, scan_profile=%s, scheduler_id=%s]",
+                        "No scan_profile found for ooi: %s [ooi_id=%s, scan_profile=%s, org_id=%s, scheduler_id=%s]",
                         ooi.primary_key,
                         ooi,
                         ooi.scan_profile,
+                        self.organisation.id,
                         self.scheduler_id,
                     )
                     continue
@@ -246,9 +260,10 @@ class BoefjeScheduler(Scheduler):
                 ooi_scan_level = ooi.scan_profile.level
                 if ooi_scan_level is None:
                     self.logger.warning(
-                        "No scan level found for ooi: %s [ooi_id=%s, scheduler_id=%s]",
+                        "No scan level found for ooi: %s [ooi_id=%s, org_id=%s, scheduler_id=%s]",
                         ooi.primary_key,
                         ooi,
+                        self.organisation.id,
                         self.scheduler_id,
                     )
                     continue
@@ -256,9 +271,10 @@ class BoefjeScheduler(Scheduler):
                 boefje_scan_level = boefje.scan_level
                 if boefje_scan_level is None:
                     self.logger.warning(
-                        "No scan level found for boefje: %s [boefje_id=%s, scheduler_id=%s]",
+                        "No scan level found for boefje: %s [boefje_id=%s, org_id=%s, scheduler_id=%s]",
                         boefje.id,
-                        boefje,
+                        boefje.id,
+                        self.organisation.id,
                         self.scheduler_id,
                     )
                     continue
@@ -290,15 +306,18 @@ class BoefjeScheduler(Scheduler):
                 # priority. Then remove the following:
                 if self.queue.is_item_on_queue(task):
                     self.logger.debug(
-                        "Boefje: %s is already on queue [boefje_id=%s, ooi_id=%s, scheduler_id=%s]",
+                        "Boefje: %s is already on queue [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                         boefje.id,
                         boefje.id,
                         ooi.primary_key,
+                        self.organisation.id,
                         self.scheduler_id,
                     )
                     continue
 
-                # Boefjes should not run before the grace period ends
+                # Boefjes should not run before the grace period ends, thus
+                # we will check when the combination boefje and ooi was last
+                # run.
                 try:
                     last_run_boefje = self.ctx.services.bytes.get_last_run_boefje(
                         boefje_id=boefje.id,
@@ -323,10 +342,11 @@ class BoefjeScheduler(Scheduler):
                     and last_run_boefje.start_time is not None
                 ):
                     self.logger.debug(
-                        "Boefje %s is already running [boefje_id=%s, ooi_id=%s, scheduler_id=%s]",
+                        "Boefje %s is already running [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                         boefje.id,
                         boefje.id,
                         ooi.primary_key,
+                        self.organisation.id,
                         self.scheduler_id,
                     )
                     continue
@@ -338,10 +358,11 @@ class BoefjeScheduler(Scheduler):
                     < timedelta(seconds=self.ctx.config.pq_populate_grace_period)
                 ):
                     self.logger.debug(
-                        "Boefje: %s already run for input ooi %s [last_run_boefje=%s, scheduler_id=%s]",
+                        "Boefje: %s already run for input ooi %s [last_run_boefje=%s, org_id=%s, scheduler_id=%s]",
                         boefje.id,
                         ooi.primary_key,
                         last_run_boefje,
+                        self.organisation.id,
                         self.scheduler_id,
                     )
                     continue
@@ -349,11 +370,12 @@ class BoefjeScheduler(Scheduler):
                 score = self.ranker.rank(SimpleNamespace(last_run_boefje=last_run_boefje, task=task))
                 if score < 0:
                     self.logger.warning(
-                        "Score too low for boefje: %s and input ooi: %s [boefje_id=%s, ooi_id=%s, scheduler_id=%s]",
+                        "Score too low for boefje: %s and input ooi: %s [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                         boefje.id,
                         ooi.primary_key,
                         boefje.id,
                         ooi.primary_key,
+                        self.organisation.id,
                         self.scheduler_id,
                     )
                     continue

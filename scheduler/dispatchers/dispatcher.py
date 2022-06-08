@@ -9,7 +9,7 @@ from scheduler import context, queues
 
 class Dispatcher:
     """Dispatcher allows to continuously pop items off a priority queue and
-    dispatches items to be handled. By what, and who this is being handled is
+    dispatches items to be handled. By what, and who, this is being handled is
     done by a sub-classing and extending the dispatcher and implementing the
     `dispatch()` method.
 

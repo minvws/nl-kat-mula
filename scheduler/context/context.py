@@ -32,7 +32,7 @@ class AppContext:
 
         # Register external services, SimpleNamespace allows us to use dot
         # notation
-        self.services = SimpleNamespace(
+        self.services: SimpleNamespace = SimpleNamespace(
             **{
                 services.Octopoes.name: services.Octopoes(
                     host=self.config.host_octopoes,

@@ -89,7 +89,7 @@ class Scheduler(abc.ABC):
         for p_item in p_items:
             if self.queue.full():
                 self.logger.warning(
-                    "Queue %s is full not populating new tasks [queue_id=%s, qsize=%d]",
+                    "Queue %s is full, not populating new tasks [queue_id=%s, qsize=%d]",
                     self.queue.pq_id,
                     self.queue.pq.qsize(),
                 )

@@ -1,10 +1,8 @@
 [tool.black]
-
 line-length = 120
 target-version = ['py38']
 
 [tool.mypy]
-
 python_version = 3.8
 strict = false
 install_types = true
@@ -13,9 +11,7 @@ ignore_missing_imports = true
 implicit_reexport = true
 exclude = "alembic"
 
-
 [tool.pylint.master]
-
 fail-under=7.0
 max-line-length=120
 check-quote-consistency=true

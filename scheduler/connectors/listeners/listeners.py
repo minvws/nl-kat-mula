@@ -34,11 +34,16 @@ class RabbitMQ(Listener):
         dsn:
             A string defining the data source name of the RabbitMQ host to
             connect to.
-        queue:
-            A string defining the RabbitMQ queue to listen to.
     """
 
     def __init__(self, dsn: str):
+        """Initialize the RabbitMQ Listener
+
+        Args:
+            dsn:
+                A string defining the data source name of the RabbitMQ host to
+                connect to.
+        """
         super().__init__()
         self.dsn = dsn
 
