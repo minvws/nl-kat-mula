@@ -12,7 +12,9 @@ normalizer tasks.
 
 ## Architecture
 
-See [design](docs/design.md) document for the architecture.
+See [design](docs/design.md) document for the architecture and the
+[extending](docs/extending.md) document for the extending the scheduler with
+your own custom schedulers, rankers, and dispatchers.
 
 ### Stack, packages and libraries
 
@@ -78,7 +80,9 @@ to use whatever you want.
 
 By the use of environment variables we load in the configuration of the 
 scheduler. Look at the [.env-dist](.env-dist) file for the application
-configuration settings.
+configuration settings, to build a `.env` file. Refer to the
+[`configuration.md`](docs/configuration.md) file for more information on the
+individual settings.
 
 ### Running
 
