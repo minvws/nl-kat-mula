@@ -73,7 +73,7 @@ class NormalizerScheduler(Scheduler):
                 break
 
             p_items = self.create_tasks_for_raw_data(latest_raw_data)
-            if len(p_items) == 0:
+            if not p_items:
                 continue
 
             # NOTE: maxsize 0 means unlimited

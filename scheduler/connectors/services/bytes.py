@@ -57,7 +57,7 @@ class Bytes(HTTPService):
                 "descending": "true",
             },
         )
-        if response.status_code == 200 and len(response.json()) > 0:
+        if response.status_code == 200 and response.content:
             return BoefjeMeta(**response.json()[0])
 
         return None
