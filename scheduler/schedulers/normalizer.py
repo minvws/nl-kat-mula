@@ -61,7 +61,7 @@ class NormalizerScheduler(Scheduler):
                 if self.stop_event.is_set():
                     raise e
 
-                time.sleep(5)
+                time.sleep(60)
                 continue
 
             if latest_raw_data is None:
@@ -77,12 +77,13 @@ class NormalizerScheduler(Scheduler):
                 continue
 
             # NOTE: maxsize 0 means unlimited
-            while len(p_items) > self.queue.maxsize - self.queue.pq.qsize() and self.queue.maxsize != 0:
+            while len(p_items) > (self.queue.maxsize - self.queue.pq.qsize()) and self.queue.maxsize != 0:
                 self.logger.debug(
-                    "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d maxsize=%d, scheduler_id=%s]",
+                    "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
                     len(p_items),
                     self.queue.pq.qsize(),
                     self.queue.maxsize,
+                    self.organisation.id,
                     self.scheduler_id,
                 )
                 time.sleep(1)
@@ -90,8 +91,9 @@ class NormalizerScheduler(Scheduler):
             self.add_p_items_to_queue(p_items)
         else:
             self.logger.warning(
-                "Normalizer queue is full, not populating with new tasks [qsize=%d, scheduler_id=%s]",
+                "Normalizer queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
                 self.queue.pq.qsize(),
+                self.organisation.id,
                 self.scheduler_id,
             )
             return

@@ -67,7 +67,7 @@ class App:
 
     def shutdown(self) -> None:
         """Gracefully shutdown the scheduler, and all threads."""
-        self.logger.warning("Shutting down...")
+        self.logger.info("Shutting down...")
 
         for s in self.schedulers.values():
             s.stop()
@@ -75,7 +75,7 @@ class App:
         for t in self.threads.values():
             t.join(5)
 
-        self.logger.warning("Shutdown complete")
+        self.logger.info("Shutdown complete")
 
         # We're calling this here, because we want to issue a shutdown from
         # within a thread, otherwise it will not exit a docker container.
