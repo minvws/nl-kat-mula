@@ -200,27 +200,42 @@ class BoefjeScheduler(Scheduler):
             except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
                 self.logger.warning(
                     "Could not get boefjes for object_type: %s [object_type=%s, org_id=%s, scheduler_id=%s]",
-                    ooi.object_type, ooi.object_type, self.organisation.id, self.scheduler_id,
+                    ooi.object_type,
+                    ooi.object_type,
+                    self.organisation.id,
+                    self.scheduler_id,
                 )
                 continue
 
             if boefjes is None:
                 self.logger.debug(
                     "No boefjes found for type: %s [ooi=%s, org_id=%s, scheduler_id=%s]",
-                    ooi.object_type, ooi, self.organisation.id, self.scheduler_id,
+                    ooi.object_type,
+                    ooi,
+                    self.organisation.id,
+                    self.scheduler_id,
                 )
                 continue
 
             self.logger.debug(
                 "Found %s boefjes for ooi: %s [ooi=%s, boefjes=%s, org_id=%s, scheduler_id=%s]",
-                len(boefjes), ooi, ooi, [boefje.id for boefje in boefjes], self.organisation.id, self.scheduler_id,
+                len(boefjes),
+                ooi,
+                ooi,
+                [boefje.id for boefje in boefjes],
+                self.organisation.id,
+                self.scheduler_id,
             )
 
             for boefje in boefjes:
                 if boefje.enabled is False:
                     self.logger.debug(
                         "Boefje: %s is disabled [org_id=%s, boefje_id=%s, org_id=%s, scheduler_id=%s]",
-                        boefje.name, self.organisation.id, boefje.id, self.organisation.id, self.scheduler_id,
+                        boefje.name,
+                        self.organisation.id,
+                        boefje.id,
+                        self.organisation.id,
+                        self.scheduler_id,
                     )
                     continue
 
@@ -234,7 +249,11 @@ class BoefjeScheduler(Scheduler):
                 if ooi.scan_profile is None:
                     self.logger.debug(
                         "No scan_profile found for ooi: %s [ooi_id=%s, scan_profile=%s, org_id=%s, scheduler_id=%s]",
-                        ooi.primary_key, ooi, ooi.scan_profile, self.organisation.id, self.scheduler_id,
+                        ooi.primary_key,
+                        ooi,
+                        ooi.scan_profile,
+                        self.organisation.id,
+                        self.scheduler_id,
                     )
                     continue
 
@@ -242,7 +261,10 @@ class BoefjeScheduler(Scheduler):
                 if ooi_scan_level is None:
                     self.logger.warning(
                         "No scan level found for ooi: %s [ooi_id=%s, org_id=%s, scheduler_id=%s]",
-                        ooi.primary_key, ooi, self.organisation.id, self.scheduler_id,
+                        ooi.primary_key,
+                        ooi,
+                        self.organisation.id,
+                        self.scheduler_id,
                     )
                     continue
 
@@ -250,7 +272,10 @@ class BoefjeScheduler(Scheduler):
                 if boefje_scan_level is None:
                     self.logger.warning(
                         "No scan level found for boefje: %s [boefje_id=%s, org_id=%s, scheduler_id=%s]",
-                        boefje.id, boefje.id, self.organisation.id, self.scheduler_id,
+                        boefje.id,
+                        boefje.id,
+                        self.organisation.id,
+                        self.scheduler_id,
                     )
                     continue
 
@@ -261,7 +286,14 @@ class BoefjeScheduler(Scheduler):
                 if boefje_scan_level > ooi_scan_level:
                     self.logger.debug(
                         "Boefje: %s scan level %s is too intense for ooi: %s scan level %s [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
-                        boefje.id, boefje_scan_level, ooi.primary_key, ooi_scan_level, boefje.id, ooi.primary_key, self.organisation.id, self.scheduler_id,
+                        boefje.id,
+                        boefje_scan_level,
+                        ooi.primary_key,
+                        ooi_scan_level,
+                        boefje.id,
+                        ooi.primary_key,
+                        self.organisation.id,
+                        self.scheduler_id,
                     )
                     continue
 
@@ -275,7 +307,11 @@ class BoefjeScheduler(Scheduler):
                 if self.queue.is_item_on_queue(task):
                     self.logger.debug(
                         "Boefje: %s is already on queue [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
-                        boefje.id, boefje.id, ooi.primary_key, self.organisation.id, self.scheduler_id,
+                        boefje.id,
+                        boefje.id,
+                        ooi.primary_key,
+                        self.organisation.id,
+                        self.scheduler_id,
                     )
                     continue
 
@@ -307,7 +343,11 @@ class BoefjeScheduler(Scheduler):
                 ):
                     self.logger.debug(
                         "Boefje %s is already running [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
-                        boefje.id, boefje.id, ooi.primary_key, self.organisation.id, self.scheduler_id,
+                        boefje.id,
+                        boefje.id,
+                        ooi.primary_key,
+                        self.organisation.id,
+                        self.scheduler_id,
                     )
                     continue
 
@@ -319,7 +359,11 @@ class BoefjeScheduler(Scheduler):
                 ):
                     self.logger.debug(
                         "Boefje: %s already run for input ooi %s [last_run_boefje=%s, org_id=%s, scheduler_id=%s]",
-                        boefje.id, ooi.primary_key, last_run_boefje, self.organisation.id, self.scheduler_id,
+                        boefje.id,
+                        ooi.primary_key,
+                        last_run_boefje,
+                        self.organisation.id,
+                        self.scheduler_id,
                     )
                     continue
 
@@ -327,7 +371,12 @@ class BoefjeScheduler(Scheduler):
                 if score < 0:
                     self.logger.warning(
                         "Score too low for boefje: %s and input ooi: %s [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
-                        boefje.id, ooi.primary_key, boefje.id, ooi.primary_key, self.organisation.id, self.scheduler_id,
+                        boefje.id,
+                        ooi.primary_key,
+                        boefje.id,
+                        ooi.primary_key,
+                        self.organisation.id,
+                        self.scheduler_id,
                     )
                     continue
 
