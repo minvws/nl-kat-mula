@@ -99,7 +99,7 @@ class BoefjeScheduler(Scheduler):
                     self.organisation.id,
                     self.scheduler_id,
                 )
-                time.sleep(0.01)
+                time.sleep(1)
 
             self.add_p_items_to_queue(p_items)
         else:
