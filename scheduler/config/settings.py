@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     )
 
     # Server settings
-    api_host: str = Field("localhost", env="SCHEDULER_API_HOST")
+    api_host: str = Field("0.0.0.0", env="SCHEDULER_API_HOST")
     api_port: int = Field(8000, env="SCHEDULER_API_PORT")
 
     # Application settings
