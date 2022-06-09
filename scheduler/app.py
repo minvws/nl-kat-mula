@@ -53,8 +53,12 @@ class App:
 
         # Initialize schedulers
         self.schedulers: Dict[str, Union[schedulers.BoefjeScheduler, schedulers.NormalizerScheduler]] = {}
-        self.initialize_boefje_schedulers()
-        self.initialize_normalizer_schedulers()
+
+        if self.ctx.config.boefje_enabled:
+            self.initialize_boefje_schedulers()
+
+        if self.ctx.config.normalizer_enabled:
+            self.initialize_normalizer_schedulers()
 
         # Initialize listeners
         self.listeners: Dict[str, listeners.Listener] = {}

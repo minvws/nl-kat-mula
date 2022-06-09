@@ -19,6 +19,12 @@ SCHEDULER_DEBUG=
 # File path to the log configuration file, default is "../../../logging.json"
 SCHEDULER_LOG_CFG=
 
+# Enable the boefje schedulers, default: False
+SCHEDULER_BOEFJE_ENABLED=
+
+# Enable the normalizer schedulers, default: True
+SCHEDULER_NORMALIZER_ENABLED=
+
 # How many items a priority queue can hold, default: 1000
 SCHEDULER_PQ_MAXSIZE=
 
