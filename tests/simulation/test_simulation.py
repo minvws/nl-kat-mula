@@ -5,11 +5,16 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from scheduler import (config, connectors, dispatchers, models, queues,
-                       rankers, schedulers)
-from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
-                             OrganisationFactory, PluginFactory,
-                             RawDataFactory, ScanProfileFactory)
+from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers
+from tests.factories import (
+    BoefjeFactory,
+    BoefjeMetaFactory,
+    OOIFactory,
+    OrganisationFactory,
+    PluginFactory,
+    RawDataFactory,
+    ScanProfileFactory,
+)
 from tests.utils import profile_memory
 
 
