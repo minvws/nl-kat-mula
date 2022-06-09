@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     api_host: str = Field("0.0.0.0", env="SCHEDULER_API_HOST")
     api_port: int = Field(8000, env="SCHEDULER_API_PORT")
 
+    # Application settings
+    boefje_enabled: bool = Field(False, env="SCHEDULER_BOEFJE_ENABLED")
+    normalizer_enabled: bool = Field(True, env="SCHEDULER_NORMALIZER_ENABLED")
+
     # External services settings
     host_katalogus: str = Field(..., env="KATALOGUS_API")
     host_bytes: str = Field(..., env="BYTES_API")
