@@ -60,6 +60,7 @@ class BoefjeScheduler(Scheduler):
                 pika.exceptions.ConnectionClosed,
                 pika.exceptions.ChannelClosed,
                 pika.exceptions.ChannelClosedByBroker,
+                pika.exceptions.AMQPConnectionError
             ) as e:
                 self.logger.warning(
                     "Could not connect to rabbitmq queue: %s [org_id=%s, scheduler_id=%s]",
