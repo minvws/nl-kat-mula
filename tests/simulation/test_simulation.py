@@ -5,16 +5,11 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers
-from tests.factories import (
-    BoefjeFactory,
-    BoefjeMetaFactory,
-    OOIFactory,
-    OrganisationFactory,
-    PluginFactory,
-    RawDataFactory,
-    ScanProfileFactory,
-)
+from scheduler import (config, connectors, dispatchers, models, queues,
+                       rankers, schedulers)
+from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
+                             OrganisationFactory, PluginFactory,
+                             RawDataFactory, ScanProfileFactory)
 from tests.utils import profile_memory
 
 
@@ -90,7 +85,7 @@ class SimulationTestCase(unittest.TestCase):
     @mock.patch("scheduler.context.AppContext.services.octopoes.get_random_objects")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
     def test_simulation_boefje_queue(self, mock_create_tasks_for_oois, mock_get_random_objects, mock_get_latest_object):
-        iterations = 10000
+        iterations = 1000
         oois = [OOIFactory(scan_profile=ScanProfileFactory(level=0)) for _ in range(iterations)]
 
         mock_get_latest_object.side_effect = oois + [None]
@@ -122,7 +117,7 @@ class SimulationTestCase(unittest.TestCase):
     @mock.patch("scheduler.schedulers.NormalizerScheduler.create_tasks_for_raw_data")
     @mock.patch("scheduler.context.AppContext.services.raw_data.get_latest_raw_data")
     def test_simulation_normalizer_queue(self, mock_get_latest_raw_data, mock_create_tasks_for_raw_data):
-        iterations = 10000
+        iterations = 1000
         raw_data = [
             RawDataFactory(
                 boefje_meta=BoefjeMetaFactory(
