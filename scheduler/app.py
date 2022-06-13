@@ -53,12 +53,8 @@ class App:
 
         # Initialize schedulers
         self.schedulers: Dict[str, Union[schedulers.BoefjeScheduler, schedulers.NormalizerScheduler]] = {}
-
-        if self.ctx.config.boefje_enabled:
-            self.initialize_boefje_schedulers()
-
-        if self.ctx.config.normalizer_enabled:
-            self.initialize_normalizer_schedulers()
+        self.initialize_boefje_schedulers()
+        self.initialize_normalizer_schedulers()
 
         # Initialize listeners
         self.listeners: Dict[str, listeners.Listener] = {}
@@ -140,8 +136,9 @@ class App:
             ctx=self.ctx,
             scheduler_id=f"normalizer-{org.id}",
             queue=queue,
-            dispatcher=dispatcher,
             ranker=ranker,
+            dispatcher=dispatcher,
+            populate_queue_enabled=self.ctx.config.normalizer_populate,
             organisation=org,
         )
 
@@ -185,8 +182,9 @@ class App:
             ctx=self.ctx,
             scheduler_id=f"boefje-{org.id}",
             queue=queue,
-            dispatcher=dispatcher,
             ranker=ranker,
+            dispatcher=dispatcher,
+            populate_queue_enabled=self.ctx.config.boefje_populate,
             organisation=org,
         )
 

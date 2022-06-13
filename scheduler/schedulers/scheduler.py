@@ -32,6 +32,8 @@ class Scheduler(abc.ABC):
             A rankers.Ranker instance.
         dispatcher:
             A dispatchers.Dispatcher instance.
+        populate_queue:
+            A boolean whether to populate the queue.
         threads:
             A dict of ThreadRunner instances, used for runner processes
             concurrently.
@@ -47,6 +49,7 @@ class Scheduler(abc.ABC):
         queue: queues.PriorityQueue,
         ranker: rankers.Ranker,
         dispatcher: dispatchers.Dispatcher,
+        populate_queue_enabled: bool = True,
     ):
         """Initialize the Scheduler.
 
@@ -62,6 +65,8 @@ class Scheduler(abc.ABC):
                 A rankers.Ranker instance.
             dispatcher:
                 A dispatchers.Dispatcher instance.
+            populate_queue:
+                A boolean whether to populate the queue.
         """
 
         self.logger: logging.Logger = logging.getLogger(__name__)
@@ -70,6 +75,7 @@ class Scheduler(abc.ABC):
         self.queue: queues.PriorityQueue = queue
         self.ranker: rankers.Ranker = ranker
         self.dispatcher: dispatchers.Dispatcher = dispatcher
+        self.populate_queue_enabled = populate_queue_enabled
 
         self.threads: Dict[str, thread.ThreadRunner] = {}
         self.stop_event: threading.Event = self.ctx.stop_event
@@ -139,15 +145,17 @@ class Scheduler(abc.ABC):
 
     def run(self) -> None:
         # Populator
-        self._run_in_thread(
-            name="populator",
-            func=self.populate_queue,
-            interval=self.ctx.config.pq_populate_interval,
-        )
+        if self.populate_queue_enabled:
+            self._run_in_thread(
+                name="populator",
+                func=self.populate_queue,
+                interval=self.ctx.config.pq_populate_interval,
+            )
 
         # Dispatcher
-        self._run_in_thread(
-            name="dispatcher",
-            func=self.dispatcher.run,
-            interval=self.ctx.config.dsp_interval,
-        )
+        if self.dispatcher is not None:
+            self._run_in_thread(
+                name="dispatcher",
+                func=self.dispatcher.run,
+                interval=self.ctx.config.dsp_interval,
+            )
