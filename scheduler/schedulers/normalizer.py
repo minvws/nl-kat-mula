@@ -13,6 +13,13 @@ from .scheduler import Scheduler
 
 
 class NormalizerScheduler(Scheduler):
+    """A KAT specific implementation of a Normalizer scheduler. It extends
+    the `Scheduler` class by adding a `organisation` attribute.
+
+    Attributes:
+        organisation: The organisation that this scheduler is for.
+    """
+
     def __init__(
         self,
         ctx: context.AppContext,
@@ -21,6 +28,7 @@ class NormalizerScheduler(Scheduler):
         ranker: rankers.Ranker,
         dispatcher: dispatchers.Dispatcher,
         organisation: Organisation,
+        populate_queue_enabled: bool = True,
     ):
         super().__init__(
             ctx=ctx,
@@ -28,6 +36,7 @@ class NormalizerScheduler(Scheduler):
             queue=queue,
             ranker=ranker,
             dispatcher=dispatcher,
+            populate_queue_enabled=populate_queue_enabled,
         )
 
         self.organisation: Organisation = organisation

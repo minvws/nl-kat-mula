@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     api_port: int = Field(8000, env="SCHEDULER_API_PORT")
 
     # Application settings
-    boefje_enabled: bool = Field(False, env="SCHEDULER_BOEFJE_ENABLED")
-    normalizer_enabled: bool = Field(True, env="SCHEDULER_NORMALIZER_ENABLED")
+    boefje_populate: bool = Field(False, env="SCHEDULER_BOEFJE_POPULATE")
+    normalizer_populate: bool = Field(True, env="SCHEDULER_NORMALIZER_POPULATE")
 
     # External services settings
     host_katalogus: str = Field(..., env="KATALOGUS_API")

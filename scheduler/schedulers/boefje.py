@@ -14,7 +14,8 @@ from .scheduler import Scheduler
 
 
 class BoefjeScheduler(Scheduler):
-    """A KAT specific implementation of a Boefje Scheduler
+    """A KAT specific implementation of a Boefje scheduler. It extends
+    the `Scheduler` class by adding a `organisation` attribute.
 
     Attributes:
         organisation: The organisation that this scheduler is for.
@@ -28,6 +29,7 @@ class BoefjeScheduler(Scheduler):
         ranker: rankers.Ranker,
         dispatcher: dispatchers.Dispatcher,
         organisation: Organisation,
+        populate_queue_enabled: bool = True,
     ):
         super().__init__(
             ctx=ctx,
@@ -35,6 +37,7 @@ class BoefjeScheduler(Scheduler):
             queue=queue,
             ranker=ranker,
             dispatcher=dispatcher,
+            populate_queue_enabled=populate_queue_enabled,
         )
 
         self.organisation: Organisation = organisation

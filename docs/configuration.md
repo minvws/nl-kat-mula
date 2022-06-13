@@ -19,11 +19,11 @@ SCHEDULER_DEBUG=
 # File path to the log configuration file, default is "../../../logging.json"
 SCHEDULER_LOG_CFG=
 
-# Enable the boefje schedulers, default: False
-SCHEDULER_BOEFJE_ENABLED=
+# Enable the boefje populate_queue, default: False
+SCHEDULER_BOEFJE_POPULATE=
 
-# Enable the normalizer schedulers, default: True
-SCHEDULER_NORMALIZER_ENABLED=
+# Enable the normalizer populate_queue, default: True
+SCHEDULER_NORMALIZER_POPULATE=
 
 # How many items a priority queue can hold, default: 1000
 SCHEDULER_PQ_MAXSIZE=
@@ -63,6 +63,12 @@ is `0.0.0.0`.
 
 `SCHEDULER_DEBUG` is a boolean value that determines if the scheduler should
 run in debug mode. Default is `False`.
+
+`SCHEDULER_BOEFJE_POPULATE` is a boolean to enable or disable the automatic
+queue population of the boefje schedulers, default is false
+
+`SCHEDULER_NORMALIZER_POPULATE_ENABLED` is a boolean to enable or disable the
+automatic queue population of the normalizer schedulers, default is true
 
 `SCHEDULER_LOG_CFG` is the path to the log configuration file, default is
 `../../../logging.json`.
