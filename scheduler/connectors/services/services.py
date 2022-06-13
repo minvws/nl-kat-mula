@@ -167,13 +167,15 @@ class HTTPService:
         """
         try:
             uri = urllib.parse.urlparse(self.host)
-            if uri.netloc.find("@") != -1:
-                host, port = uri.netloc.split("@")[1].split(":")
-            else:
-                host, port = uri.netloc.split(":")
+            if uri.hostname is None or uri.port is None:
+                self.logger.warning(
+                    "Not able to parse hostname and port from %s [host=%s]",
+                    self.host,
+                    self.host,
+                )
+                return False
 
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((host, int(port)))
+            socket.create_connection((uri.hostname, uri.port))
             return True
         except socket.error:
             return False
