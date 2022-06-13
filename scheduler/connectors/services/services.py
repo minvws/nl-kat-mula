@@ -170,7 +170,8 @@ class HTTPService:
             if uri.hostname is None or uri.port is None:
                 self.logger.warning(
                     "Not able to parse hostname and port from %s [host=%s]",
-                    self.host, self.host,
+                    self.host,
+                    self.host,
                 )
                 return False
 
