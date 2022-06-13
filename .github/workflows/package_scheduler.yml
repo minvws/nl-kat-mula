@@ -29,13 +29,14 @@ jobs:
           path: ../scheduler_${{ env.RELEASE_VERSION }}.tar.gz
 
       - name: Create virtual env
-        run: python3.8 -m venv .venv
+        run: python3.8 -m venv /var/www/html/.venv
 
       - name: Install requirements
         run: source .venv/bin/activate; pip install --upgrade pip; pip install --requirement requirements.txt
+        working-directory: /var/www/html
 
       - name: Create venv archive
-        run: tar -cvzf scheduler_venv_${{ env.RELEASE_VERSION }}.tar.gz .venv
+        run: tar -zcvf scheduler_venv_${{ env.RELEASE_VERSION }}.tar.gz -C /var/www/html/ .venv
 
       - name: Upload venv archive
         uses: actions/upload-artifact@v1
