@@ -19,8 +19,17 @@ jobs:
       - name: Replace version number with release version
         run: find . -type f -name 'version.py' -exec sed -ibak "s/__version__ = .*/__version__ = \"${RELEASE_VERSION}\"/" {} \;
 
+      - name: prep
+        run: sudo mkdir -p /var/www/html
+
+      - name: prep chown
+        run: sudo chown `id -u`:`id -g` /var/www/html
+
+      - name: copy project to run location.
+        run: cp -r * /var/www/html
+
       - name: Create scheduler release archive
-        run:  tar -cvzf ../scheduler_${{ env.RELEASE_VERSION }}.tar.gz --exclude=./.git* .
+        run:  tar -cvzf ../scheduler_${{ env.RELEASE_VERSION }}.tar.gz --exclude=./.git* --exclude=Makefile --exclude=Dockerfile --exclude=base.yml --exclude=requirements* --exclude=tests .
 
       - name: Upload scheduler release
         uses: actions/upload-artifact@v1
