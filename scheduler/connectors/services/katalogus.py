@@ -13,8 +13,8 @@ class Katalogus(HTTPService):
         super().__init__(host, source, timeout)
 
         self.organisations_plugin_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict()
-        self.organisations_boefje_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict(lifetime=1)
-        self.organisations_normalizer_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict(lifetime=1)
+        self.organisations_boefje_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict(lifetime=30)
+        self.organisations_normalizer_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict(lifetime=30)
 
         self._flush_organisations_plugin_cache()
         self._flush_organisations_normalizer_type_cache()

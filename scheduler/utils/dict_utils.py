@@ -14,8 +14,8 @@ class ExpiredError(Exception):
 
 
 class ExpiringDict:
-    def __init__(self, lifetime: int = 5):
-        self.lifetime: timedelta = timedelta(minutes=lifetime)
+    def __init__(self, lifetime: int = 300):
+        self.lifetime: timedelta = timedelta(seconds=lifetime)
         self.expiration_time: datetime = datetime.now(timezone.utc) + self.lifetime
         self.lock: threading.Lock = threading.Lock()
         self.cache: Dict[str, Any] = {}
