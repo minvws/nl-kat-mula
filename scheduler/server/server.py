@@ -69,11 +69,17 @@ class Server:
         return {"message": "hello, world"}
 
     async def health(self) -> Any:
-        return models.ServiceHealth(
+        response = models.ServiceHealth(
             service="scheduler",
             healthy=True,
             version=scheduler.__version__,
         )
+
+        for service in self.ctx.services.__dict__.values():
+            response.externals[service.name] = service.is_healthy()
+
+        return response
+
 
     async def get_queues(self) -> Any:
         return [models.Queue(**q.dict()) for q in self.queues.values()]

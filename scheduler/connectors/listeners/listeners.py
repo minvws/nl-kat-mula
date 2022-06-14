@@ -1,11 +1,14 @@
 import json
 import logging
+import urllib.parse
 from typing import Dict, Optional
 
 import pika
 
+from ..connector import Connector
 
-class Listener:
+
+class Listener(Connector):
     """The Listener base class interface
 
     Attributes:
@@ -82,3 +85,15 @@ class RabbitMQ(Listener):
         self.dispatch(body)
 
         channel.basic_ack(method.delivery_tag)
+
+    def is_healthy(self) -> bool:
+        """Check if the RabbitMQ connection is healthy"""
+        parsed_url = urllib.parse.urlparse(self.dsn)
+        if parsed_url.hostname is None or parsed_url.port is None:
+            self.logger.warning(
+                "Not able to parse hostname and port from %s [host=%s]",
+                self.dsn, self.dsn,
+            )
+            return False
+
+        return self.is_host_available(parsed_url.hostname, parsed_url.port)

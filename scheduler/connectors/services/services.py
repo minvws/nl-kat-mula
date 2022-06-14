@@ -2,13 +2,15 @@ import logging
 import socket
 import time
 import urllib.parse
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
+from ..connector import Connector
 
-class HTTPService:
+
+class HTTPService(Connector):
     """HTTPService exposes methods to make http requests to services that
     typically expose rest api endpoints
 
@@ -153,10 +155,18 @@ class HTTPService:
 
     def _do_checks(self) -> None:
         """Do checks whether a host is available and healthy."""
-        if self.host is not None and self._retry(self._is_host_available) is False:
+        parsed_url = urllib.parse.urlparse(self.host)
+        if parsed_url.hostname is None or parsed_url.port is None:
+            self.logger.warning(
+                "Not able to parse hostname and port from %s [host=%s]",
+                self.host, self.host,
+            )
+            return
+
+        if self.host is not None and self.retry(self.is_host_available, parsed_url.hostname, parsed_url.port) is False:
             raise RuntimeError(f"Host {self.host} is not available.")
 
-        if self.health_endpoint is not None and self._retry(self._is_host_healthy) is False:
+        if self.health_endpoint is not None and self.retry(self.is_host_healthy, self.host, self.health_endpoint) is False:
             raise RuntimeError(f"Service {self.name} is not running.")
 
     def _is_host_available(self) -> bool:
@@ -180,51 +190,13 @@ class HTTPService:
         except socket.error:
             return False
 
-    def _is_host_healthy(self) -> bool:
+    def is_healthy(self) -> bool:
         """Check if host is healthy by inspecting the host's health endpoint.
 
         Returns:
             A boolean
         """
-        try:
-            self.session.get(f"{self.host}{self.health_endpoint}")
-            return True
-        except requests.exceptions.RequestException:
-            return False
-
-    def _retry(self, func: Callable[[], Any]) -> bool:
-        """Retry a function until it returns True.
-
-        Args:
-            func: A python callable that needs to be retried.
-
-        Returns:
-            A boolean signifying whether or not the func was executed successfully.
-        """
-        i = 0
-        while i < 10:
-            if func() is True:
-                self.logger.info(
-                    "Connected to %s. [name=%s, host=%s, func=%s]",
-                    self.host,
-                    self.name,
-                    self.host,
-                    func.__name__,
-                )
-                return True
-
-            self.logger.warning(
-                "Not able to reach host, retrying in %s seconds. [name=%s, host=%s, func=%s]",
-                self.timeout,
-                self.name,
-                self.host,
-                func.__name__,
-            )
-
-            i += 1
-            time.sleep(self.timeout)
-
-        return False
+        return self.is_host_healthy(self.host, self.health_endpoint)
 
     def _verify_response(self, response: requests.Response) -> None:
         """Verify the received response from a request.
