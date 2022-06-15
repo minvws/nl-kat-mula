@@ -39,7 +39,7 @@ class Connector:
         except requests.exceptions.RequestException:
             return False
 
-    def retry(self, func: Callable[[], Any], *args, **kwargs) -> bool:
+    def retry(self, func: Callable, *args, **kwargs) -> bool:
         """Retry a function until it returns True.
 
         Args:

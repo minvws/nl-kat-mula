@@ -200,6 +200,14 @@ class HTTPService(Connector):
         Returns:
             A boolean
         """
+        if self.host is None:
+            self.logger.warning("Host is not set.")
+            return False
+
+        if self.health_endpoint is None:
+            self.logger.warning("Health endpoint is not set.")
+            return False
+
         return self.is_host_healthy(self.host, self.health_endpoint)
 
     def _verify_response(self, response: requests.Response) -> None:
