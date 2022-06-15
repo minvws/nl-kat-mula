@@ -80,7 +80,6 @@ class Server:
 
         return response
 
-
     async def get_queues(self) -> Any:
         return [models.Queue(**q.dict()) for q in self.queues.values()]
 

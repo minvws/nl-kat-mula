@@ -92,7 +92,8 @@ class RabbitMQ(Listener):
         if parsed_url.hostname is None or parsed_url.port is None:
             self.logger.warning(
                 "Not able to parse hostname and port from %s [host=%s]",
-                self.dsn, self.dsn,
+                self.dsn,
+                self.dsn,
             )
             return False
 

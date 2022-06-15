@@ -29,9 +29,12 @@ class Connector:
         Returns:
             A boolean
         """
-        # TODO: we can inspect the returned json to check if it is healthy
         try:
-            requests.get(f"{host}{health_endpoint}")
+            response = requests.get(f"{host}{health_endpoint}", timeout=5)
+            healthy = response.json().get("healthy")
+            if healthy is False and healthy is not None:
+                return False
+
             return True
         except requests.exceptions.RequestException:
             return False
@@ -50,13 +53,21 @@ class Connector:
             if func(*args, **kwargs) is True:
                 self.logger.info(
                     "Function %s, executed successfully. Retry count: %d [name=%s, args=%s, kwargs=%s]",
-                    func.__name__, i, func.__name__, args, kwargs,
+                    func.__name__,
+                    i,
+                    func.__name__,
+                    args,
+                    kwargs,
                 )
                 return True
 
             self.logger.warning(
                 "Function %s, failed. Retry count: %d [name=%s, args=%s, kwargs=%s]",
-                func.__name__, i, func.__name__, args, kwargs,
+                func.__name__,
+                i,
+                func.__name__,
+                args,
+                kwargs,
             )
 
             i += 1

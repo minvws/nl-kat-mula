@@ -159,14 +159,18 @@ class HTTPService(Connector):
         if parsed_url.hostname is None or parsed_url.port is None:
             self.logger.warning(
                 "Not able to parse hostname and port from %s [host=%s]",
-                self.host, self.host,
+                self.host,
+                self.host,
             )
             return
 
         if self.host is not None and self.retry(self.is_host_available, parsed_url.hostname, parsed_url.port) is False:
             raise RuntimeError(f"Host {self.host} is not available.")
 
-        if self.health_endpoint is not None and self.retry(self.is_host_healthy, self.host, self.health_endpoint) is False:
+        if (
+            self.health_endpoint is not None
+            and self.retry(self.is_host_healthy, self.host, self.health_endpoint) is False
+        ):
             raise RuntimeError(f"Service {self.name} is not running.")
 
     def _is_host_available(self) -> bool:
