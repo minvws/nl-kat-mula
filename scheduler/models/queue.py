@@ -31,4 +31,7 @@ class Queue(BaseModel):
     id: str
     size: int
     maxsize: int
+    allow_replace: bool
+    allow_updates: bool
+    allow_priority_updates: bool
     pq: List[QueueEntry]

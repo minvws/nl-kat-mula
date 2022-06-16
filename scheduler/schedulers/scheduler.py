@@ -32,7 +32,7 @@ class Scheduler(abc.ABC):
             A rankers.Ranker instance.
         dispatcher:
             A dispatchers.Dispatcher instance.
-        populate_queue:
+        populate_queue_enabled:
             A boolean whether to populate the queue.
         threads:
             A dict of ThreadRunner instances, used for runner processes
@@ -159,3 +159,17 @@ class Scheduler(abc.ABC):
                 func=self.dispatcher.run,
                 interval=self.ctx.config.dsp_interval,
             )
+
+    def dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.scheduler_id,
+            "populate_queue_enabled": self.populate_queue_enabled,
+            "priority_queue": {
+                "id": self.queue.pq_id,
+                "maxsize": self.queue.maxsize,
+                "qsize": self.queue.pq.qsize(),
+                "allow_replace": self.queue.allow_replace,
+                "allow_updates": self.queue.allow_updates,
+                "allow_priority_updates": self.queue.allow_priority_updates,
+            }
+        }

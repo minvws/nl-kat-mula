@@ -52,7 +52,7 @@ class App:
         self.stop_event: threading.Event = self.ctx.stop_event
 
         # Initialize schedulers
-        self.schedulers: Dict[str, Union[schedulers.BoefjeScheduler, schedulers.NormalizerScheduler]] = {}
+        self.schedulers: Dict[str, Union[schedulers.BoefjeScheduler, schedulers.NormalizerScheduler]] = {}  # TODO: interface
         self.initialize_boefje_schedulers()
         self.initialize_normalizer_schedulers()
 
@@ -61,8 +61,7 @@ class App:
 
         # Initialize API server
         self.server: server.Server = server.Server(
-            ctx=self.ctx,
-            priority_queues={k: s.queue for k, s in self.schedulers.items()},
+            ctx=self.ctx, schedulers=self.schedulers,
         )
 
     def shutdown(self) -> None:

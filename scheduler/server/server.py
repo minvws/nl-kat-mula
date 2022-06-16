@@ -1,22 +1,25 @@
 import logging
 import queue as _queue
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import fastapi
 import scheduler
 import uvicorn
-from scheduler import context, models, queues
+from scheduler import context, models, queues, schedulers
 
 
-# TODO: decide if we need AppContext here, since we're only using host and
-# api
 class Server:
     """Server that exposes API endpoints for the scheduler."""
 
-    def __init__(self, ctx: context.AppContext, priority_queues: Dict[str, queues.PriorityQueue]):
+    def __init__(
+        self,
+        ctx: context.AppContext,
+        schedulers: Dict[str, Union[schedulers.BoefjeScheduler, schedulers.NormalizerScheduler]],
+    ):
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.ctx: context.AppContext = ctx
-        self.queues: Dict[str, queues.PriorityQueue] = priority_queues
+        self.schedulers = schedulers
+        self.queues: Dict[str, queues.PriorityQueue] = {k: s.queue for k, s in self.schedulers.items()}
 
         self.api = fastapi.FastAPI()
 
@@ -32,6 +35,22 @@ class Server:
             endpoint=self.health,
             methods=["GET"],
             response_model=models.ServiceHealth,
+            status_code=200,
+        )
+
+        self.api.add_api_route(
+            path="/schedulers",
+            endpoint=self.get_schedulers,
+            methods=["GET"],
+            response_model=List[models.Scheduler],
+            status_code=200,
+        )
+
+        self.api.add_api_route(
+            path="/schedulers/{scheduler_id}",
+            endpoint=self.get_scheduler,
+            methods=["GET"],
+            response_model=models.Scheduler,
             status_code=200,
         )
 
@@ -66,7 +85,7 @@ class Server:
         )
 
     async def root(self) -> Any:
-        return {"message": "hello, world"}
+        return None
 
     async def health(self) -> Any:
         return models.ServiceHealth(
@@ -74,6 +93,19 @@ class Server:
             healthy=True,
             version=scheduler.__version__,
         )
+
+    async def get_schedulers(self) -> Any:
+        return [models.Scheduler(**s.dict()) for s in self.schedulers.values()]
+
+    async def get_scheduler(self, scheduler_id: str) -> Any:
+        s = self.schedulers.get(scheduler_id)
+        if s is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="scheduler not found",
+            )
+
+        return models.Scheduler(**s.dict())
 
     async def get_queues(self) -> Any:
         return [models.Queue(**q.dict()) for q in self.queues.values()]

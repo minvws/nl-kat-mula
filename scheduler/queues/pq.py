@@ -116,8 +116,8 @@ class PriorityQueue:
             A dict that maps items (python objects) to their corresponding
             entries in the queue.
         allow_replace:
-            A boolean that defines if the queue allows replacing item When set
-            to True, the queue will replace items that are already on the
+            A boolean that defines if the queue allows replacing an item. When
+            set to True, the queue will replace items that are already on the
             queue.
         allow_updates:
             A boolean that defines if the queue allows updates of items on the
@@ -334,6 +334,9 @@ class PriorityQueue:
             "id": self.pq_id,
             "size": self.pq.qsize(),
             "maxsize": self.maxsize,
+            "allow_replace": self.allow_replace,
+            "allow_updates": self.allow_updates,
+            "allow_priority_updates": self.allow_priority_updates,
             "pq": [self.pq.queue[i].dict() for i in range(self.pq.qsize())],  # TODO: maybe overkill
         }
 
