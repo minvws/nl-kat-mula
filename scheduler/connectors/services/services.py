@@ -156,7 +156,12 @@ class HTTPService(Connector):
     def _do_checks(self) -> None:
         """Do checks whether a host is available and healthy."""
         parsed_url = urllib.parse.urlparse(self.host)
-        if parsed_url.hostname is None or parsed_url.port is None:
+        hostname, port = parsed_url.hostname, parsed_url.port
+
+        if port is None and parsed_url.scheme is not None:
+            port = 80 if parsed_url.scheme == "http" else 443
+
+        if hostname is None or port is None:
             self.logger.warning(
                 "Not able to parse hostname and port from %s [host=%s]",
                 self.host,
@@ -164,7 +169,7 @@ class HTTPService(Connector):
             )
             return
 
-        if self.host is not None and self.retry(self.is_host_available, parsed_url.hostname, parsed_url.port) is False:
+        if self.host is not None and self.retry(self.is_host_available, hostname, port) is False:
             raise RuntimeError(f"Host {self.host} is not available.")
 
         if (
@@ -172,27 +177,6 @@ class HTTPService(Connector):
             and self.retry(self.is_host_healthy, self.host, self.health_endpoint) is False
         ):
             raise RuntimeError(f"Service {self.name} is not running.")
-
-    def _is_host_available(self) -> bool:
-        """Check if the host is available.
-
-        Returns:
-            A boolean
-        """
-        try:
-            uri = urllib.parse.urlparse(self.host)
-            if uri.hostname is None or uri.port is None:
-                self.logger.warning(
-                    "Not able to parse hostname and port from %s [host=%s]",
-                    self.host,
-                    self.host,
-                )
-                return False
-
-            socket.create_connection((uri.hostname, uri.port))
-            return True
-        except socket.error:
-            return False
 
     def is_healthy(self) -> bool:
         """Check if host is healthy by inspecting the host's health endpoint.

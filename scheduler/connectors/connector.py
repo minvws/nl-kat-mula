@@ -71,6 +71,6 @@ class Connector:
             )
 
             i += 1
-            time.sleep(5)
+            time.sleep(10)
 
         return False

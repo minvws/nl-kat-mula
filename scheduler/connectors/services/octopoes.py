@@ -8,7 +8,6 @@ from .services import HTTPService
 
 class Octopoes(HTTPService):
     name = "octopoes"
-    health_endpoint = None
 
     def get_objects(self, organisation_id: str) -> List[OOI]:
         """Get all oois from octopoes"""
