@@ -8,7 +8,6 @@ class ValidationError(Exception):
 
 
 def exception_handler(func):
-
     @functools.wraps(func)
     def inner_function(*args, **kwargs):
         try:
