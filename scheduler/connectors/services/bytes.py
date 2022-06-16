@@ -1,5 +1,6 @@
 from typing import Optional
 
+from scheduler.connectors.errors import exception_handler
 from scheduler.models import BoefjeMeta, RawData
 
 from .services import HTTPService
@@ -30,6 +31,7 @@ class Bytes(HTTPService):
         )
         return str(response.json()["access_token"])
 
+    @exception_handler
     def get_last_run_boefje(self, boefje_id: str, input_ooi: str, organization_id: str) -> Optional[BoefjeMeta]:
         url = f"{self.host}/bytes/boefje_meta"
         response = self.get(
@@ -47,6 +49,7 @@ class Bytes(HTTPService):
 
         return None
 
+    @exception_handler
     def get_last_run_boefje_by_organisation_id(self, organization_id: str) -> Optional[BoefjeMeta]:
         url = f"{self.host}/bytes/boefje_meta"
         response = self.get(

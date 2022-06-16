@@ -1,5 +1,7 @@
 from typing import List
 
+import pydantic
+from scheduler.connectors.errors import exception_handler
 from scheduler.models import Boefje, Organisation, Plugin
 from scheduler.utils import dict_utils
 
@@ -62,21 +64,25 @@ class Katalogus(HTTPService):
                 for type_ in plugin.consumes:
                     self.organisations_normalizer_type_cache[org.id].setdefault(type_, []).append(plugin)
 
+    @exception_handler
     def get_boefjes(self) -> List[Boefje]:
         url = f"{self.host}/boefjes"
         response = self.get(url)
         return [Boefje(**boefje) for boefje in response.json()]
 
+    @exception_handler
     def get_boefje(self, boefje_id: str) -> Boefje:
         url = f"{self.host}/boefjes/{boefje_id}"
         response = self.get(url)
         return Boefje(**response.json())
 
+    @exception_handler
     def get_organisation(self, organisation_id) -> Organisation:
         url = f"{self.host}/v1/organisations/{organisation_id}"
         response = self.get(url)
         return Organisation(**response.json())
 
+    @exception_handler
     def get_organisations(self) -> List[Organisation]:
         url = f"{self.host}/v1/organisations"
         response = self.get(url)
