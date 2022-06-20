@@ -48,7 +48,7 @@ class Connector:
         Returns:
             A boolean signifying whether or not the func was executed successfully.
         """
-        for _ in range(10):
+        for i in range(10):
             if func(*args, **kwargs):
                 self.logger.info(
                     "Function %s, executed successfully. Retry count: %d [name=%s, args=%s, kwargs=%s]",
