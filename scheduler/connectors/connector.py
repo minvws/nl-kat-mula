@@ -50,7 +50,7 @@ class Connector:
         """
         i = 0
         while i < 10:
-            if func(*args, **kwargs) is True:
+            if func(*args, **kwargs):
                 self.logger.info(
                     "Function %s, executed successfully. Retry count: %d [name=%s, args=%s, kwargs=%s]",
                     func.__name__,
