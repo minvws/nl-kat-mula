@@ -32,7 +32,7 @@ class Connector:
         try:
             response = requests.get(f"{host}{health_endpoint}", timeout=5)
             healthy = response.json().get("healthy")
-            if healthy is False and healthy is not None:
+            if not healthy:
                 return False
 
             return True
@@ -48,8 +48,7 @@ class Connector:
         Returns:
             A boolean signifying whether or not the func was executed successfully.
         """
-        i = 0
-        while i < 10:
+        for _ in range(10):
             if func(*args, **kwargs):
                 self.logger.info(
                     "Function %s, executed successfully. Retry count: %d [name=%s, args=%s, kwargs=%s]",
@@ -70,7 +69,6 @@ class Connector:
                 kwargs,
             )
 
-            i += 1
             time.sleep(10)
 
         return False
