@@ -55,6 +55,14 @@ class Server:
         )
 
         self.api.add_api_route(
+            path="/schedulers/{scheduler_id}",
+            endpoint=self.patch_scheduler,
+            methods=["PATCH"],
+            response_model=models.Scheduler,
+            status_code=200,
+        )
+
+        self.api.add_api_route(
             path="/queues",
             endpoint=self.get_queues,
             methods=["GET"],
@@ -107,6 +115,20 @@ class Server:
 
         return models.Scheduler(**s.dict())
 
+    async def patch_scheduler(self, scheduler_id: str, item: models.Scheduler) -> Any:
+        s = self.schedulers.get(scheduler_id)
+        if s is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="scheduler not found",
+            )
+
+        stored_scheduler_model = models.Scheduler(**s.dict())
+        patch_data = item.dict(exclude_unset=True)
+        updated_scheduler = stored_scheduler_model.copy(update=patch_data)
+        self.schedulers[scheduler_id] = updated_scheduler
+        return updated_scheduler
+
     async def get_queues(self) -> Any:
         return [models.Queue(**q.dict()) for q in self.queues.values()]
 
@@ -145,8 +167,14 @@ class Server:
                 detail="queue not found",
             )
 
+        p_item = queues.PrioritizedItem(**item.dict())
+        if q.item_type == models.BoefjeTask:
+            p_item.item = models.BoefjeTask(**p_item.item)
+        elif q.item_type == models.NormalizerTask:
+            p_item.item = models.NormalizerTask(**p_item.item)
+
         try:
-            q.push(queues.PrioritizedItem(**item.dict()))
+            q.push(p_item)
         except _queue.Full as exc_full:
             raise fastapi.HTTPException(
                 status_code=400,
