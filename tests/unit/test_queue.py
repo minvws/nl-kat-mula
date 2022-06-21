@@ -7,7 +7,7 @@ import pydantic
 from scheduler import queues
 
 
-def create_p_item(priority: int):
+def create_p_item(priority: int) -> queues.PrioritizedItem:
     return queues.PrioritizedItem(
         priority=priority,
         item=TestModel(
@@ -73,7 +73,8 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(1, len(self.pq.entry_finder))
 
         # Add the same item again
-        self.pq.push(p_item=initial_item)
+        with self.assertRaises(queues.errors.NotAllowedError):
+            self.pq.push(p_item=initial_item)
 
         self.assertEqual(1, len(self.pq))
         self.assertEqual(1, len(self.pq.entry_finder))
@@ -98,7 +99,8 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(2, len(self.pq))
         self.assertEqual(1, len(self.pq.entry_finder))
 
-        # TODO: check if the item on the queue is the replaced item
+        # Check if the item on the queue is the replaced item
+        self.assertEqual(initial_item.item.id, self.pq.peek(0).p_item.item.id)
 
     def test_push_updates_not_allowed(self):
         """When pushing an item that is already in the queue, and the item is
@@ -119,7 +121,8 @@ class PriorityQueueTestCase(unittest.TestCase):
         updated_item.item.name = "updated-name"
 
         # Add the same item again
-        self.pq.push(p_item=updated_item)
+        with self.assertRaises(queues.errors.NotAllowedError):
+            self.pq.push(p_item=updated_item)
 
         self.assertEqual(1, len(self.pq))
         self.assertEqual(1, len(self.pq.entry_finder))
@@ -171,7 +174,8 @@ class PriorityQueueTestCase(unittest.TestCase):
         updated_item.priority = 100
 
         # Add the same item again
-        self.pq.push(p_item=updated_item)
+        with self.assertRaises(queues.errors.NotAllowedError):
+            self.pq.push(p_item=updated_item)
 
         self.assertEqual(1, len(self.pq))
         self.assertEqual(1, len(self.pq.entry_finder))

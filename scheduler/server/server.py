@@ -172,11 +172,17 @@ class Server:
                 detail="queue not found",
             )
 
-        p_item = queues.PrioritizedItem(**item.dict())
-        if q.item_type == models.BoefjeTask:
-            p_item.item = models.BoefjeTask(**p_item.item)
-        elif q.item_type == models.NormalizerTask:
-            p_item.item = models.NormalizerTask(**p_item.item)
+        try:
+            p_item = queues.PrioritizedItem(**item.dict())
+            if q.item_type == models.BoefjeTask:
+                p_item.item = models.BoefjeTask(**p_item.item)
+            elif q.item_type == models.NormalizerTask:
+                p_item.item = models.NormalizerTask(**p_item.item)
+        except Exception as exc:
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail=f"{str(exc)}",
+            ) from exc
 
         try:
             q.push(p_item)
@@ -190,6 +196,11 @@ class Server:
                 status_code=400,
                 detail="invalid item",
             ) from exc_value
+        except queues.errors.NotAllowedError:
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail="not allowed",
+            )
 
         return fastapi.Response(status_code=204)
 

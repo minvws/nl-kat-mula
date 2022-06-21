@@ -101,7 +101,17 @@ class Scheduler(abc.ABC):
                 )
                 break
 
-            self.queue.push(p_item)
+            try:
+                self.queue.push(p_item)
+            except queues.errors.NotAllowedError:
+                self.logger.warning(
+                    "Not allowed to push to queue %s [queue_id=%s, qsize=%d]",
+                    self.queue.pq_id,
+                    self.queue.pq_id,
+                    self.queue.pq.qsize(),
+                )
+                continue
+
             count += 1
 
         if count > 0:
