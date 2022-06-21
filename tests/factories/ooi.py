@@ -24,6 +24,11 @@ class ScanProfileFactory(Factory):
         elements=["Hostname", "Network"],
     )
 
+    object_type: str = Faker(
+        "random_element",
+        elements=["Hostname", "Network"],
+    )
+
 
 class OOIFactory(Factory):
     class Meta:

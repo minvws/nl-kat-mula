@@ -21,3 +21,13 @@ services:
       - .ci/.env.test
     volumes:
       - .:/app/scheduler
+
+  mula_simulation:
+    build:
+      context: .
+      args:
+        PIP_PACKAGES: requirements-dev.txt
+    env_file:
+      - .ci/.env.test
+    volumes:
+      - .:/app/scheduler

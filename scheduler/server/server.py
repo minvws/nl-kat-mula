@@ -96,11 +96,16 @@ class Server:
         return None
 
     async def health(self) -> Any:
-        return models.ServiceHealth(
+        response = models.ServiceHealth(
             service="scheduler",
             healthy=True,
             version=scheduler.__version__,
         )
+
+        for service in self.ctx.services.__dict__.values():
+            response.externals[service.name] = service.is_healthy()
+
+        return response
 
     async def get_schedulers(self) -> Any:
         return [models.Scheduler(**s.dict()) for s in self.schedulers.values()]

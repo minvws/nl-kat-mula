@@ -3,6 +3,7 @@ import json
 from typing import List, Optional
 
 import pika
+from scheduler.connectors.errors import exception_handler
 from scheduler.models import OOI
 from scheduler.models import ScanProfile as ScanProfileModel
 
@@ -12,6 +13,7 @@ from .listeners import RabbitMQ
 class ScanProfile(RabbitMQ):
     name = "scan_profile"
 
+    @exception_handler
     def get_latest_object(self, queue: str) -> Optional[OOI]:
         response = self.get(queue)
         if response is None:
@@ -26,6 +28,7 @@ class ScanProfile(RabbitMQ):
 
         return ooi
 
+    @exception_handler
     def get_latest_objects(self, queue: str, n: int) -> Optional[List[OOI]]:
         oois: List[OOI] = []
 
