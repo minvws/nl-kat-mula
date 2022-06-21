@@ -11,7 +11,7 @@ class Connector:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def is_host_available(self, hostname: str, port: int):
+    def is_host_available(self, hostname: str, port: int) -> bool:
         """Check if the host is available.
 
         Returns:
@@ -23,7 +23,7 @@ class Connector:
         except socket.error:
             return False
 
-    def is_host_healthy(self, host: str, health_endpoint: str):
+    def is_host_healthy(self, host: str, health_endpoint: str) -> bool:
         """Check if host is healthy by inspecting the host's health endpoint.
 
         Returns:
@@ -32,10 +32,7 @@ class Connector:
         try:
             response = requests.get(f"{host}{health_endpoint}", timeout=5)
             healthy = response.json().get("healthy")
-            if not healthy:
-                return False
-
-            return True
+            return healthy
         except requests.exceptions.RequestException:
             return False
 
