@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -13,6 +13,7 @@ class ServiceHealth(BaseModel):
     version: Optional[str] = None
     additional: Any = None
     results: List["ServiceHealth"] = []
+    externals: Dict[str, bool] = {}
 
 
 ServiceHealth.update_forward_refs()
