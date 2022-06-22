@@ -9,6 +9,7 @@ from .services import HTTPService
 
 class Octopoes(HTTPService):
     name = "octopoes"
+    health_endpoint = None
 
     @exception_handler
     def get_objects(self, organisation_id: str) -> List[OOI]:
