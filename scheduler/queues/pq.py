@@ -9,7 +9,7 @@ from typing import Any, Dict, Tuple, Type
 
 import pydantic
 
-from .errors import NotAllowedError
+from .errors import InvalidPrioritizedItemError, NotAllowedError
 
 
 class EntryState(str, Enum):
@@ -200,13 +200,17 @@ class PriorityQueue:
 
         Raises:
             ValueError: If the item is not valid.
+            InvalidPrioritizedItemError: If the item is not valid.
             Full: If the queue is full.
 
         Reference:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.put
         """
+        if not isinstance(p_item, PrioritizedItem):
+            raise InvalidPrioritizedItemError("The item is not a PrioritizedItem")
+
         if not self._is_valid_item(p_item.item):
-            raise ValueError(f"PrioritizedItem must be of type {self.item_type}")
+            raise InvalidPrioritizedItemError(f"PrioritizedItem must be of type {self.item_type}")
 
         if self.maxsize is not None and self.maxsize != 0 and self.pq.qsize() == self.maxsize:
             raise queue.Full

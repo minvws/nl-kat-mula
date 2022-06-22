@@ -4,7 +4,7 @@ import unittest
 import uuid
 
 import pydantic
-from scheduler import queues
+from scheduler import models, queues
 
 
 def create_p_item(priority: int) -> queues.PrioritizedItem:
@@ -57,6 +57,19 @@ class PriorityQueueTestCase(unittest.TestCase):
 
         self.assertEqual(1, len(self.pq))
         self.assertEqual(1, len(self.pq.entry_finder))
+
+    def test_push_incorrect_p_item_type(self):
+        """When pushing an item that is not of the correct type, the item
+        shouldn't be pushed.
+        """
+        item = {"priority": 1, "item": TestModel(id=uuid.uuid4().hex, name=uuid.uuid4().hex)}
+        p_item = models.QueuePrioritizedItem(**item)
+
+        with self.assertRaises(queues.errors.InvalidPrioritizedItemError):
+            self.pq.push(p_item=p_item)
+
+        self.assertEqual(0, len(self.pq))
+        self.assertEqual(0, len(self.pq.entry_finder))
 
     def test_push_replace_not_allowed(self):
         """When pushing an item that is already in the queue the item
@@ -239,7 +252,7 @@ class PriorityQueueTestCase(unittest.TestCase):
         self.assertEqual(initial_item, last_entry.p_item)
         self.assertEqual(queues.EntryState.REMOVED, last_entry.state)
 
-        # First item should be the updated item
+        # First item should be the updated item, EntryState.ADDED
         self.assertEqual(1, first_entry.priority, 1)
         self.assertEqual(updated_item, first_entry.p_item)
         self.assertEqual(queues.EntryState.ADDED, first_entry.state)
@@ -307,7 +320,7 @@ class PriorityQueueTestCase(unittest.TestCase):
         popped_item = self.pq.pop()
         self.assertEqual(updated_item, popped_item)
 
-        # The queue should now have 1 item, because the removed item was
+        # The queue should now have 0 items, because the removed item was
         # discarded while popping
         self.assertEqual(0, len(self.pq))
         self.assertEqual(0, len(self.pq.entry_finder))
