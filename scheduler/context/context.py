@@ -68,5 +68,4 @@ class AppContext:
             }
         )
 
-
         self.stop_event: threading.Event = threading.Event()
