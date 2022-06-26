@@ -10,8 +10,8 @@ jobs:
 
     runs-on: ubuntu-20.04
     env:
-      working_directory: /usr/share/kat-bytes
-      pkg_name: kat-bytes
+      working_directory: /usr/share/kat-mula
+      pkg_name: kat-mula
 
     steps:
       - name: Set env
@@ -26,48 +26,49 @@ jobs:
 
       # TODO: proper deb package versions
       - name: Create directories for .deb package
-        run: mkdir -p kat-bytes_${{env.RELEASE_VERSION}}/{data/usr/share/kat-bytes/app,debian}
+        run: mkdir -p kat-mula_${{env.RELEASE_VERSION}}/{data/usr/share/kat-mula/app,debian}
 
       - name: Move app files to .deb directory
         run: |
-          PACKAGE_FILES=(bytes
+          PACKAGE_FILES=(scheduler
           .env-dist
           README.md
-          logging.conf
+          logging.json
+          logging.prod.json
           LICENSE
           requirements.txt
           )
 
           for file in "${PACKAGE_FILES[@]}"; do
-            cp -r $file kat-bytes_${{env.RELEASE_VERSION}}/data/usr/share/kat-bytes/app/
+            cp -r $file kat-mula_${{env.RELEASE_VERSION}}/data/usr/share/kat-mula/app/
           done
 
       - name: Copy static package files
         run: |
-          cp -r ./packaging/deb/* kat-bytes_${{env.RELEASE_VERSION}}/
-          sed -i "s/_VERSION_/${{env.RELEASE_VERSION}}/g" kat-bytes_${{env.RELEASE_VERSION}}/debian/control
+          cp -r ./packaging/deb/* kat-mula_${{env.RELEASE_VERSION}}/
+          sed -i "s/_VERSION_/${{env.RELEASE_VERSION}}/g" kat-mula_${{env.RELEASE_VERSION}}/debian/control
 
       # TODO: generate proper changelog
       - name: generate changelog
         run: |
           cat > debian/changelog << EOF
-          kat-bytes (${{env.RELEASE_VERSION}}) unstable; urgency=low
-            * view changes: https://github.com/minvws/nl-rt-tim-abang-bytes/releases/tag/${{env.RELEASE_TAG}}
+          kat-mula (${{env.RELEASE_VERSION}}) unstable; urgency=low
+            * view changes: https://github.com/minvws/nl-rt-tim-abang-mula/releases/tag/${{env.RELEASE_TAG}}
 
            -- OpenKAT <maintainer@openkat.nl>  $(LANG=C date -R)
 
           EOF
-        working-directory: kat-bytes_${{env.RELEASE_VERSION}}/
+        working-directory: kat-mula_${{env.RELEASE_VERSION}}/
 
       - name: Install required packages for building
         run: sudo apt install devscripts debhelper -y
 
       - name: Create .deb
         run: dpkg-buildpackage -us -uc -b
-        working-directory: kat-bytes_${{env.RELEASE_VERSION}}/
+        working-directory: kat-mula_${{env.RELEASE_VERSION}}/
 
       - name: Upload .deb to artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: kat-bytes_${{ env.RELEASE_VERSION }}.deb
-          path: kat-bytes_${{ env.RELEASE_VERSION }}_all.deb
+          name: kat-mula_${{ env.RELEASE_VERSION }}.deb
+          path: kat-mula_${{ env.RELEASE_VERSION }}_all.deb
