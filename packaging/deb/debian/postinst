@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+. /usr/share/debconf/confmodule
+
+APP_DIR=/usr/share/kat-mula
+
+python3 -m venv ${APP_DIR}/venv
+
+echo "Setting up mula environment."
+${APP_DIR}/venv/bin/pip install --upgrade pip > /dev/null
+${APP_DIR}/venv/bin/pip install --requirement ${APP_DIR}/app/requirements.txt > /dev/null
+
+if [ ! -f /etc/kat/mula.conf ]; then
+    mkdir /etc/kat || true
+    cp /usr/share/kat-mula/app/.env-dist /etc/kat/mula.conf
+fi
+
+ln -s /etc/kat/mula.conf /usr/share/kat-mula/app/.env
+
+chmod 640 /etc/kat/mula.conf
+chmod 750 /usr/lib/systemd/system/kat-mula.service
+
+db_stop || true

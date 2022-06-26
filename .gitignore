@@ -426,3 +426,5 @@ $RECYCLE.BIN/
 .password-store
 .envrc
 deployment/github_config.sh
+
+!/packaging/deb/data/usr/lib
