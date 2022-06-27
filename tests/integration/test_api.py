@@ -5,10 +5,8 @@ from unittest import mock
 
 import requests
 from fastapi.testclient import TestClient
-from scheduler import (config, connectors, dispatchers, models, queues,
-                       rankers, schedulers, server)
-from tests.factories import (BoefjeFactory, OOIFactory, OrganisationFactory,
-                             ScanProfileFactory)
+from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers, server
+from tests.factories import BoefjeFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
 
 
 def create_p_item(organisation_id: str, priority: int) -> models.QueuePrioritizedItem:
@@ -87,9 +85,7 @@ class APITestCase(unittest.TestCase):
         self.assertEqual(False, response.json().get("populate_queue_enabled"))
 
     def test_patch_scheduler_attr_not_found(self):
-        response = self.client.patch(
-            f"/schedulers/{self.scheduler.scheduler_id}", json={"not_found": "not found"}
-        )
+        response = self.client.patch(f"/schedulers/{self.scheduler.scheduler_id}", json={"not_found": "not found"})
         self.assertEqual(response.status_code, 400)
 
     def test_get_queues(self):

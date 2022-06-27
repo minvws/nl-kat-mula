@@ -43,6 +43,7 @@ class Scheduler(abc.ABC):
             event across threads.
 
     """
+
     organisation: models.Organisation
 
     def __init__(

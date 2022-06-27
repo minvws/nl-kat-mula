@@ -37,6 +37,7 @@ class App:
         server:
             A server.Server instance that handles the API server.
     """
+
     organisation: Organisation
 
     def __init__(self, ctx: context.AppContext) -> None:
