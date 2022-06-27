@@ -2,8 +2,6 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel
 
-from scheduler.models import Queue
-
 
 class Scheduler(BaseModel):
     """Representation of a schedulers.Scheduler instance. Used for

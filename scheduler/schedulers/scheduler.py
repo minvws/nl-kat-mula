@@ -101,6 +101,7 @@ class Scheduler(abc.ABC):
                 self.logger.warning(
                     "Queue %s is full, not populating new tasks [queue_id=%s, qsize=%d]",
                     self.queue.pq_id,
+                    self.queue.pq_id,
                     self.queue.pq.qsize(),
                 )
                 break

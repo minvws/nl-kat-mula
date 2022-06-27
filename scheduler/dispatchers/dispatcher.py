@@ -1,5 +1,4 @@
 import logging
-import uuid
 from typing import Any, Type
 
 import celery
