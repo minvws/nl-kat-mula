@@ -31,9 +31,11 @@ class Connector:
         """
         try:
             response = requests.get(f"{host}{health_endpoint}", timeout=5)
+            self.logger.info(response.json())
             healthy = response.json().get("healthy")
             return healthy
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as exc:
+            self.logger.warning("Exception: %s", exc)
             return False
 
     def retry(self, func: Callable, *args, **kwargs) -> bool:

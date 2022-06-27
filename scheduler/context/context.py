@@ -30,30 +30,41 @@ class AppContext:
         with open(self.config.log_cfg, "rt", encoding="utf-8") as f:
             logging.config.dictConfig(json.load(f))
 
+        svc_katalogus = services.Katalogus(
+            host=self.config.host_katalogus,
+            source=f"scheduler/{scheduler.__version__}",
+        )
+
+        svc_bytes = services.Bytes(
+            host=self.config.host_bytes,
+            user=self.config.host_bytes_user,
+            password=self.config.host_bytes_password,
+            source=f"scheduler/{scheduler.__version__}",
+        )
+
+        svc_octopoes = services.Octopoes(
+            host=self.config.host_octopoes,
+            source=f"scheduler/{scheduler.__version__}",
+            orgs=svc_katalogus.get_organisations(),
+        )
+
+        lst_scan_profile = listeners.ScanProfile(
+            dsn=self.config.host_scan_profile,
+        )
+
+        lst_raw_data = listeners.RawData(
+            dsn=self.config.host_raw_data,
+        )
+
         # Register external services, SimpleNamespace allows us to use dot
         # notation
         self.services: SimpleNamespace = SimpleNamespace(
             **{
-                services.Octopoes.name: services.Octopoes(
-                    host=self.config.host_octopoes,
-                    source=f"scheduler/{scheduler.__version__}",
-                ),
-                services.Katalogus.name: services.Katalogus(
-                    host=self.config.host_katalogus,
-                    source=f"scheduler/{scheduler.__version__}",
-                ),
-                services.Bytes.name: services.Bytes(
-                    host=self.config.host_bytes,
-                    user=self.config.host_bytes_user,
-                    password=self.config.host_bytes_password,
-                    source=f"scheduler/{scheduler.__version__}",
-                ),
-                listeners.ScanProfile.name: listeners.ScanProfile(
-                    dsn=self.config.host_scan_profile,
-                ),
-                listeners.RawData.name: listeners.RawData(
-                    dsn=self.config.host_raw_data,
-                ),
+                services.Katalogus.name: svc_katalogus,
+                services.Octopoes.name: svc_octopoes,
+                services.Bytes.name: svc_bytes,
+                listeners.ScanProfile.name: lst_scan_profile,
+                listeners.RawData.name: lst_raw_data,
             }
         )
 
