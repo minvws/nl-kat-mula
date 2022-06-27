@@ -1,6 +1,5 @@
 [Unit]
 Description=kat-mula daemon
-Requires=kat-mula.socket
 After=network.target
 
 [Service]
