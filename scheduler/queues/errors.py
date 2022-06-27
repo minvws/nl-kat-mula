@@ -2,5 +2,5 @@ class NotAllowedError(Exception):
     pass
 
 
-class InvalidPrioritizedItemError(Exception):
+class InvalidPrioritizedItemError(ValueError):
     pass
