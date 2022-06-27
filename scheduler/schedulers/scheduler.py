@@ -6,11 +6,11 @@ from typing import Any, Callable, Dict, List
 
 from pydantic import BaseModel
 
-from scheduler import context, dispatchers, models, queues, rankers, utils
+from scheduler import context, dispatchers, queues, rankers, utils
 from scheduler.utils import thread
 
 
-class Scheduler(metaclass=abc.ABCMeta):
+class Scheduler(abc.ABC):
     """The Scheduler class combines the priority queue, ranker and dispatcher.
     The scheduler is responsible for populating the queue, ranking, and
     dispatching tasks.
