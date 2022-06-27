@@ -5,10 +5,8 @@ from unittest import mock
 
 import requests
 from fastapi.testclient import TestClient
-from scheduler import (config, connectors, dispatchers, models, queues,
-                       rankers, schedulers, server)
-from tests.factories import (BoefjeFactory, OOIFactory, OrganisationFactory,
-                             ScanProfileFactory)
+from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers, server
+from tests.factories import BoefjeFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
 
 
 def create_p_item(organisation_id: str, priority: int) -> models.QueuePrioritizedItem:
@@ -22,7 +20,7 @@ def create_p_item(organisation_id: str, priority: int) -> models.QueuePrioritize
             boefje=BoefjeFactory(),
             input_ooi=ooi.primary_key,
             organization=organisation_id,
-        )
+        ),
     )
     return item
 
@@ -80,7 +78,9 @@ class APITestCase(unittest.TestCase):
 
     def test_patch_scheduler(self):
         self.assertEqual(True, self.scheduler.populate_queue_enabled)
-        response = self.client.patch(f"/schedulers/{self.scheduler.scheduler_id}", json={"populate_queue_enabled": False})
+        response = self.client.patch(
+            f"/schedulers/{self.scheduler.scheduler_id}", json={"populate_queue_enabled": False}
+        )
         self.assertEqual(200, response.status_code)
         self.assertEqual(False, response.json().get("populate_queue_enabled"))
 
@@ -103,7 +103,9 @@ class APITestCase(unittest.TestCase):
         self.assertEqual(1, self.scheduler.queue.qsize())
 
     def test_push_incorrect_item_type(self):
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json={"priority": 0, "item": "not a task"})
+        response = self.client.post(
+            f"/queues/{self.scheduler.scheduler_id}/push", json={"priority": 0, "item": "not a task"}
+        )
         self.assertEqual(response.status_code, 400)
 
     def test_push_queue_full(self):
@@ -357,22 +359,12 @@ class APITestCase(unittest.TestCase):
 
     def test_pop_queue(self):
         # Add one task to the queue
-        scan_profile = ScanProfileFactory(level=0)
-        ooi = OOIFactory(scan_profile=scan_profile)
-        item_id = uuid.uuid4().hex
-        item = models.QueuePrioritizedItem(
-            priority=0,
-            item=models.BoefjeTask(
-                id=item_id,
-                boefje=BoefjeFactory(),
-                input_ooi=ooi.primary_key,
-                organization=self.organisation.id,
-            )
-        )
-        self.scheduler.queue.push(item)
+        initial_item = create_p_item(self.organisation.id, 0)
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=initial_item.dict())
+        self.assertEqual(response.status_code, 204)
         self.assertEqual(1, self.scheduler.queue.qsize())
 
         response = self.client.get(f"/queues/{self.scheduler.scheduler_id}/pop")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json().get("item").get("id"), item_id)
+        self.assertEqual(response.json().get("item").get("id"), initial_item.item.id)
         self.assertEqual(0, self.scheduler.queue.qsize())

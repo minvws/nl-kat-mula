@@ -240,7 +240,9 @@ class PriorityQueue:
             allowed = True
 
         if not allowed:
-            raise NotAllowedError(f"[on_queue={on_queue}, item_changed={item_changed}, priority_changed={priority_changed}, allow_replace={self.allow_replace}, allow_updates={self.allow_updates}, allow_priority_updates={self.allow_priority_updates}]")
+            raise NotAllowedError(
+                f"[on_queue={on_queue}, item_changed={item_changed}, priority_changed={priority_changed}, allow_replace={self.allow_replace}, allow_updates={self.allow_updates}, allow_priority_updates={self.allow_priority_updates}]"
+            )
 
         # Set item as removed in entry_finder when it is already present,
         # since we're updating the entry. Using an Entry here acts as a

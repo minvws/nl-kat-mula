@@ -4,6 +4,8 @@ import os
 import threading
 from typing import Any, Callable, Dict, List
 
+from pydantic import BaseModel
+
 from scheduler import context, dispatchers, queues, rankers, utils
 from scheduler.utils import thread
 
@@ -181,5 +183,5 @@ class Scheduler(abc.ABC):
                 "allow_replace": self.queue.allow_replace,
                 "allow_updates": self.queue.allow_updates,
                 "allow_priority_updates": self.queue.allow_priority_updates,
-            }
+            },
         }

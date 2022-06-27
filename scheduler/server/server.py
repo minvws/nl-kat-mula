@@ -128,10 +128,16 @@ class Server:
                 detail="scheduler not found",
             )
 
+        # TODO: types are not correct we can't replace a scheduler  of type
+        # schedulers.Scheduler with a models.Scheduler
         stored_scheduler_model = models.Scheduler(**s.dict())
         patch_data = item.dict(exclude_unset=True)
         updated_scheduler = stored_scheduler_model.copy(update=patch_data)
+
+        # TODO: what was changed, then update those fields. We're only
+        # allowed to update fields
         self.schedulers[scheduler_id] = updated_scheduler
+
         return updated_scheduler
 
     async def get_queues(self) -> Any:
