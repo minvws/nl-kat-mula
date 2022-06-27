@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, List
 
 from pydantic import BaseModel
 
-from scheduler import context, dispatchers, queues, rankers, utils
+from scheduler import context, dispatchers, models, queues, rankers, utils
 from scheduler.utils import thread
 
 

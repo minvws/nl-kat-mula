@@ -92,10 +92,10 @@ class Server:
             methods=["POST"],
         )
 
-    async def root(self) -> Any:
+    def root(self) -> Any:
         return None
 
-    async def health(self) -> Any:
+    def health(self) -> Any:
         response = models.ServiceHealth(
             service="scheduler",
             healthy=True,
@@ -107,10 +107,10 @@ class Server:
 
         return response
 
-    async def get_schedulers(self) -> Any:
+    def get_schedulers(self) -> Any:
         return [models.Scheduler(**s.dict()) for s in self.schedulers.values()]
 
-    async def get_scheduler(self, scheduler_id: str) -> Any:
+    def get_scheduler(self, scheduler_id: str) -> Any:
         s = self.schedulers.get(scheduler_id)
         if s is None:
             raise fastapi.HTTPException(
@@ -120,7 +120,7 @@ class Server:
 
         return models.Scheduler(**s.dict())
 
-    async def patch_scheduler(self, scheduler_id: str, item: models.Scheduler) -> Any:
+    def patch_scheduler(self, scheduler_id: str, item: models.Scheduler) -> Any:
         s = self.schedulers.get(scheduler_id)
         if s is None:
             raise fastapi.HTTPException(
@@ -150,10 +150,10 @@ class Server:
 
         return updated_scheduler
 
-    async def get_queues(self) -> Any:
+    def get_queues(self) -> Any:
         return [models.Queue(**q.dict()) for q in self.queues.values()]
 
-    async def get_queue(self, queue_id: str) -> Any:
+    def get_queue(self, queue_id: str) -> Any:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
@@ -163,7 +163,7 @@ class Server:
 
         return models.Queue(**q.dict())
 
-    async def pop_queue(self, queue_id: str) -> Any:
+    def pop_queue(self, queue_id: str) -> Any:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
@@ -180,7 +180,7 @@ class Server:
                 detail="queue is empty",
             ) from exc_empty
 
-    async def push_queue(self, queue_id: str, item: models.QueuePrioritizedItem) -> Any:
+    def push_queue(self, queue_id: str, item: models.QueuePrioritizedItem) -> Any:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
