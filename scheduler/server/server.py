@@ -14,11 +14,11 @@ class Server:
     def __init__(
         self,
         ctx: context.AppContext,
-        schedulers: Dict[str, Union[schedulers.BoefjeScheduler, schedulers.NormalizerScheduler]],
+        s: Dict[str, schedulers.Scheduler],
     ):
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.ctx: context.AppContext = ctx
-        self.schedulers = schedulers
+        self.schedulers: Dict[str, schedulers.Scheduler] = s
         self.queues: Dict[str, queues.PriorityQueue] = {k: s.queue for k, s in self.schedulers.items()}
 
         self.api = fastapi.FastAPI()
@@ -128,15 +128,25 @@ class Server:
                 detail="scheduler not found",
             )
 
-        # TODO: types are not correct we can't replace a scheduler  of type
-        # schedulers.Scheduler with a models.Scheduler
         stored_scheduler_model = models.Scheduler(**s.dict())
         patch_data = item.dict(exclude_unset=True)
+        if len(patch_data) == 0:
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail="no data to patch",
+            )
+
         updated_scheduler = stored_scheduler_model.copy(update=patch_data)
 
-        # TODO: what was changed, then update those fields. We're only
-        # allowed to update fields
-        self.schedulers[scheduler_id] = updated_scheduler
+        # Update the patched attributes
+        for attr, value in patch_data.items():
+            try:
+                setattr(s, attr, value)
+            except AttributeError as exc:
+                raise fastapi.HTTPException(
+                    status_code=400,
+                    detail="attribute not found",
+                ) from exc
 
         return updated_scheduler
 
