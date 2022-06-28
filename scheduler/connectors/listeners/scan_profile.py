@@ -1,8 +1,5 @@
-import inspect
-import json
 from typing import List, Optional
 
-import pika
 from scheduler.connectors.errors import exception_handler
 from scheduler.models import OOI
 from scheduler.models import ScanProfile as ScanProfileModel
@@ -32,7 +29,7 @@ class ScanProfile(RabbitMQ):
     def get_latest_objects(self, queue: str, n: int) -> Optional[List[OOI]]:
         oois: List[OOI] = []
 
-        for i in range(n):
+        for _ in range(n):
             ooi = self.get_latest_object(queue=queue)
             if ooi is None:
                 break

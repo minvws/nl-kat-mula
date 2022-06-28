@@ -1,6 +1,6 @@
 import logging
 import queue as _queue
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List
 
 import fastapi
 import scheduler
@@ -212,11 +212,11 @@ class Server:
                 status_code=400,
                 detail="invalid item",
             ) from exc_value
-        except queues.errors.NotAllowedError:
+        except queues.errors.NotAllowedError as exc_not_allowed:
             raise fastapi.HTTPException(
                 status_code=400,
                 detail="not allowed",
-            )
+            ) from exc_not_allowed
 
         return fastapi.Response(status_code=204)
 

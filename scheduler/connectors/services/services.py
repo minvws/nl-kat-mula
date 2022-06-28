@@ -1,8 +1,6 @@
 import logging
-import socket
-import time
 import urllib.parse
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -57,6 +55,8 @@ class HTTPService(Connector):
                 An integer defining the number of retries to make before
                 giving up.
         """
+        super().__init__()
+
         self.logger: logging.Logger = logging.getLogger(self.__class__.__name__)
         self.session: requests.Session = requests.Session()
         self.host: str = host

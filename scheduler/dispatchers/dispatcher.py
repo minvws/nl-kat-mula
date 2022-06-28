@@ -3,6 +3,7 @@ from typing import Any, Type
 
 import celery
 import pydantic
+import scheduler
 from scheduler import context, queues
 
 
@@ -163,7 +164,7 @@ class CeleryDispatcher(Dispatcher):
         self.task_name = task_name
 
         self.app = celery.Celery(
-            name="",  # FIXME
+            name=f"scheduler-{scheduler.__version__}",
             broker=self.ctx.config.dsp_broker_url,
         )
 
