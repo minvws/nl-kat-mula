@@ -10,4 +10,5 @@ if [ "$1" = "purge" -a -e /usr/share/debconf/confmodule ]; then
     db_purge
 
     rm /etc/kat/mula.conf || true
+    rm /etc/kat/logging.mula.json || true
 fi
