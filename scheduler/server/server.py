@@ -197,7 +197,7 @@ class Server:
         except Exception as exc:
             raise fastapi.HTTPException(
                 status_code=400,
-                detail=f"{str(exc)}",
+                detail=str(exc),
             ) from exc
 
         try:

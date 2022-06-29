@@ -8,7 +8,6 @@ from .services import HTTPService
 
 class Octopoes(HTTPService):
     name = "octopoes"
-    health_endpoint = None
 
     def __init__(self, host: str, source: str, orgs: List[Organisation]):
         self.orgs: List[Organisation] = orgs
@@ -39,6 +38,6 @@ class Octopoes(HTTPService):
         healthy = True
         for org in self.orgs:
             if not self.is_host_healthy(self.host, f"/{org.id}{self.health_endpoint}"):
-                healthy = False
+                return False
 
         return healthy
