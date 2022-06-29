@@ -1,8 +1,7 @@
 import logging
 import socket
 import time
-import urllib.parse
-from typing import Any, Callable
+from typing import Callable
 
 import requests
 
@@ -33,7 +32,8 @@ class Connector:
             response = requests.get(f"{host}{health_endpoint}", timeout=5)
             healthy = response.json().get("healthy")
             return healthy
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as exc:
+            self.logger.warning("Exception: %s", exc)
             return False
 
     def retry(self, func: Callable, *args, **kwargs) -> bool:

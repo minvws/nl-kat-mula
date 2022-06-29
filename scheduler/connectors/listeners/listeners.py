@@ -21,6 +21,7 @@ class Listener(Connector):
     name: Optional[str] = None
 
     def __init__(self) -> None:
+        super().__init__()
         self.logger = logging.getLogger(__name__)
 
     def listen(self) -> None:

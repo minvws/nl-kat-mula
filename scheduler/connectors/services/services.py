@@ -1,8 +1,6 @@
 import logging
-import socket
-import time
 import urllib.parse
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -57,6 +55,8 @@ class HTTPService(Connector):
                 An integer defining the number of retries to make before
                 giving up.
         """
+        super().__init__()
+
         self.logger: logging.Logger = logging.getLogger(self.__class__.__name__)
         self.session: requests.Session = requests.Session()
         self.host: str = host
@@ -172,10 +172,7 @@ class HTTPService(Connector):
         if self.host is not None and self.retry(self.is_host_available, hostname, port) is False:
             raise RuntimeError(f"Host {self.host} is not available.")
 
-        if (
-            self.health_endpoint is not None
-            and self.retry(self.is_host_healthy, self.host, self.health_endpoint) is False
-        ):
+        if self.health_endpoint is not None and self.retry(self.is_healthy) is False:
             raise RuntimeError(f"Service {self.name} is not running.")
 
     def is_healthy(self) -> bool:

@@ -1,18 +1,12 @@
-import datetime
 import logging
 import os
-import signal
 import threading
 import time
-import uuid
-from datetime import timedelta
-from typing import Any, Callable, Dict, List, Union
-
-import requests
+from typing import Any, Callable, Dict
 
 from scheduler import context, dispatchers, queues, rankers, schedulers, server
 from scheduler.connectors import listeners
-from scheduler.models import OOI, BoefjeTask, NormalizerTask, Organisation
+from scheduler.models import BoefjeTask, NormalizerTask, Organisation
 from scheduler.utils import thread
 
 
@@ -38,6 +32,8 @@ class App:
             A server.Server instance that handles the API server.
     """
 
+    organisation: Organisation
+
     def __init__(self, ctx: context.AppContext) -> None:
         """Initialize the application.
 
@@ -52,7 +48,7 @@ class App:
         self.stop_event: threading.Event = self.ctx.stop_event
 
         # Initialize schedulers
-        self.schedulers: Dict[str, Union[schedulers.BoefjeScheduler, schedulers.NormalizerScheduler]] = {}
+        self.schedulers: Dict[str, schedulers.Scheduler] = {}
         self.initialize_boefje_schedulers()
         self.initialize_normalizer_schedulers()
 
@@ -60,10 +56,7 @@ class App:
         self.listeners: Dict[str, listeners.Listener] = {}
 
         # Initialize API server
-        self.server: server.Server = server.Server(
-            ctx=self.ctx,
-            priority_queues={k: s.queue for k, s in self.schedulers.items()},
-        )
+        self.server: server.Server = server.Server(self.ctx, self.schedulers)
 
     def shutdown(self) -> None:
         """Gracefully shutdown the scheduler, and all threads."""
@@ -194,8 +187,8 @@ class App:
         """Monitor the organisations in the Katalogus service, and add/remove
         organisations from the schedulers.
         """
-        scheduler_orgs = set([s.organisation.id for s in self.schedulers.values()])
-        katalogus_orgs = set([org.id for org in self.ctx.services.katalogus.get_organisations()])
+        scheduler_orgs = {s.organisation.id for s in self.schedulers.values()}
+        katalogus_orgs = {org.id for org in self.ctx.services.katalogus.get_organisations()}
 
         additions = katalogus_orgs.difference(scheduler_orgs)
         removals = scheduler_orgs.difference(katalogus_orgs)

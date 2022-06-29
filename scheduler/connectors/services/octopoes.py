@@ -1,8 +1,7 @@
-from datetime import timedelta
 from typing import List
 
 from scheduler.connectors.errors import exception_handler
-from scheduler.models import OOI
+from scheduler.models import OOI, Organisation
 
 from .services import HTTPService
 
@@ -10,6 +9,10 @@ from .services import HTTPService
 class Octopoes(HTTPService):
     name = "octopoes"
     health_endpoint = None
+
+    def __init__(self, host: str, source: str, orgs: List[Organisation]):
+        self.orgs: List[Organisation] = orgs
+        super().__init__(host, source)
 
     @exception_handler
     def get_objects(self, organisation_id: str) -> List[OOI]:
@@ -31,3 +34,11 @@ class Octopoes(HTTPService):
         url = f"{self.host}/{organisation_id}"
         response = self.get(url, params={"reference": reference})
         return OOI(**response.json())
+
+    def is_healthy(self) -> bool:
+        healthy = True
+        for org in self.orgs:
+            if not self.is_host_healthy(self.host, f"/{org.id}{self.health_endpoint}"):
+                return False
+
+        return healthy

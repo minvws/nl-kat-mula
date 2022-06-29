@@ -39,6 +39,114 @@
                 }
             }
         },
+        "/schedulers": {
+            "get": {
+                "summary": "Method",
+                "operationId": "method_schedulers_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "title": "Response Method Schedulers Get",
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Scheduler"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/schedulers/{scheduler_id}": {
+            "get": {
+                "summary": "Method",
+                "operationId": "method_schedulers__scheduler_id__get",
+                "parameters": [
+                    {
+                        "required": true,
+                        "schema": {
+                            "title": "Scheduler Id",
+                            "type": "string"
+                        },
+                        "name": "scheduler_id",
+                        "in": "path"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Scheduler"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "summary": "Method",
+                "operationId": "method_schedulers__scheduler_id__patch",
+                "parameters": [
+                    {
+                        "required": true,
+                        "schema": {
+                            "title": "Scheduler Id",
+                            "type": "string"
+                        },
+                        "name": "scheduler_id",
+                        "in": "path"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Scheduler"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Scheduler"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/queues": {
             "get": {
                 "summary": "Method",
@@ -208,6 +316,9 @@
                     "id",
                     "size",
                     "maxsize",
+                    "allow_replace",
+                    "allow_updates",
+                    "allow_priority_updates",
                     "pq"
                 ],
                 "type": "object",
@@ -223,6 +334,18 @@
                     "maxsize": {
                         "title": "Maxsize",
                         "type": "integer"
+                    },
+                    "allow_replace": {
+                        "title": "Allow Replace",
+                        "type": "boolean"
+                    },
+                    "allow_updates": {
+                        "title": "Allow Updates",
+                        "type": "boolean"
+                    },
+                    "allow_priority_updates": {
+                        "title": "Allow Priority Updates",
+                        "type": "boolean"
                     },
                     "pq": {
                         "title": "Pq",
@@ -274,6 +397,25 @@
                 },
                 "description": "Representation of an queue.PrioritizedItem on the priority queue. Used\nfor unmarshalling of priority queue prioritized items to a JSON\nrepresentation."
             },
+            "Scheduler": {
+                "title": "Scheduler",
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "title": "Id",
+                        "type": "string"
+                    },
+                    "populate_queue_enabled": {
+                        "title": "Populate Queue Enabled",
+                        "type": "boolean"
+                    },
+                    "priority_queue": {
+                        "title": "Priority Queue",
+                        "type": "object"
+                    }
+                },
+                "description": "Representation of a schedulers.Scheduler instance. Used for\nunmarshalling of schedulers to a JSON representation."
+            },
             "ServiceHealth": {
                 "title": "ServiceHealth",
                 "required": [
@@ -304,6 +446,14 @@
                             "$ref": "#/components/schemas/ServiceHealth"
                         },
                         "default": []
+                    },
+                    "externals": {
+                        "title": "Externals",
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "boolean"
+                        },
+                        "default": {}
                     }
                 },
                 "description": "ServiceHealth is used as response model for health check in the\nserver.Server for the health endpoint."

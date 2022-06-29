@@ -44,17 +44,17 @@ $ tree -L 3 --dirsfirst
 ├── docs/                           # additional documentation
 ├── scheduler/                      # scheduler python module
 │   ├── config                      # application settings configuration
-│   ├── connectors                  # external services connectors
+│   ├── connectors                  # external service connectors
 │   │   ├── listeners               # channel/socket listeners
-│   │   ├── services                # api connectors
+│   │   ├── services                # rest api connectors
 │   │   └── __init__.py
 │   ├── context/                    # shared application context
 │   ├── dispatchers/                # queue task dispatcher
 │   ├── models/                     # internal model definitions
 │   ├── queues/                     # priority queue
 │   ├── rankers/                    # priority/score calculations
-│   ├── schedulers/                 # scheduler api interface
-│   ├── server/                     # scheduler api interface
+│   ├── schedulers/                 # schedulers
+│   ├── server/                     # scheduler rest api interface
 │   ├── utils/                      # common utility functions
 │   ├── __init__.py
 │   ├── __main__.py

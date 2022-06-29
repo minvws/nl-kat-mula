@@ -25,14 +25,15 @@ class ExpiringDict:
 
     def __getitem__(self, key: str) -> Any:
         with self.lock:
-            if key in self.cache:
-                if datetime.now(timezone.utc) > self.expiration_time:
-                    self.cache.clear()
-                    self.expiration_time = datetime.now(timezone.utc) + self.lifetime
-                    raise ExpiredError
-                return self.cache[key]
-            else:
+            if key not in self.cache:
                 raise KeyError(key)
+
+            if datetime.now(timezone.utc) > self.expiration_time:
+                self.cache.clear()
+                self.expiration_time = datetime.now(timezone.utc) + self.lifetime
+                raise ExpiredError
+
+            return self.cache[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
         with self.lock:

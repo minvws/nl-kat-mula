@@ -27,7 +27,7 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
             pq_id=f"normalizer-{self.organisation.id}",
             maxsize=cfg.pq_maxsize,
             item_type=models.NormalizerTask,
-            allow_priority_updates=True,  # TODO: check if this is correct
+            allow_priority_updates=True,
         )
 
         dispatcher = dispatchers.NormalizerDispatcher(
@@ -35,7 +35,7 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
             pq=queue,
             item_type=models.NormalizerTask,
             celery_queue="normalizers",
-            task_name="tasks.handle_ooi",  # TODO: check if this is correct
+            task_name="tasks.handle_ooi",
         )
 
         ranker = rankers.NormalizerRanker(
