@@ -1,4 +1,4 @@
-name: package bytes for debian
+name: package mula for debian
 
 on:
   push:
