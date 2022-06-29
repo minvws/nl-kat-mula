@@ -160,7 +160,7 @@ class PriorityQueue:
         self.pq_id: str = pq_id
         self.maxsize: int = maxsize
         self.item_type: Type[pydantic.BaseModel] = item_type
-        self.pq: queue.PriorityQueue[Entry] = queue.PriorityQueue(maxsize=self.maxsize)
+        self.pq: queue.PriorityQueue = queue.PriorityQueue(maxsize=self.maxsize)
         self.timeout: int = 5
         self.entry_finder: Dict[Any, Entry] = {}
         self.allow_replace: bool = allow_replace
@@ -352,7 +352,7 @@ class PriorityQueue:
             "allow_replace": self.allow_replace,
             "allow_updates": self.allow_updates,
             "allow_priority_updates": self.allow_priority_updates,
-            "pq": [self.pq.queue[i].dict() for i in range(self.pq.qsize())],  # TODO: maybe overkill
+            "pq": [self.pq.queue[i].dict() for i in range(self.pq.qsize())],
         }
 
     def json(self) -> str:

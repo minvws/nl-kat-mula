@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
@@ -17,8 +16,8 @@ class NormalizerTask(BaseModel):
     def __hash__(self):
         """Make NormalizerTask hashable, so that we can de-duplicate it when
         used in the PriorityQueue. We hash the combination of the attributes
-        input_ooi and boefje.id since this combination is unique."""
-        return hash((self.normalizer.id, self.organization))
+        normalizer.id since this combination is unique."""
+        return hash((self.normalizer.id, self.boefje_meta.id))
 
 
 class BoefjeTask(BaseModel):

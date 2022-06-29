@@ -6,8 +6,8 @@ from typing import List
 import pika
 import requests
 
-from scheduler import context, dispatchers, queues, rankers, utils
-from scheduler.models import BoefjeMeta, NormalizerTask, Organisation, RawData
+from scheduler import context, dispatchers, queues, rankers
+from scheduler.models import NormalizerTask, Organisation, RawData
 
 from .scheduler import Scheduler
 

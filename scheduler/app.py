@@ -1,18 +1,12 @@
-import datetime
 import logging
 import os
-import signal
 import threading
 import time
-import uuid
-from datetime import timedelta
-from typing import Any, Callable, Dict, List, Union
-
-import requests
+from typing import Any, Callable, Dict
 
 from scheduler import context, dispatchers, queues, rankers, schedulers, server
 from scheduler.connectors import listeners
-from scheduler.models import OOI, BoefjeTask, NormalizerTask, Organisation
+from scheduler.models import BoefjeTask, NormalizerTask, Organisation
 from scheduler.utils import thread
 
 
@@ -193,8 +187,8 @@ class App:
         """Monitor the organisations in the Katalogus service, and add/remove
         organisations from the schedulers.
         """
-        scheduler_orgs = set([s.organisation.id for s in self.schedulers.values()])
-        katalogus_orgs = set([org.id for org in self.ctx.services.katalogus.get_organisations()])
+        scheduler_orgs = {s.organisation.id for s in self.schedulers.values()}
+        katalogus_orgs = {org.id for org in self.ctx.services.katalogus.get_organisations()}
 
         additions = katalogus_orgs.difference(scheduler_orgs)
         removals = scheduler_orgs.difference(katalogus_orgs)

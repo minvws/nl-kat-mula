@@ -1,10 +1,7 @@
 import abc
 import logging
-import os
 import threading
 from typing import Any, Callable, Dict, List
-
-from pydantic import BaseModel
 
 from scheduler import context, dispatchers, models, queues, rankers, utils
 from scheduler.utils import thread
@@ -100,6 +97,7 @@ class Scheduler(abc.ABC):
             if self.queue.full():
                 self.logger.warning(
                     "Queue %s is full, not populating new tasks [queue_id=%s, qsize=%d]",
+                    self.queue.pq_id,
                     self.queue.pq_id,
                     self.queue.pq.qsize(),
                 )

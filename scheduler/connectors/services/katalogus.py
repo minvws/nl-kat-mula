@@ -1,6 +1,5 @@
 from typing import List
 
-import pydantic
 from scheduler.connectors.errors import exception_handler
 from scheduler.models import Boefje, Organisation, Plugin
 from scheduler.utils import dict_utils

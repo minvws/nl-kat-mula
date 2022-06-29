@@ -1,7 +1,7 @@
 from typing import Optional
 
 from scheduler.connectors.errors import exception_handler
-from scheduler.models import BoefjeMeta, RawData
+from scheduler.models import BoefjeMeta
 
 from .services import HTTPService
 

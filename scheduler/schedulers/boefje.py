@@ -7,7 +7,7 @@ from typing import List
 import pika
 import requests
 
-from scheduler import context, dispatchers, queues, rankers, utils
+from scheduler import context, dispatchers, queues, rankers
 from scheduler.models import OOI, Boefje, BoefjeTask, Organisation
 
 from .scheduler import Scheduler
@@ -342,7 +342,7 @@ class BoefjeScheduler(Scheduler):
 
                 if (
                     last_run_boefje is not None
-                    and last_run_boefje.ended_at is None  # TODO: will this be none?
+                    and last_run_boefje.ended_at is None
                     and last_run_boefje.start_time is not None
                 ):
                     self.logger.debug(
