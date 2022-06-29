@@ -4,6 +4,8 @@ set -e
 
 APP_DIR=/usr/share/kat-mula
 
+adduser --home /etc/kat --no-create-home --system --group kat || true
+
 python3 -m venv ${APP_DIR}/venv
 
 echo "Setting up mula environment."
