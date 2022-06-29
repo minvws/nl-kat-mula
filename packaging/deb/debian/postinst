@@ -20,9 +20,12 @@ ln -s /etc/kat/mula.conf /usr/share/kat-mula/app/.env
 
 chown kat:kat /etc/kat/mula.conf
 chown kat:kat /etc/kat/logging.mula.json
+chown -R root:kat /usr/share/kat-mula
 chmod 640 /etc/kat/mula.conf
 chmod 640 /etc/kat/logging.mula.json
 chmod 750 /usr/share/kat-mula
 chmod 750 /usr/lib/systemd/system/kat-mula.service
+
+systemctl enable --now kat-rocky.service
 
 db_stop || true
