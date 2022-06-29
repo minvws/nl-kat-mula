@@ -8,6 +8,7 @@ from .services import HTTPService
 
 class Octopoes(HTTPService):
     name = "octopoes"
+    health_endpoint = None
 
     def __init__(self, host: str, source: str, orgs: List[Organisation]):
         self.orgs: List[Organisation] = orgs

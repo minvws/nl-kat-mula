@@ -426,3 +426,4 @@ $RECYCLE.BIN/
 .password-store
 .envrc
 deployment/github_config.sh
+.venv
