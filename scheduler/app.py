@@ -38,6 +38,8 @@ class App:
             A server.Server instance that handles the API server.
     """
 
+    organisation: Organisation
+
     def __init__(self, ctx: context.AppContext) -> None:
         """Initialize the application.
 
@@ -52,7 +54,7 @@ class App:
         self.stop_event: threading.Event = self.ctx.stop_event
 
         # Initialize schedulers
-        self.schedulers: Dict[str, Union[schedulers.BoefjeScheduler, schedulers.NormalizerScheduler]] = {}
+        self.schedulers: Dict[str, schedulers.Scheduler] = {}
         self.initialize_boefje_schedulers()
         self.initialize_normalizer_schedulers()
 
@@ -60,10 +62,7 @@ class App:
         self.listeners: Dict[str, listeners.Listener] = {}
 
         # Initialize API server
-        self.server: server.Server = server.Server(
-            ctx=self.ctx,
-            priority_queues={k: s.queue for k, s in self.schedulers.items()},
-        )
+        self.server: server.Server = server.Server(self.ctx, self.schedulers)
 
     def shutdown(self) -> None:
         """Gracefully shutdown the scheduler, and all threads."""

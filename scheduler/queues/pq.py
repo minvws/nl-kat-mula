@@ -9,6 +9,8 @@ from typing import Any, Dict, Tuple, Type
 
 import pydantic
 
+from .errors import InvalidPrioritizedItemError, NotAllowedError
+
 
 class EntryState(str, Enum):
     """A Enum describing the state of an entry on the priority queue."""
@@ -116,16 +118,23 @@ class PriorityQueue:
             A dict that maps items (python objects) to their corresponding
             entries in the queue.
         allow_replace:
-            A boolean that defines if the queue allows replacing item When set
-            to True, the queue will replace items that are already on the
-            queue.
+            A boolean that defines if the queue allows replacing an item. When
+            set to True, it will update the item on the queue. It will set the
+            state of the item to REMOVED in the queue, and the updated entry
+            will be added to the queue, and the item will be removed the
+            entry_finder.
         allow_updates:
             A boolean that defines if the queue allows updates of items on the
-            queue. When set to True, it will update the item on the queue.
+            queue. When set to True, it will update the item on the queue. It
+            will set the state of the item to REMOVED in the queue, and the
+            updated entry will be added to the queue, and the item will be
+            removed the entry_finder.
         allow_priority_updates:
-            A boolean that defines if the queue allows updates of items on the
-            queue. When set to True, it will update the priority of a
-            prioritized item on the queue.
+            A boolean that defines if the queue allows priority updates of
+            items on the queue. When set to True, it will update the item on
+            the queue. It will set the state of the item to REMOVED in the
+            queue, and the updated entry will be added to the queue, and the
+            item will be removed the entry_finder.
     """
 
     def __init__(
@@ -191,13 +200,17 @@ class PriorityQueue:
 
         Raises:
             ValueError: If the item is not valid.
+            InvalidPrioritizedItemError: If the item is not valid.
             Full: If the queue is full.
 
         Reference:
             https://docs.python.org/3/library/queue.html#queue.PriorityQueue.put
         """
+        if not isinstance(p_item, PrioritizedItem):
+            raise InvalidPrioritizedItemError("The item is not a PrioritizedItem")
+
         if not self._is_valid_item(p_item.item):
-            raise ValueError(f"PrioritizedItem must be of type {self.item_type}")
+            raise InvalidPrioritizedItemError(f"PrioritizedItem must be of type {self.item_type}")
 
         if self.maxsize is not None and self.maxsize != 0 and self.pq.qsize() == self.maxsize:
             raise queue.Full
@@ -227,7 +240,9 @@ class PriorityQueue:
             allowed = True
 
         if not allowed:
-            return
+            raise NotAllowedError(
+                f"[on_queue={on_queue}, item_changed={item_changed}, priority_changed={priority_changed}, allow_replace={self.allow_replace}, allow_updates={self.allow_updates}, allow_priority_updates={self.allow_priority_updates}]"
+            )
 
         # Set item as removed in entry_finder when it is already present,
         # since we're updating the entry. Using an Entry here acts as a
@@ -334,6 +349,9 @@ class PriorityQueue:
             "id": self.pq_id,
             "size": self.pq.qsize(),
             "maxsize": self.maxsize,
+            "allow_replace": self.allow_replace,
+            "allow_updates": self.allow_updates,
+            "allow_priority_updates": self.allow_priority_updates,
             "pq": [self.pq.queue[i].dict() for i in range(self.pq.qsize())],  # TODO: maybe overkill
         }
 

@@ -1,22 +1,25 @@
 import logging
 import queue as _queue
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import fastapi
 import scheduler
 import uvicorn
-from scheduler import context, models, queues
+from scheduler import context, models, queues, schedulers
 
 
-# TODO: decide if we need AppContext here, since we're only using host and
-# api
 class Server:
     """Server that exposes API endpoints for the scheduler."""
 
-    def __init__(self, ctx: context.AppContext, priority_queues: Dict[str, queues.PriorityQueue]):
+    def __init__(
+        self,
+        ctx: context.AppContext,
+        s: Dict[str, schedulers.Scheduler],
+    ):
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.ctx: context.AppContext = ctx
-        self.queues: Dict[str, queues.PriorityQueue] = priority_queues
+        self.schedulers: Dict[str, schedulers.Scheduler] = s
+        self.queues: Dict[str, queues.PriorityQueue] = {k: s.queue for k, s in self.schedulers.items()}
 
         self.api = fastapi.FastAPI()
 
@@ -32,6 +35,30 @@ class Server:
             endpoint=self.health,
             methods=["GET"],
             response_model=models.ServiceHealth,
+            status_code=200,
+        )
+
+        self.api.add_api_route(
+            path="/schedulers",
+            endpoint=self.get_schedulers,
+            methods=["GET"],
+            response_model=List[models.Scheduler],
+            status_code=200,
+        )
+
+        self.api.add_api_route(
+            path="/schedulers/{scheduler_id}",
+            endpoint=self.get_scheduler,
+            methods=["GET"],
+            response_model=models.Scheduler,
+            status_code=200,
+        )
+
+        self.api.add_api_route(
+            path="/schedulers/{scheduler_id}",
+            endpoint=self.patch_scheduler,
+            methods=["PATCH"],
+            response_model=models.Scheduler,
             status_code=200,
         )
 
@@ -65,10 +92,10 @@ class Server:
             methods=["POST"],
         )
 
-    async def root(self) -> Any:
-        return {"message": "hello, world"}
+    def root(self) -> Any:
+        return None
 
-    async def health(self) -> Any:
+    def health(self) -> Any:
         response = models.ServiceHealth(
             service="scheduler",
             healthy=True,
@@ -80,10 +107,53 @@ class Server:
 
         return response
 
-    async def get_queues(self) -> Any:
+    def get_schedulers(self) -> Any:
+        return [models.Scheduler(**s.dict()) for s in self.schedulers.values()]
+
+    def get_scheduler(self, scheduler_id: str) -> Any:
+        s = self.schedulers.get(scheduler_id)
+        if s is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="scheduler not found",
+            )
+
+        return models.Scheduler(**s.dict())
+
+    def patch_scheduler(self, scheduler_id: str, item: models.Scheduler) -> Any:
+        s = self.schedulers.get(scheduler_id)
+        if s is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="scheduler not found",
+            )
+
+        stored_scheduler_model = models.Scheduler(**s.dict())
+        patch_data = item.dict(exclude_unset=True)
+        if len(patch_data) == 0:
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail="no data to patch",
+            )
+
+        updated_scheduler = stored_scheduler_model.copy(update=patch_data)
+
+        # Update the patched attributes
+        for attr, value in patch_data.items():
+            try:
+                setattr(s, attr, value)
+            except AttributeError as exc:
+                raise fastapi.HTTPException(
+                    status_code=400,
+                    detail="attribute not found",
+                ) from exc
+
+        return updated_scheduler
+
+    def get_queues(self) -> Any:
         return [models.Queue(**q.dict()) for q in self.queues.values()]
 
-    async def get_queue(self, queue_id: str) -> Any:
+    def get_queue(self, queue_id: str) -> Any:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
@@ -93,7 +163,7 @@ class Server:
 
         return models.Queue(**q.dict())
 
-    async def pop_queue(self, queue_id: str) -> Any:
+    def pop_queue(self, queue_id: str) -> Any:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
@@ -110,7 +180,7 @@ class Server:
                 detail="queue is empty",
             ) from exc_empty
 
-    async def push_queue(self, queue_id: str, item: models.QueuePrioritizedItem) -> Any:
+    def push_queue(self, queue_id: str, item: models.QueuePrioritizedItem) -> Any:
         q = self.queues.get(queue_id)
         if q is None:
             raise fastapi.HTTPException(
@@ -119,7 +189,19 @@ class Server:
             )
 
         try:
-            q.push(queues.PrioritizedItem(**item.dict()))
+            p_item = queues.PrioritizedItem(**item.dict())
+            if q.item_type == models.BoefjeTask:
+                p_item.item = models.BoefjeTask(**p_item.item)
+            elif q.item_type == models.NormalizerTask:
+                p_item.item = models.NormalizerTask(**p_item.item)
+        except Exception as exc:
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail=str(exc),
+            ) from exc
+
+        try:
+            q.push(p_item)
         except _queue.Full as exc_full:
             raise fastapi.HTTPException(
                 status_code=400,
@@ -130,6 +212,11 @@ class Server:
                 status_code=400,
                 detail="invalid item",
             ) from exc_value
+        except queues.errors.NotAllowedError:
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail="not allowed",
+            )
 
         return fastapi.Response(status_code=204)
 
