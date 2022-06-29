@@ -14,12 +14,8 @@ if [ ! -d /etc/kat ]; then
     mkdir /etc/kat
 fi
 
-if [ ! -f /etc/kat/mula.conf ]; then
-    cp /usr/share/kat-mula/app/.env-dist /etc/kat/mula.conf
+if [ ! -f /etc/kat/logging.mula.json ]; then
     cp /usr/share/kat-mula/app/logging.prod.json /etc/kat/logging.mula.json
-
-    sed -i 's/SCHEDULER_LOG_CFG=.*$/SCHEDULER_LOG_FILE=\/etc\/kat\/logging.mula.json/' /etc/kat/mula.conf
-    sed -i 's/SCHEDULER_API_PORT=.*$/SCHEDULER_API_PORT=8004/' /etc/kat/mula.conf
 fi
 
 ln -s /etc/kat/mula.conf /usr/share/kat-mula/app/.env
