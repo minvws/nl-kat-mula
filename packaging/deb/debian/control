@@ -7,5 +7,4 @@ Section: python
 Priority: optional
 Architecture: all
 Pre-Depends: python3, python3-venv, ${misc:Depends}
-Depends: nginx
 Description: mula
