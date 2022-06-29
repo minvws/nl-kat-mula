@@ -3,8 +3,8 @@ Description=kat-mula daemon
 After=network.target
 
 [Service]
-User=www-data
-Group=www-data
+User=kat
+Group=kat
 WorkingDirectory=/usr/share/kat-mula/app
 EnvironmentFile=/etc/kat/mula.conf
 ExecStart=/usr/share/kat-mula/venv/bin/python -m scheduler
