@@ -63,6 +63,9 @@ jobs:
           EOF
         working-directory: kat-mula_${{env.RELEASE_VERSION}}/
 
+      - name: generate copyright file
+        run: sed -i "s|__URL__|${{github.repositoryUrl}}|" kat-mula_${{env.RELEASE_VERSION}}/debian/copyright
+
       - name: Install required packages for building
         run: sudo apt install devscripts debhelper -y
 

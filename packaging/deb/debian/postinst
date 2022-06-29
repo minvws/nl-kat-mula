@@ -26,6 +26,6 @@ chmod 640 /etc/kat/logging.mula.json
 chmod 750 /usr/share/kat-mula
 chmod 750 /usr/lib/systemd/system/kat-mula.service
 
-systemctl enable --now kat-rocky.service
+systemctl enable --now kat-mula.service
 
 db_stop || true
