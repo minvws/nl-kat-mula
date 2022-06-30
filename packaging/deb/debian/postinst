@@ -28,7 +28,7 @@ chmod 640 /etc/kat/logging.mula.json
 chmod 750 /usr/share/kat-mula
 chmod 750 /usr/lib/systemd/system/kat-mula.service
 
-if [ -Z "$(rabbitmqctl list_vhosts | grep '^kat$')"]; then
+if [ -Z "$(rabbitmqctl list_vhosts | grep '^kat$')" ]; then
     rabbitmqctl add_vhost kat
     rabbitmqctl set_permissions -p "kat" "guest" ".*" ".*" ".*"
 fi
