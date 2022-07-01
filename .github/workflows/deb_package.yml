@@ -2,10 +2,8 @@ name: package mula for debian
 
 on:
   push:
-    branches:
-      - "feature/deb-installer"
-    # tags:
-    #   - v*
+    tags:
+      - v*
 
 jobs:
   build_deb:
@@ -19,8 +17,7 @@ jobs:
       - name: Set env
         run: |
           echo "RELEASE_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-          # echo "RELEASE_VERSION=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
-          echo "RELEASE_VERSION=0.1" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
 
       - uses: actions/checkout@v1
 
