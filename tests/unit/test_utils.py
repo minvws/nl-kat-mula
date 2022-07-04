@@ -6,7 +6,6 @@ from scheduler import utils
 
 
 class ExpiringDictTestCase(unittest.TestCase):
-
     def test_lifetime_expired(self):
         ed = utils.ExpiringDict(lifetime=1, start_time=datetime.now(timezone.utc) - timedelta(seconds=2))
         ed["a"] = 1

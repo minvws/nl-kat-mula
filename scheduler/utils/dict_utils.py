@@ -18,6 +18,7 @@ class ExpiringDict:
     time. It will clear the cache when the expiration time is reached and
     return an ExpiredError.
     """
+
     def __init__(self, lifetime: int = 300, start_time: datetime = datetime.now(timezone.utc)) -> None:
         self.lifetime: timedelta = timedelta(seconds=lifetime)
         self.start_time = start_time
