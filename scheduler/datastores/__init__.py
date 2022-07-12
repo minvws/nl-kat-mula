@@ -1,1 +1,1 @@
-from .datastore import PostgreSQL
+from .postgres import PostgreSQL

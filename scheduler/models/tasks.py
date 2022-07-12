@@ -1,9 +1,43 @@
-from typing import List, Optional
+import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, String
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 
+from .base import Base
 from .boefje import Boefje, BoefjeMeta
 from .normalizer import Normalizer
+
+
+class Status(Enum):
+    """Status of a task."""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class Task(BaseModel):
+    id: str
+    task: Dict[str, Any]
+    status: Status
+    created_at: datetime.datetime
+    modified_at: datetime.datetime
+
+
+class TaskORM(Base):
+    __tablename__ = "tasks"
+
+    id = Column(UUID, primary_key=True)
+    # scheduler_id=Column(UUID, ForeignKey("schedulers.id"))
+    scheduler_id = Column(UUID)
+    task: JSON = Column(JSON, nullable=False, default=dict)
+    status: Status = Column(String, nullable=False, default=Status.PENDING)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now)
+    modified_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now)
 
 
 class NormalizerTask(BaseModel):

@@ -63,6 +63,30 @@ class Server:
         )
 
         self.api.add_api_route(
+            path="/scheduler/{scheduler_id}/tasks",
+            endpoint=self.list_tasks,
+            method=["GET"],
+            response_model=List[models.Task],
+            status_code=200,
+        )
+
+        self.api.add_api_route(
+            path="/tasks",
+            endpoint=self.list_tasks,
+            method=["GET"],
+            response_model=List[models.Task],
+            status_code=200,
+        )
+
+        self.api.add_api_route(
+            path="/tasks/{task_id}",
+            endpoint=self.get_task,
+            method=["GET"],
+            response_model=Task,
+            status_code=200,
+        )
+
+        self.api.add_api_route(
             path="/queues",
             endpoint=self.get_queues,
             methods=["GET"],
@@ -149,6 +173,22 @@ class Server:
                 ) from exc
 
         return updated_scheduler
+
+    def list_tasks(self, scheduler_id: str) -> Any:
+        # FIXME: unnecesary
+        s = self.schedulers.get(scheduler_id)
+        if s is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="scheduler not found",
+            )
+
+        # TODO
+        return []
+
+    def get_task(self, task_id: str) -> Any:
+        # TODO
+        return None
 
     def get_queues(self) -> Any:
         return [models.Queue(**q.dict()) for q in self.queues.values()]
