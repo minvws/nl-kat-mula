@@ -1,3 +1,4 @@
+from .base import Base
 from .boefje import Boefje, BoefjeMeta
 from .health import ServiceHealth
 from .normalizer import Normalizer
