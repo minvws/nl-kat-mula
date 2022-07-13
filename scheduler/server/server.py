@@ -65,7 +65,7 @@ class Server:
         self.api.add_api_route(
             path="/scheduler/{scheduler_id}/tasks",
             endpoint=self.list_tasks,
-            method=["GET"],
+            methods=["GET"],
             response_model=List[models.Task],
             status_code=200,
         )
@@ -73,7 +73,7 @@ class Server:
         self.api.add_api_route(
             path="/tasks",
             endpoint=self.list_tasks,
-            method=["GET"],
+            methods=["GET"],
             response_model=List[models.Task],
             status_code=200,
         )
@@ -81,7 +81,7 @@ class Server:
         self.api.add_api_route(
             path="/tasks/{task_id}",
             endpoint=self.get_task,
-            method=["GET"],
+            methods=["GET"],
             response_model=Task,
             status_code=200,
         )

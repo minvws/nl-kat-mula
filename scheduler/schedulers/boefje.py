@@ -369,6 +369,7 @@ class BoefjeScheduler(Scheduler):
                         self.organisation.id,
                         self.scheduler_id,
                     )
+                    # TODO: update task status
                     continue
 
                 score = self.ranker.rank(SimpleNamespace(last_run_boefje=last_run_boefje, task=task))

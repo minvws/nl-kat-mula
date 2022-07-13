@@ -1,4 +1,5 @@
 import datetime
+import uuid
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -11,9 +12,10 @@ from .boefje import Boefje, BoefjeMeta
 from .normalizer import Normalizer
 
 
-class Status(Enum):
+class TaskStatus(Enum):
     """Status of a task."""
 
+    QUEUED = "queued"
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -21,7 +23,7 @@ class Status(Enum):
 
 
 class Task(BaseModel):
-    id: str
+    id: str = Field(default_factory=uuid.uuid4)
     task: Dict[str, Any]
     status: Status
     created_at: datetime.datetime

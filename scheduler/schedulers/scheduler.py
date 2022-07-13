@@ -1,4 +1,5 @@
 import abc
+import datetime
 import logging
 import threading
 from typing import Any, Callable, Dict, List
@@ -114,6 +115,8 @@ class Scheduler(abc.ABC):
                 )
                 continue
 
+            self.post_add_to_queue(p_item)
+
             count += 1
 
         if count > 0:
@@ -124,6 +127,23 @@ class Scheduler(abc.ABC):
                 self.queue.pq_id,
                 count,
             )
+
+    def post_add_to_queue(self, p_item: queues.PrioritizedItem) -> None:
+        """Post-add to queue hook. Here we add the task
+
+        Args:
+            p_item: The prioritized item to post-add to queue.
+        """
+        task = models.Task(
+            scheduler_id=self.scheduler_id,
+            task=p_item.json(),
+            status=models.TaskStatus.QUEUED,
+            created_at=datetime.datetime.now(),
+            modified_at=datetime.datetime.now(),
+        )
+
+        # Add to datastore
+        self.ctx.datastore.add_task(task)
 
     def _run_in_thread(
         self,
