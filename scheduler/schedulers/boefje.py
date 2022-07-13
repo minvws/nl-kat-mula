@@ -343,7 +343,7 @@ class BoefjeScheduler(Scheduler):
                 if (
                     last_run_boefje is not None
                     and last_run_boefje.ended_at is None
-                    and last_run_boefje.start_time is not None
+                    and last_run_boefje.started_at is not None
                 ):
                     self.logger.debug(
                         "Boefje %s is already running [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
