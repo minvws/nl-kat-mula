@@ -82,7 +82,7 @@ class Server:
             path="/tasks/{task_id}",
             endpoint=self.get_task,
             methods=["GET"],
-            response_model=Task,
+            response_model=models.Task,
             status_code=200,
         )
 
@@ -212,13 +212,23 @@ class Server:
             )
 
         try:
-            item = q.pop()
-            return models.QueuePrioritizedItem(**item.dict())
+            p_item = q.pop()
         except _queue.Empty as exc_empty:
             raise fastapi.HTTPException(
                 status_code=400,
                 detail="queue is empty",
             ) from exc_empty
+
+        s = self.schedulers.get(queue_id)
+        if s is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="scheduler not found",
+            )
+
+        s.post_pop(p_item)
+
+        return models.QueuePrioritizedItem(**p_item.dict())
 
     def push_queue(self, queue_id: str, item: models.QueuePrioritizedItem) -> Any:
         q = self.queues.get(queue_id)
@@ -257,6 +267,15 @@ class Server:
                 status_code=400,
                 detail="not allowed",
             ) from exc_not_allowed
+
+        s = self.schedulers.get(queue_id)
+        if s is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="scheduler not found",
+            )
+
+        s.post_push(p_item)
 
         return fastapi.Response(status_code=204)
 

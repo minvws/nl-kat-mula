@@ -106,8 +106,10 @@ class App:
 
     def create_normalizer_scheduler(self, org: Organisation) -> schedulers.NormalizerScheduler:
         """Create a normalizer scheduler for the given organisation."""
+        identifier = f"normalizer-{org.id}"
+
         queue = queues.NormalizerPriorityQueue(
-            pq_id=f"normalizer-{org.id}",
+            pq_id=identifier,
             maxsize=self.ctx.config.pq_maxsize,
             item_type=NormalizerTask,
             allow_priority_updates=True,
@@ -127,7 +129,7 @@ class App:
 
         scheduler = schedulers.NormalizerScheduler(
             ctx=self.ctx,
-            scheduler_id=f"normalizer-{org.id}",
+            scheduler_id=identifier,
             queue=queue,
             ranker=ranker,
             dispatcher=dispatcher,
@@ -152,8 +154,10 @@ class App:
         Args:
             org: The organisation to create a scheduler for.
         """
+        identifier = f"boefje-{org.id}"
+
         queue = queues.BoefjePriorityQueue(
-            pq_id=f"boefje-{org.id}",
+            pq_id=identifier,
             maxsize=self.ctx.config.pq_maxsize,
             item_type=BoefjeTask,
             allow_priority_updates=True,
@@ -173,7 +177,7 @@ class App:
 
         scheduler = schedulers.BoefjeScheduler(
             ctx=self.ctx,
-            scheduler_id=f"boefje-{org.id}",
+            scheduler_id=identifier,
             queue=queue,
             ranker=ranker,
             dispatcher=dispatcher,

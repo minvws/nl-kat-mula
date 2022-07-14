@@ -1,18 +1,20 @@
 import datetime
 import uuid
-from enum import Enum
+from enum import Enum as _Enum
+from json import JSONEncoder
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, String
+from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 
 from .base import Base
 from .boefje import Boefje, BoefjeMeta
 from .normalizer import Normalizer
+from .queue import QueuePrioritizedItem
 
 
-class TaskStatus(Enum):
+class TaskStatus(_Enum):
     """Status of a task."""
 
     QUEUED = "queued"
@@ -23,21 +25,24 @@ class TaskStatus(Enum):
 
 
 class Task(BaseModel):
-    id: str = Field(default_factory=uuid.uuid4)
-    task: Dict[str, Any]
-    status: Status
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    task: QueuePrioritizedItem
+    status: TaskStatus
     created_at: datetime.datetime
     modified_at: datetime.datetime
+
+    class Config:
+        orm_mode = True
 
 
 class TaskORM(Base):
     __tablename__ = "tasks"
 
-    id = Column(UUID, primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True)
     # scheduler_id=Column(UUID, ForeignKey("schedulers.id"))
-    scheduler_id = Column(UUID)
-    task: JSON = Column(JSON, nullable=False, default=dict)
-    status: Status = Column(String, nullable=False, default=Status.PENDING)
+    scheduler_id = Column(UUID(as_uuid=True))
+    task: JSON = Column(JSON, nullable=False)  # TODO: default str or dict?
+    status: TaskStatus = Column(Enum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now)
     modified_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now)
 

@@ -1,5 +1,6 @@
 import abc
 import datetime
+import json
 import logging
 import threading
 from typing import Any, Callable, Dict, List
@@ -86,6 +87,28 @@ class Scheduler(abc.ABC):
     def populate_queue(self) -> None:
         raise NotImplementedError
 
+    # TODO
+    def pop_item_from_queue(self) -> queues.PrioritizedItem:
+        """Pop an item from the queue.
+
+        Returns:
+            A PrioritizedItem instance.
+        """
+        pass
+
+    # TODO
+    def push_item_to_queue(self, p_item: queues.PrioritizedItem) -> None:
+        """Push an item to the queue.
+
+        Args:
+            item: The item to push to the queue.
+        """
+        pass
+
+    # TODO
+    def push_items_to_queue(self, p_items: List[queues.PrioritizedItem]) -> None:
+        pass
+
     def add_p_items_to_queue(self, p_items: List[queues.PrioritizedItem]) -> None:
         """Add items to a priority queue.
 
@@ -115,7 +138,7 @@ class Scheduler(abc.ABC):
                 )
                 continue
 
-            self.post_add_to_queue(p_item)
+            self.post_push(p_item)
 
             count += 1
 
@@ -128,7 +151,7 @@ class Scheduler(abc.ABC):
                 count,
             )
 
-    def post_add_to_queue(self, p_item: queues.PrioritizedItem) -> None:
+    def post_push(self, p_item: queues.PrioritizedItem) -> None:
         """Post-add to queue hook. Here we add the task
 
         Args:
@@ -136,7 +159,7 @@ class Scheduler(abc.ABC):
         """
         task = models.Task(
             scheduler_id=self.scheduler_id,
-            task=p_item.json(),
+            task=models.QueuePrioritizedItem(**p_item.dict()),
             status=models.TaskStatus.QUEUED,
             created_at=datetime.datetime.now(),
             modified_at=datetime.datetime.now(),
@@ -144,6 +167,12 @@ class Scheduler(abc.ABC):
 
         # Add to datastore
         self.ctx.datastore.add_task(task)
+
+    def post_pop(self, p_item: queues.PrioritizedItem) -> None:
+        # TODO: get task from db
+
+        # TODO: update task status to completed
+        pass
 
     def _run_in_thread(
         self,

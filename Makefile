@@ -76,9 +76,9 @@ else
 endif
 
 migrate: ## Run migrations using alembic.
-	docker-compose exec scheduler \
-		alembic \
-		--config /app/scheduler/alembic.ini \
+	docker-compose \
+		run scheduler \
+		alembic --config /app/scheduler/alembic.ini \
 		upgrade head
 
 
