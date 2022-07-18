@@ -204,35 +204,26 @@ class Server:
         return models.Queue(**q.dict())
 
     def pop_queue(self, queue_id: str) -> Any:
-        q = self.queues.get(queue_id)
-        if q is None:
+        s = self.schedulers.get(queue_id)
+        if s is None:
             raise fastapi.HTTPException(
                 status_code=404,
                 detail="queue not found",
             )
 
         try:
-            p_item = q.pop()
+            p_item = s.pop_item_from_queue()
         except _queue.Empty as exc_empty:
             raise fastapi.HTTPException(
                 status_code=400,
                 detail="queue is empty",
             ) from exc_empty
 
-        s = self.schedulers.get(queue_id)
-        if s is None:
-            raise fastapi.HTTPException(
-                status_code=404,
-                detail="scheduler not found",
-            )
-
-        s.post_pop(p_item)
-
         return models.QueuePrioritizedItem(**p_item.dict())
 
     def push_queue(self, queue_id: str, item: models.QueuePrioritizedItem) -> Any:
-        q = self.queues.get(queue_id)
-        if q is None:
+        s = self.schedulers.get(queue_id)
+        if s is None:
             raise fastapi.HTTPException(
                 status_code=404,
                 detail="queue not found",
@@ -240,9 +231,9 @@ class Server:
 
         try:
             p_item = queues.PrioritizedItem(**item.dict())
-            if q.item_type == models.BoefjeTask:
+            if s.queue.item_type == models.BoefjeTask:
                 p_item.item = models.BoefjeTask(**p_item.item)
-            elif q.item_type == models.NormalizerTask:
+            elif s.queue.item_type == models.NormalizerTask:
                 p_item.item = models.NormalizerTask(**p_item.item)
         except Exception as exc:
             raise fastapi.HTTPException(
@@ -251,7 +242,7 @@ class Server:
             ) from exc
 
         try:
-            q.push(p_item)
+            s.push_item_to_queue(p_item)
         except _queue.Full as exc_full:
             raise fastapi.HTTPException(
                 status_code=400,
@@ -267,15 +258,6 @@ class Server:
                 status_code=400,
                 detail="not allowed",
             ) from exc_not_allowed
-
-        s = self.schedulers.get(queue_id)
-        if s is None:
-            raise fastapi.HTTPException(
-                status_code=404,
-                detail="scheduler not found",
-            )
-
-        s.post_push(p_item)
 
         return fastapi.Response(status_code=204)
 

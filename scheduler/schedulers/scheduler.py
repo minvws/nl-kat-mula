@@ -87,6 +87,24 @@ class Scheduler(abc.ABC):
     def populate_queue(self) -> None:
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def post_push(self, p_item: queues.PrioritizedItem) -> None:
+        """Post-add to queue hook. Here we add the task
+
+        Args:
+            p_item: The prioritized item to post-add to queue.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def post_pop(self, p_item: queues.PrioritizedItem) -> None:
+        """Post-pop from queue hook. Here we update the task.
+
+        Args:
+            p_item: The prioritized item to post-pop from queue.
+        """
+        raise NotImplementedError
+
     # TODO
     def pop_item_from_queue(self) -> queues.PrioritizedItem:
         """Pop an item from the queue.
@@ -94,21 +112,59 @@ class Scheduler(abc.ABC):
         Returns:
             A PrioritizedItem instance.
         """
-        pass
+        try:
+            p_item = self.queue.pop()
+        except queues.QueueEmptyError as exc:
+            self.logger.warning(
+                "Queue %s is empty, not populating new tasks [queue_id=%s, qsize=%d]",
+                self.queue.pq_id,
+                self.queue.pq_id,
+                self.queue.pq.qsize(),
+            )
+            raise exc
 
-    # TODO
+        self.post_pop(p_item)
+
+        return p_item
+
     def push_item_to_queue(self, p_item: queues.PrioritizedItem) -> None:
         """Push an item to the queue.
 
         Args:
             item: The item to push to the queue.
         """
-        pass
+        if self.queue.full():
+            self.logger.warning(
+                "Queue %s is full, not populating new tasks [queue_id=%s, qsize=%d]",
+                self.queue.pq_id,
+                self.queue.pq_id,
+                self.queue.pq.qsize(),
+            )
+            return None
+            # TODO: raise exception?
+
+        try:
+            self.queue.push(p_item)
+        except queues.errors.NotAllowedError as exc:
+            self.logger.warning(
+                "Not allowed to push to queue %s [queue_id=%s, qsize=%d]",
+                self.queue.pq_id,
+                self.queue.pq_id,
+                self.queue.pq.qsize(),
+            )
+            raise exc
+            # TODO: raise exception?
+
+        try:
+            self.post_push(p_item)
+        except Exception as exc:
+            self.logger.exception(exc)
 
     # TODO
     def push_items_to_queue(self, p_items: List[queues.PrioritizedItem]) -> None:
-        pass
+        self.add_p_items_to_queue(p_items)
 
+    # TODO: refactor
     def add_p_items_to_queue(self, p_items: List[queues.PrioritizedItem]) -> None:
         """Add items to a priority queue.
 
@@ -118,27 +174,10 @@ class Scheduler(abc.ABC):
         """
         count = 0
         for p_item in p_items:
-            if self.queue.full():
-                self.logger.warning(
-                    "Queue %s is full, not populating new tasks [queue_id=%s, qsize=%d]",
-                    self.queue.pq_id,
-                    self.queue.pq_id,
-                    self.queue.pq.qsize(),
-                )
-                break
-
             try:
-                self.queue.push(p_item)
-            except queues.errors.NotAllowedError:
-                self.logger.warning(
-                    "Not allowed to push to queue %s [queue_id=%s, qsize=%d]",
-                    self.queue.pq_id,
-                    self.queue.pq_id,
-                    self.queue.pq.qsize(),
-                )
+                self.push_item_to_queue(p_item)
+            except Exception as exc:
                 continue
-
-            self.post_push(p_item)
 
             count += 1
 
@@ -151,28 +190,6 @@ class Scheduler(abc.ABC):
                 count,
             )
 
-    def post_push(self, p_item: queues.PrioritizedItem) -> None:
-        """Post-add to queue hook. Here we add the task
-
-        Args:
-            p_item: The prioritized item to post-add to queue.
-        """
-        task = models.Task(
-            scheduler_id=self.scheduler_id,
-            task=models.QueuePrioritizedItem(**p_item.dict()),
-            status=models.TaskStatus.QUEUED,
-            created_at=datetime.datetime.now(),
-            modified_at=datetime.datetime.now(),
-        )
-
-        # Add to datastore
-        self.ctx.datastore.add_task(task)
-
-    def post_pop(self, p_item: queues.PrioritizedItem) -> None:
-        # TODO: get task from db
-
-        # TODO: update task status to completed
-        pass
 
     def _run_in_thread(
         self,

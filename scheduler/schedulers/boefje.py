@@ -8,7 +8,8 @@ import pika
 import requests
 
 from scheduler import context, dispatchers, queues, rankers
-from scheduler.models import OOI, Boefje, BoefjeTask, Organisation
+from scheduler.models import (OOI, Boefje, BoefjeTask, Organisation,
+                              QueuePrioritizedItem, Task, TaskStatus)
 
 from .scheduler import Scheduler
 
@@ -388,3 +389,33 @@ class BoefjeScheduler(Scheduler):
                 p_items.append(queues.PrioritizedItem(priority=score, item=task))
 
         return p_items
+
+        def post_push(self, p_item: queues.PrioritizedItem) -> None:
+            """When a boefje task is being added to the queue. We
+            persist a task to the datastore with the status QUEUED
+
+            Args:
+                p_item: The prioritized item to post-add to queue.
+            """
+            task = Task(
+                id=p_item.item.id,
+                scheduler_id=self.scheduler_id,
+                task=QueuePrioritizedItem(**p_item.dict()),
+                status=TaskStatus.QUEUED,
+                created_at=datetime.datetime.now(),
+                modified_at=datetime.datetime.now(),
+            )
+
+            self.ctx.datastore.add_task(task)
+
+        def post_pop(self, p_item: queues.PrioritizedItem) -> None:
+            """When a boefje task is being removed from the queue. We
+            persist a task to the datastore with the status RUNNING
+
+            Args:
+                p_item: The prioritized item to post-pop from queue.
+            """
+            task = self.ctx.datastore.get_task_by_id(p_item.item.id)
+            task.status = TaskStatus.RUNNING
+            task.modified_at = datetime.datetime.now()
+            self.ctx.datastore.update_task(task)

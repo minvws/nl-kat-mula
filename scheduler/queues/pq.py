@@ -9,7 +9,7 @@ from typing import Any, Dict, Tuple, Type
 
 import pydantic
 
-from .errors import InvalidPrioritizedItemError, NotAllowedError
+from .errors import InvalidPrioritizedItemError, NotAllowedError, QueueEmpty
 
 
 class EntryState(str, Enum):
@@ -188,7 +188,7 @@ class PriorityQueue:
                     del self.entry_finder[self.get_item_identifier(entry.p_item.item)]
                     return entry.p_item
             except queue.Empty:
-                self.logger.warning("Queue %s is empty", self.pq_id)
+                raise QueueEmpty(f"Queue {self.pq_id} is empty.")
 
     def push(self, p_item: PrioritizedItem) -> None:
         """Push an item with priority into the queue. When timeout is set it

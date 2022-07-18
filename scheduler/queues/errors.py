@@ -1,3 +1,7 @@
+class QueueEmptyError(Exception):
+    pass
+
+
 class NotAllowedError(Exception):
     pass
 

@@ -6,7 +6,9 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, String
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+
+from scheduler.utils import GUID
 
 from .base import Base
 from .boefje import Boefje, BoefjeMeta
@@ -19,7 +21,7 @@ class TaskStatus(_Enum):
 
     QUEUED = "queued"
     PENDING = "pending"
-    RUNNING = "running"
+    RUNNING = "running"  # TODO: dispatched
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -38,10 +40,11 @@ class Task(BaseModel):
 class TaskORM(Base):
     __tablename__ = "tasks"
 
-    id = Column(UUID(as_uuid=True), primary_key=True)
+    # id = Column(UUID(as_uuid=True), primary_key=True)
     # scheduler_id=Column(UUID, ForeignKey("schedulers.id"))
-    scheduler_id = Column(UUID(as_uuid=True))
-    task: JSON = Column(JSON, nullable=False)  # TODO: default str or dict?
+    id = Column(GUID, primary_key=True)
+    scheduler_id = Column(GUID)
+    task: JSON = Column(JSON, nullable=False)
     status: TaskStatus = Column(Enum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now)
     modified_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now)

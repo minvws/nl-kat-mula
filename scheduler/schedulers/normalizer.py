@@ -74,6 +74,9 @@ class NormalizerScheduler(Scheduler):
                 time.sleep(60)
                 continue
 
+            # TODO: When receiving this, it means the item on boefje queue has been processed
+            # can we update that?
+
             if latest_raw_data is None:
                 self.logger.info(
                     "No latest raw data found [org_id=%s, scheduler_id=%s]",
@@ -184,3 +187,17 @@ class NormalizerScheduler(Scheduler):
                 p_items.append(queues.PrioritizedItem(priority=score, item=task))
 
         return p_items
+
+
+    def post_push(self, p_item: queues.PrioritizedItem) -> None:
+        """When a normalizer task has been pushed to the queue, we update
+        the task
+        ...
+        """
+        pass
+
+    def post_pop(self, p_item: queues.PrioritizedItem) -> None:
+        """When a normalizer task has been popped from the queue, we update
+        ...
+        """
+        pass
