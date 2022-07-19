@@ -3,10 +3,10 @@ import uuid
 from enum import Enum as _Enum
 from json import JSONEncoder
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, String
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 
 from scheduler.utils import GUID
 
@@ -19,15 +19,17 @@ from .queue import QueuePrioritizedItem
 class TaskStatus(_Enum):
     """Status of a task."""
 
-    QUEUED = "queued"
     PENDING = "pending"
-    RUNNING = "running"  # TODO: dispatched
+    QUEUED = "queued"
+    DISPATCHED = "dispatched"
+    RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
 
 
 class Task(BaseModel):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    id: UUID
+    scheduler_id: str
     task: QueuePrioritizedItem
     status: TaskStatus
     created_at: datetime.datetime
@@ -43,7 +45,7 @@ class TaskORM(Base):
     # id = Column(UUID(as_uuid=True), primary_key=True)
     # scheduler_id=Column(UUID, ForeignKey("schedulers.id"))
     id = Column(GUID, primary_key=True)
-    scheduler_id = Column(GUID)
+    scheduler_id = Column(String)
     task: JSON = Column(JSON, nullable=False)
     status: TaskStatus = Column(Enum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now)
