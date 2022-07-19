@@ -28,7 +28,6 @@ class BoefjeScheduler(Scheduler):
         scheduler_id: str,
         queue: queues.PriorityQueue,
         ranker: rankers.Ranker,
-        dispatcher: dispatchers.Dispatcher,
         organisation: Organisation,
         populate_queue_enabled: bool = True,
     ):
@@ -37,7 +36,6 @@ class BoefjeScheduler(Scheduler):
             scheduler_id=scheduler_id,
             queue=queue,
             ranker=ranker,
-            dispatcher=dispatcher,
             populate_queue_enabled=populate_queue_enabled,
         )
 
@@ -320,6 +318,9 @@ class BoefjeScheduler(Scheduler):
                     )
                     continue
 
+
+                # TODO: Boefje should not run when it is still being processed
+
                 # Boefjes should not run before the grace period ends, thus
                 # we will check when the combination boefje and ooi was last
                 # run.
@@ -390,32 +391,32 @@ class BoefjeScheduler(Scheduler):
 
         return p_items
 
-        def post_push(self, p_item: queues.PrioritizedItem) -> None:
-            """When a boefje task is being added to the queue. We
-            persist a task to the datastore with the status QUEUED
+    def post_push(self, p_item: queues.PrioritizedItem) -> None:
+        """When a boefje task is being added to the queue. We
+        persist a task to the datastore with the status QUEUED
 
-            Args:
-                p_item: The prioritized item to post-add to queue.
-            """
-            task = Task(
-                id=p_item.item.id,
-                scheduler_id=self.scheduler_id,
-                task=QueuePrioritizedItem(**p_item.dict()),
-                status=TaskStatus.QUEUED,
-                created_at=datetime.datetime.now(),
-                modified_at=datetime.datetime.now(),
-            )
+        Args:
+            p_item: The prioritized item to post-add to queue.
+        """
+        task = Task(
+            id=p_item.item.id,
+            scheduler_id=self.scheduler_id,
+            task=QueuePrioritizedItem(**p_item.dict()),
+            status=TaskStatus.QUEUED,
+            created_at=datetime.now(),
+            modified_at=datetime.now(),
+        )
 
-            self.ctx.datastore.add_task(task)
+        self.ctx.datastore.add_task(task)
 
-        def post_pop(self, p_item: queues.PrioritizedItem) -> None:
-            """When a boefje task is being removed from the queue. We
-            persist a task to the datastore with the status RUNNING
+    def post_pop(self, p_item: queues.PrioritizedItem) -> None:
+        """When a boefje task is being removed from the queue. We
+        persist a task to the datastore with the status RUNNING
 
-            Args:
-                p_item: The prioritized item to post-pop from queue.
-            """
-            task = self.ctx.datastore.get_task_by_id(p_item.item.id)
-            task.status = TaskStatus.RUNNING
-            task.modified_at = datetime.datetime.now()
-            self.ctx.datastore.update_task(task)
+        Args:
+            p_item: The prioritized item to post-pop from queue.
+        """
+        task = self.ctx.datastore.get_task_by_id(p_item.item.id)
+        task.status = TaskStatus.DISPATCHED
+        task.modified_at = datetime.now()
+        self.ctx.datastore.update_task(task)

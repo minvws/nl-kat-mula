@@ -51,7 +51,6 @@ class Scheduler(abc.ABC):
         scheduler_id: str,
         queue: queues.PriorityQueue,
         ranker: rankers.Ranker,
-        dispatcher: dispatchers.Dispatcher,
         populate_queue_enabled: bool = True,
     ):
         """Initialize the Scheduler.
@@ -77,7 +76,6 @@ class Scheduler(abc.ABC):
         self.scheduler_id = scheduler_id
         self.queue: queues.PriorityQueue = queue
         self.ranker: rankers.Ranker = ranker
-        self.dispatcher: dispatchers.Dispatcher = dispatcher
         self.populate_queue_enabled = populate_queue_enabled
 
         self.threads: Dict[str, thread.ThreadRunner] = {}
@@ -228,14 +226,6 @@ class Scheduler(abc.ABC):
                 name="populator",
                 func=self.populate_queue,
                 interval=self.ctx.config.pq_populate_interval,
-            )
-
-        # Dispatcher
-        if self.dispatcher is not None:
-            self._run_in_thread(
-                name="dispatcher",
-                func=self.dispatcher.run,
-                interval=self.ctx.config.dsp_interval,
             )
 
     def dict(self) -> Dict[str, Any]:

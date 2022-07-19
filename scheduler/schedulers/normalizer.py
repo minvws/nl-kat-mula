@@ -26,7 +26,6 @@ class NormalizerScheduler(Scheduler):
         scheduler_id: str,
         queue: queues.PriorityQueue,
         ranker: rankers.Ranker,
-        dispatcher: dispatchers.Dispatcher,
         organisation: Organisation,
         populate_queue_enabled: bool = True,
     ):
@@ -35,7 +34,6 @@ class NormalizerScheduler(Scheduler):
             scheduler_id=scheduler_id,
             queue=queue,
             ranker=ranker,
-            dispatcher=dispatcher,
             populate_queue_enabled=populate_queue_enabled,
         )
 
