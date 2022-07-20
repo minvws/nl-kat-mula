@@ -5,6 +5,7 @@ from json import JSONEncoder
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
+import mmh3
 from pydantic import BaseModel, Field
 from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, String
 
@@ -22,13 +23,13 @@ class TaskStatus(_Enum):
     PENDING = "pending"
     QUEUED = "queued"
     DISPATCHED = "dispatched"
-    RUNNING = "running"
+    RUNNING = "running"  # FIXME: processing?
     COMPLETED = "completed"
     FAILED = "failed"
 
 
 class Task(BaseModel):
-    id: UUID
+    id: str
     scheduler_id: str
     task: QueuePrioritizedItem
     status: TaskStatus
@@ -44,12 +45,12 @@ class TaskORM(Base):
 
     # id = Column(UUID(as_uuid=True), primary_key=True)
     # scheduler_id=Column(UUID, ForeignKey("schedulers.id"))
-    id = Column(GUID, primary_key=True)
+    id = Column(String, primary_key=True)
     scheduler_id = Column(String)
-    task: JSON = Column(JSON, nullable=False)
-    status: TaskStatus = Column(Enum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now)
-    modified_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now)
+    task = Column(JSON, nullable=False)
+    status = Column(Enum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
+    modified_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
 
 class NormalizerTask(BaseModel):
@@ -59,11 +60,18 @@ class NormalizerTask(BaseModel):
     normalizer: Normalizer
     boefje_meta: BoefjeMeta
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.id = self._id()
+
+    def _id(self) -> str:
+        return self.__hash__()
+
     def __hash__(self):
         """Make NormalizerTask hashable, so that we can de-duplicate it when
         used in the PriorityQueue. We hash the combination of the attributes
         normalizer.id since this combination is unique."""
-        return hash((self.normalizer.id, self.boefje_meta.id))
+        return mmh3.hash_bytes(f"{self.normalizer.id}-{self.boefje_meta.id}").hex()
 
 
 class BoefjeTask(BaseModel):
@@ -76,8 +84,15 @@ class BoefjeTask(BaseModel):
 
     dispatches: List[Normalizer] = Field(default_factory=list)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.id = self._id()
+
+    def _id(self) -> str:
+        return self.__hash__()
+
     def __hash__(self) -> int:
         """Make BoefjeTask hashable, so that we can de-duplicate it when used
         in the PriorityQueue. We hash the combination of the attributes
         input_ooi and boefje.id since this combination is unique."""
-        return hash((self.input_ooi, self.boefje.id, self.organization))
+        return mmh3.hash_bytes(f"{self.input_ooi}-{self.boefje.id}-{self.organization}").hex()

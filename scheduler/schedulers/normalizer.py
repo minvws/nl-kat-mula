@@ -1,13 +1,15 @@
+import datetime
 import time
 import uuid
 from types import SimpleNamespace
 from typing import List
 
+import mmh3
 import pika
 import requests
 
 from scheduler import context, dispatchers, queues, rankers
-from scheduler.models import NormalizerTask, Organisation, RawData
+from scheduler.models import NormalizerTask, Organisation, RawData, TaskStatus
 
 from .scheduler import Scheduler
 
@@ -72,9 +74,6 @@ class NormalizerScheduler(Scheduler):
                 time.sleep(60)
                 continue
 
-            # TODO: When receiving this, it means the item on boefje queue has been processed
-            # can we update that?
-
             if latest_raw_data is None:
                 self.logger.info(
                     "No latest raw data found [org_id=%s, scheduler_id=%s]",
@@ -83,7 +82,15 @@ class NormalizerScheduler(Scheduler):
                 )
                 break
 
-            p_items = self.create_tasks_for_raw_data(latest_raw_data)
+            # When receiving this, it means the item on boefje queue has been
+            # processed can we update that?
+            boefje_task_db = self.ctx.datastore.get_task_by_id(
+                mmh3.hash_bytes(f"{latest_raw_data.raw_data.boefje_meta.input_ooi}-{latest_raw_data.raw_data.boefje_meta.boefje.id}-{latest_raw_data.raw_data.boefje_meta.organization}").hex()
+            )
+            boefje_task_db.status = TaskStatus.COMPLETED
+            self.ctx.datastore.update_task(boefje_task_db)
+
+            p_items = self.create_tasks_for_raw_data(latest_raw_data.raw_data)
             if not p_items:
                 continue
 
@@ -185,17 +192,3 @@ class NormalizerScheduler(Scheduler):
                 p_items.append(queues.PrioritizedItem(priority=score, item=task))
 
         return p_items
-
-
-    def post_push(self, p_item: queues.PrioritizedItem) -> None:
-        """When a normalizer task has been pushed to the queue, we update
-        the task
-        ...
-        """
-        pass
-
-    def post_pop(self, p_item: queues.PrioritizedItem) -> None:
-        """When a normalizer task has been popped from the queue, we update
-        ...
-        """
-        pass

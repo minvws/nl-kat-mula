@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import List
 
+import mmh3
 import pika
 import requests
 
@@ -243,7 +244,6 @@ class BoefjeScheduler(Scheduler):
                     continue
 
                 task = BoefjeTask(
-                    id=uuid.uuid4().hex,
                     boefje=Boefje.parse_obj(boefje),
                     input_ooi=ooi.primary_key,
                     organization=self.organisation.id,
@@ -319,7 +319,20 @@ class BoefjeScheduler(Scheduler):
                     continue
 
 
-                # TODO: Boefje should not run when it is still being processed
+                # Boefje should not run when it is still being processed
+                task_db = self.ctx.datastore.get_task_by_id(
+                    mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
+                )
+                if (task_db is not None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED)):
+                    self.logger.debug(
+                        "Boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                        boefje.id,
+                        boefje.id,
+                        ooi.primary_key,
+                        self.organisation.id,
+                        self.scheduler_id,
+                    )
+                    continue
 
                 # Boefjes should not run before the grace period ends, thus
                 # we will check when the combination boefje and ooi was last
@@ -371,7 +384,7 @@ class BoefjeScheduler(Scheduler):
                         self.organisation.id,
                         self.scheduler_id,
                     )
-                    # TODO: update task status
+                    # TODO: update task status? already done with normalizer?
                     continue
 
                 score = self.ranker.rank(SimpleNamespace(last_run_boefje=last_run_boefje, task=task))
@@ -390,33 +403,3 @@ class BoefjeScheduler(Scheduler):
                 p_items.append(queues.PrioritizedItem(priority=score, item=task))
 
         return p_items
-
-    def post_push(self, p_item: queues.PrioritizedItem) -> None:
-        """When a boefje task is being added to the queue. We
-        persist a task to the datastore with the status QUEUED
-
-        Args:
-            p_item: The prioritized item to post-add to queue.
-        """
-        task = Task(
-            id=p_item.item.id,
-            scheduler_id=self.scheduler_id,
-            task=QueuePrioritizedItem(**p_item.dict()),
-            status=TaskStatus.QUEUED,
-            created_at=datetime.now(),
-            modified_at=datetime.now(),
-        )
-
-        self.ctx.datastore.add_task(task)
-
-    def post_pop(self, p_item: queues.PrioritizedItem) -> None:
-        """When a boefje task is being removed from the queue. We
-        persist a task to the datastore with the status RUNNING
-
-        Args:
-            p_item: The prioritized item to post-pop from queue.
-        """
-        task = self.ctx.datastore.get_task_by_id(p_item.item.id)
-        task.status = TaskStatus.DISPATCHED
-        task.modified_at = datetime.now()
-        self.ctx.datastore.update_task(task)

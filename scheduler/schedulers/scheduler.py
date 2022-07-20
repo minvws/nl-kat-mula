@@ -85,23 +85,32 @@ class Scheduler(abc.ABC):
     def populate_queue(self) -> None:
         raise NotImplementedError
 
-    @abc.abstractmethod
     def post_push(self, p_item: queues.PrioritizedItem) -> None:
-        """Post-add to queue hook. Here we add the task
+        """When a boefje task is being added to the queue. We
+        persist a task to the datastore with the status QUEUED
 
         Args:
             p_item: The prioritized item to post-add to queue.
         """
-        raise NotImplementedError
+        task = models.Task(
+            id=p_item.item.id,
+            scheduler_id=self.scheduler_id,
+            task=models.QueuePrioritizedItem(**p_item.dict()),
+            status=models.TaskStatus.QUEUED,
+        )
 
-    @abc.abstractmethod
+        self.ctx.datastore.add_task(task)
+
     def post_pop(self, p_item: queues.PrioritizedItem) -> None:
-        """Post-pop from queue hook. Here we update the task.
+        """When a boefje task is being removed from the queue. We
+        persist a task to the datastore with the status RUNNING
 
         Args:
             p_item: The prioritized item to post-pop from queue.
         """
-        raise NotImplementedError
+        task = self.ctx.datastore.get_task_by_id(p_item.item.id)
+        task.status = models.TaskStatus.DISPATCHED
+        self.ctx.datastore.update_task(task)
 
     # TODO
     def pop_item_from_queue(self) -> queues.PrioritizedItem:
