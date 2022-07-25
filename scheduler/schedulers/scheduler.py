@@ -3,6 +3,7 @@ import datetime
 import json
 import logging
 import threading
+import uuid
 from typing import Any, Callable, Dict, List
 
 from scheduler import context, dispatchers, models, queues, rankers, utils
@@ -94,9 +95,12 @@ class Scheduler(abc.ABC):
         """
         task = models.Task(
             id=p_item.item.id,
+            hash=p_item.item.hash,
             scheduler_id=self.scheduler_id,
             task=models.QueuePrioritizedItem(**p_item.dict()),
             status=models.TaskStatus.QUEUED,
+            created_at=datetime.datetime.now(),
+            modified_at=datetime.datetime.now(),
         )
 
         self.ctx.datastore.add_task(task)
@@ -109,10 +113,15 @@ class Scheduler(abc.ABC):
             p_item: The prioritized item to post-pop from queue.
         """
         task = self.ctx.datastore.get_task_by_id(p_item.item.id)
+        if task is None:
+            self.logger.error(
+                "Task %s not found in datastore, not updating status [task_id = %s]", p_item.item.id, p_item.item.id,
+            )
+            return None
+
         task.status = models.TaskStatus.DISPATCHED
         self.ctx.datastore.update_task(task)
 
-    # TODO
     def pop_item_from_queue(self) -> queues.PrioritizedItem:
         """Pop an item from the queue.
 

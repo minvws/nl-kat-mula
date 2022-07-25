@@ -29,7 +29,8 @@ class TaskStatus(_Enum):
 
 
 class Task(BaseModel):
-    id: str
+    id: uuid.UUID
+    hash: str
     scheduler_id: str
     task: QueuePrioritizedItem
     status: TaskStatus
@@ -43,9 +44,8 @@ class Task(BaseModel):
 class TaskORM(Base):
     __tablename__ = "tasks"
 
-    # id = Column(UUID(as_uuid=True), primary_key=True)
-    # scheduler_id=Column(UUID, ForeignKey("schedulers.id"))
-    id = Column(String, primary_key=True)
+    id = Column(GUID, primary_key=True)
+    hash = Column(String)
     scheduler_id = Column(String)
     task = Column(JSON, nullable=False)
     status = Column(Enum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
@@ -62,9 +62,10 @@ class NormalizerTask(BaseModel):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.id = self._id()
+        self.id = uuid.uuid4().hex
 
-    def _id(self) -> str:
+    @property
+    def hash(self):
         return self.__hash__()
 
     def __hash__(self):
@@ -86,9 +87,10 @@ class BoefjeTask(BaseModel):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.id = self._id()
+        self.id = uuid.uuid4().hex
 
-    def _id(self) -> str:
+    @property
+    def hash(self):
         return self.__hash__()
 
     def __hash__(self) -> int:

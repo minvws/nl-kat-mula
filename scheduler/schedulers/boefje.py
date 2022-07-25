@@ -318,9 +318,11 @@ class BoefjeScheduler(Scheduler):
                     )
                     continue
 
-
-                # Boefje should not run when it is still being processed
-                task_db = self.ctx.datastore.get_task_by_id(
+                # Boefje should not run when it is still being processed, we
+                # try to find the same combination of ooi, boefje, and
+                # organisation (hash) to make sure that the particular task
+                # isn't being processed.
+                task_db = self.ctx.datastore.get_task_by_hash(
                     mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
                 )
                 if (task_db is not None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED)):
@@ -334,6 +336,9 @@ class BoefjeScheduler(Scheduler):
                     )
                     continue
 
+
+                # TODO: we can update this to reference our own task state.
+                # 
                 # Boefjes should not run before the grace period ends, thus
                 # we will check when the combination boefje and ooi was last
                 # run.
@@ -384,7 +389,6 @@ class BoefjeScheduler(Scheduler):
                         self.organisation.id,
                         self.scheduler_id,
                     )
-                    # TODO: update task status? already done with normalizer?
                     continue
 
                 score = self.ranker.rank(SimpleNamespace(last_run_boefje=last_run_boefje, task=task))

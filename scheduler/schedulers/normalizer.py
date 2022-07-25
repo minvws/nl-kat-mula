@@ -83,9 +83,9 @@ class NormalizerScheduler(Scheduler):
                 break
 
             # When receiving this, it means the item on boefje queue has been
-            # processed can we update that?
+            # processed, update the status of that task to completed.
             boefje_task_db = self.ctx.datastore.get_task_by_id(
-                mmh3.hash_bytes(f"{latest_raw_data.raw_data.boefje_meta.input_ooi}-{latest_raw_data.raw_data.boefje_meta.boefje.id}-{latest_raw_data.raw_data.boefje_meta.organization}").hex()
+                latest_raw_data.raw_data.boefje_meta.id,
             )
             boefje_task_db.status = TaskStatus.COMPLETED
             self.ctx.datastore.update_task(boefje_task_db)
@@ -172,7 +172,6 @@ class NormalizerScheduler(Scheduler):
                     continue
 
                 task = NormalizerTask(
-                    id=uuid.uuid4().hex,
                     normalizer=normalizer,
                     boefje_meta=raw_data.boefje_meta,
                 )

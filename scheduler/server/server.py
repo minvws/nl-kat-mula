@@ -1,11 +1,13 @@
 import logging
 import queue as _queue
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import fastapi
 import scheduler
 import uvicorn
 from scheduler import context, models, queues, schedulers
+
+from .pagination import PaginatedResponse, paginate
 
 
 class Server:
@@ -63,10 +65,10 @@ class Server:
         )
 
         self.api.add_api_route(
-            path="/scheduler/{scheduler_id}/tasks",
+            path="/schedulers/{scheduler_id}/tasks",
             endpoint=self.list_tasks,
             methods=["GET"],
-            response_model=List[models.Task],
+            response_model=PaginatedResponse,
             status_code=200,
         )
 
@@ -74,7 +76,7 @@ class Server:
             path="/tasks",
             endpoint=self.list_tasks,
             methods=["GET"],
-            response_model=List[models.Task],
+            response_model=PaginatedResponse,
             status_code=200,
         )
 
@@ -174,17 +176,34 @@ class Server:
 
         return updated_scheduler
 
-    def list_tasks(self, scheduler_id: str) -> Any:
-        # FIXME: unnecesary
-        s = self.schedulers.get(scheduler_id)
-        if s is None:
-            raise fastapi.HTTPException(
-                status_code=404,
-                detail="scheduler not found",
+    # TODO: unknown status
+    def list_tasks(
+        self,
+        request: fastapi.Request,
+        scheduler_id: Union[str, None] = None,
+        status: Union[str, None] = None,
+        offset: int = 0, limit: int = 10,
+    ) -> Any:
+        self.logger.info(scheduler_id)
+        try:
+            results, count = self.ctx.datastore.get_tasks(
+                scheduler_id=scheduler_id, status=status, offset=offset, limit=limit,
             )
+        except ValueError as exc:
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail=str(exc),
+            ) from exc
+        except Exception as exc:
+            # TODO
+            self.logger.exception(exc)
+            raise fastapi.HTTPException(
+                status_code=500,
+                detail="failed to get tasks",
+            ) from exc
 
-        # TODO
-        return []
+        # TODO: exception handling
+        return paginate(request, results, count=count, offset=offset, limit=limit)
 
     def get_task(self, task_id: str) -> Any:
         # TODO
