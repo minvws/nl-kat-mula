@@ -49,7 +49,7 @@ class SchedulerTestCase(unittest.TestCase):
         self.mock_ctx.services.bytes = self.mock_bytes
 
         # Datastore
-        self.mock_ctx.datastore = datastores.PostgreSQL(dsn="sqlite://")
+        self.mock_ctx.datastore = datastores.SQLAlchemy(dsn="sqlite://")
         models.Base.metadata.create_all(self.mock_ctx.datastore.engine)
 
         # Scheduler
@@ -62,14 +62,6 @@ class SchedulerTestCase(unittest.TestCase):
             allow_priority_updates=True,
         )
 
-        dispatcher = dispatchers.BoefjeDispatcher(
-            ctx=self.mock_ctx,
-            pq=queue,
-            item_type=models.BoefjeTask,
-            celery_queue="boefjes",
-            task_name="tasks.handle_boefje",
-        )
-
         ranker = rankers.BoefjeRanker(
             ctx=self.mock_ctx,
         )
@@ -78,9 +70,16 @@ class SchedulerTestCase(unittest.TestCase):
             ctx=self.mock_ctx,
             scheduler_id=self.organisation.id,
             queue=queue,
-            dispatcher=dispatcher,
             ranker=ranker,
             organisation=self.organisation,
+        )
+
+        self.dispatcher = dispatchers.BoefjeDispatcher(
+            ctx=self.mock_ctx,
+            scheduler=self.scheduler,
+            item_type=models.BoefjeTask,
+            celery_queue="boefjes",
+            task_name="tasks.handle_boefje",
         )
 
     @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
@@ -329,11 +328,11 @@ class SchedulerTestCase(unittest.TestCase):
         )
         self.scheduler.queue.push(queues.PrioritizedItem(0, task))
 
-        d = self.scheduler.dispatcher
+        d = self.dispatcher
         d.app.send_task = mock.Mock()
 
         # Get item and dispatch it
-        p_item = d.pq.pop()
+        p_item = d.scheduler.pop_item_from_queue()
         d.dispatch(p_item)
 
         item_dict = p_item.item.dict()
@@ -384,7 +383,7 @@ class SchedulerTestCase(unittest.TestCase):
     @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
     @mock.patch("scheduler.context.AppContext.services.octopoes.get_random_objects")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
-    def test_post_pop(self):
+    def test_post_pop(self, mock_create_tasks_for_oois, mock_get_random_objects, mock_get_latest_object):
         """When a task is removed from the queue, its status should be updated"""
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
