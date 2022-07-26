@@ -89,6 +89,14 @@ class Server:
         )
 
         self.api.add_api_route(
+            path="/tasks/{task_id}",
+            endpoint=self.patch_task,
+            methods=["PATCH"],
+            response_model=models.Task,
+            status_code=200,
+        )
+
+        self.api.add_api_route(
             path="/queues",
             endpoint=self.get_queues,
             methods=["GET"],
@@ -116,6 +124,7 @@ class Server:
             path="/queues/{queue_id}/push",
             endpoint=self.push_queue,
             methods=["POST"],
+            status_code=204,
         )
 
     def root(self) -> Any:
@@ -176,7 +185,6 @@ class Server:
 
         return updated_scheduler
 
-    # TODO: unknown status
     def list_tasks(
         self,
         request: fastapi.Request,
@@ -184,7 +192,6 @@ class Server:
         status: Union[str, None] = None,
         offset: int = 0, limit: int = 10,
     ) -> Any:
-        self.logger.info(scheduler_id)
         try:
             results, count = self.ctx.datastore.get_tasks(
                 scheduler_id=scheduler_id, status=status, offset=offset, limit=limit,
@@ -195,19 +202,83 @@ class Server:
                 detail=str(exc),
             ) from exc
         except Exception as exc:
-            # TODO
             self.logger.exception(exc)
             raise fastapi.HTTPException(
                 status_code=500,
                 detail="failed to get tasks",
             ) from exc
 
-        # TODO: exception handling
         return paginate(request, results, count=count, offset=offset, limit=limit)
 
     def get_task(self, task_id: str) -> Any:
-        # TODO
-        return None
+        try:
+            task = self.ctx.datastore.get_task_by_id(task_id)
+        except ValueError as exc:
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail=str(exc),
+            ) from exc
+        except Exception as exc:
+            raise fastapi.HTTPException(
+                status_code=500,
+                detail="failed to get task",
+            ) from exc
+
+        if task is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="task not found",
+            )
+
+        return models.Task(**task.dict())
+
+    def patch_task(self, task_id: str, item: models.Task) -> Any:
+        try:
+            task_db = self.ctx.datastore.get_task_by_id(task_id)
+        except ValueError as exc:
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail=str(exc),
+            ) from exc
+        except Exception as exc:
+            raise fastapi.HTTPException(
+                status_code=500,
+                detail="failed to get task",
+            ) from exc
+
+        if task_db is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="task not found",
+            )
+
+        patch_data = item.dict(exclude_unset=True)
+        if len(patch_data) == 0:
+            raise fastapi.HTTPException(
+                status_code=400,
+                detail="no data to patch",
+            )
+
+        # Update the patched attributes
+        for attr, value in patch_data.items():
+            try:
+                setattr(task_db, attr, value)
+            except AttributeError as exc:
+                raise fastapi.HTTPException(
+                    status_code=400,
+                    detail="attribute not found",
+                ) from exc
+
+        # update task in database
+        try:
+            updated_task = self.ctx.datastore.update_task(task_db)
+        except Exception as exc:
+            raise fastapi.HTTPException(
+                status_code=500,
+                detail="failed to update task",
+            ) from exc
+
+        return updated_task
 
     def get_queues(self) -> Any:
         return [models.Queue(**q.dict()) for q in self.queues.values()]
@@ -278,7 +349,8 @@ class Server:
                 detail="not allowed",
             ) from exc_not_allowed
 
-        return fastapi.Response(status_code=204)
+        return models.QueuePrioritizedItem(**p_item.dict())
+
 
     def run(self) -> None:
         uvicorn.run(

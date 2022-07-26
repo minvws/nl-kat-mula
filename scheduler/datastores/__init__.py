@@ -1,1 +1,1 @@
-from .postgres import PostgreSQL
+from .datastore import SQLAlchemy

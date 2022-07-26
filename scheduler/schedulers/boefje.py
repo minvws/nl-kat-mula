@@ -336,7 +336,6 @@ class BoefjeScheduler(Scheduler):
                     )
                     continue
 
-
                 # TODO: we can update this to reference our own task state.
                 # 
                 # Boefjes should not run before the grace period ends, thus
