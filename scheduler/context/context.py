@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import scheduler
 from scheduler.config import settings
 from scheduler.connectors import listeners, services
-from scheduler.datastores import SQLAlchemy
+from scheduler.datastores import DatastoreType, SQLAlchemy
 
 
 class AppContext:
@@ -71,4 +71,4 @@ class AppContext:
 
         self.stop_event: threading.Event = threading.Event()
 
-        self.datastore = SQLAlchemy(self.config.postgres_dsn)
+        self.datastore = SQLAlchemy(self.config.database_dsn, DatastoreType.SQLITE)

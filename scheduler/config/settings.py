@@ -40,5 +40,5 @@ class Settings(BaseSettings):
     dsp_interval: int = Field(5, env="SHEDULER_DSP_INTERVAL")
     dsp_broker_url: str = Field(..., env="SCHEDULER_DSP_BROKER_URL")
 
-    # Postgres settings
-    postgres_dsn: str = Field(..., env="SCHEDULER_PSQL_DSN")
+    # Database settings
+    database_dsn: str = Field(..., env="SCHEDULER_DB_DSN")
