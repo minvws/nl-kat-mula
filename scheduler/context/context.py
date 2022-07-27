@@ -57,6 +57,10 @@ class AppContext:
             dsn=self.config.host_raw_data,
         )
 
+        lst_normalizer_meta = listeners.NormalizerMeta(
+            dsn=self.config.host_normalizer_meta,
+        )
+
         # Register external services, SimpleNamespace allows us to use dot
         # notation
         self.services: SimpleNamespace = SimpleNamespace(
@@ -66,6 +70,7 @@ class AppContext:
                 services.Bytes.name: svc_bytes,
                 listeners.ScanProfile.name: lst_scan_profile,
                 listeners.RawData.name: lst_raw_data,
+                listeners.NormalizerMeta.name: lst_normalizer_meta,
             }
         )
 

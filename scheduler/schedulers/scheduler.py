@@ -176,12 +176,7 @@ class Scheduler(abc.ABC):
         except Exception as exc:
             self.logger.exception(exc)
 
-    # TODO
     def push_items_to_queue(self, p_items: List[queues.PrioritizedItem]) -> None:
-        self.add_p_items_to_queue(p_items)
-
-    # TODO: refactor
-    def add_p_items_to_queue(self, p_items: List[queues.PrioritizedItem]) -> None:
         """Add items to a priority queue.
 
         Args:
@@ -207,7 +202,7 @@ class Scheduler(abc.ABC):
             )
 
 
-    def _run_in_thread(
+    def run_in_thread(
         self,
         name: str,
         func: Callable[[], Any],
@@ -240,7 +235,7 @@ class Scheduler(abc.ABC):
     def run(self) -> None:
         # Populator
         if self.populate_queue_enabled:
-            self._run_in_thread(
+            self.run_in_thread(
                 name="populator",
                 func=self.populate_queue,
                 interval=self.ctx.config.pq_populate_interval,
