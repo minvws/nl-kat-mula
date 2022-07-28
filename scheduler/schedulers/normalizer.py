@@ -192,7 +192,6 @@ class NormalizerScheduler(Scheduler):
 
         return p_items
 
-    # TODO: function name
     def update_normalizer_task_status(self):
         try:
             latest_normalizer_meta = self.ctx.services.normalizer_meta.get_latest_normalizer_meta(
@@ -225,9 +224,6 @@ class NormalizerScheduler(Scheduler):
             )
             time.sleep(60)
             return
-
-        # FIXME: remove logging
-        self.logger.debug(f"Found normalizer meta: {latest_normalizer_meta}")
 
         normalizer_task_db = self.ctx.datastore.get_task_by_id(
             latest_normalizer_meta.normalizer_meta.id,

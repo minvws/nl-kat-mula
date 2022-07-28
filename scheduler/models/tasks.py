@@ -23,7 +23,7 @@ class TaskStatus(_Enum):
     PENDING = "pending"
     QUEUED = "queued"
     DISPATCHED = "dispatched"
-    RUNNING = "running"  # FIXME: processing?
+    RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
 

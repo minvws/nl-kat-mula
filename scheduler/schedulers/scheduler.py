@@ -157,7 +157,6 @@ class Scheduler(abc.ABC):
                 self.queue.pq.qsize(),
             )
             return None
-            # TODO: raise exception?
 
         try:
             self.queue.push(p_item)
@@ -169,12 +168,8 @@ class Scheduler(abc.ABC):
                 self.queue.pq.qsize(),
             )
             raise exc
-            # TODO: raise exception?
 
-        try:
-            self.post_push(p_item)
-        except Exception as exc:
-            self.logger.exception(exc)
+        self.post_push(p_item)
 
     def push_items_to_queue(self, p_items: List[queues.PrioritizedItem]) -> None:
         """Add items to a priority queue.

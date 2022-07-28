@@ -246,7 +246,7 @@ class App:
 
         # Start the dispatchers
         for name, dispatcher in self.dispatchers.items():
-            self._run_in_thread(name=f"dispatcher_{name}", func=dispatcher.run, interval=5)  # TODO: dsp interval
+            self._run_in_thread(name=f"dispatcher_{name}", func=dispatcher.run, interval=self.ctx.config.dsp_interval)
 
         # Start monitors
         self._run_in_thread(name="monitor_organisations", func=self.monitor_organisations, interval=3600)

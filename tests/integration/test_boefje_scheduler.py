@@ -49,7 +49,7 @@ class SchedulerTestCase(unittest.TestCase):
         self.mock_ctx.services.bytes = self.mock_bytes
 
         # Datastore
-        self.mock_ctx.datastore = datastores.SQLAlchemy(dsn="sqlite://")
+        self.mock_ctx.datastore = datastores.SQLAlchemy(dsn="sqlite://", type=datastores.DatastoreType.SQLITE)
         models.Base.metadata.create_all(self.mock_ctx.datastore.engine)
 
         # Scheduler
@@ -315,7 +315,7 @@ class SchedulerTestCase(unittest.TestCase):
         self.scheduler.populate_queue()
         self.assertEqual(1, self.scheduler.queue.qsize())
 
-    def test_celery_dispatcher(self):
+    def test_dispatcher(self):
         """When a task is dispatched, it should be added to the queue"""
         organisation = OrganisationFactory()
         scan_profile = ScanProfileFactory(level=0)
@@ -326,7 +326,7 @@ class SchedulerTestCase(unittest.TestCase):
             input_ooi=ooi.primary_key,
             organization=organisation.id,
         )
-        self.scheduler.queue.push(queues.PrioritizedItem(0, task))
+        self.scheduler.push_item_to_queue(queues.PrioritizedItem(0, task))
 
         d = self.dispatcher
         d.app.send_task = mock.Mock()
@@ -335,6 +335,7 @@ class SchedulerTestCase(unittest.TestCase):
         p_item = d.scheduler.pop_item_from_queue()
         d.dispatch(p_item)
 
+        # Test the celery implementation
         item_dict = p_item.item.dict()
         d.app.send_task.assert_called_once_with(
             name="tasks.handle_boefje",
@@ -344,6 +345,11 @@ class SchedulerTestCase(unittest.TestCase):
         )
 
         self.assertEqual(0, self.scheduler.queue.qsize())
+
+        # When a task is dispatched, its status should be updated
+        task_db = self.mock_ctx.datastore.get_task_by_id(task.id)
+        self.assertEqual(task_db.id.hex, task.id)
+        self.assertEqual(task_db.status, models.TaskStatus.DISPATCHED)
 
     @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
     @mock.patch("scheduler.context.AppContext.services.octopoes.get_random_objects")
