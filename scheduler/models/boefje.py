@@ -25,5 +25,5 @@ class BoefjeMeta(BaseModel):
     input_ooi: str
     arguments: Dict[str, Any]
     organization: str
-    started_at: Optional[datetime]
-    ended_at: Optional[datetime]
+    started_at: Optional[datetime.datetime]
+    ended_at: Optional[datetime.datetime]
