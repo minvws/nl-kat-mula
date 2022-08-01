@@ -8,7 +8,7 @@ import mmh3
 import pika
 import requests
 
-from scheduler import context, dispatchers, queues, rankers
+from scheduler import context, queues, rankers
 from scheduler.models import NormalizerTask, Organisation, RawData, TaskStatus
 
 from .scheduler import Scheduler
@@ -92,7 +92,7 @@ class NormalizerScheduler(Scheduler):
                 self.ctx.datastore.update_task(boefje_task_db)
             else:
                 self.logger.warning(
-                    "Could not find boefje task in database: %s [raw_data_id=%s, org_id=%s, scheduler_id=%s]",
+                    "Could not find boefje task in database [raw_data_id=%s, org_id=%s, scheduler_id=%s]",
                     latest_raw_data.raw_data.boefje_meta.id,
                     self.organisation.id,
                     self.scheduler_id,

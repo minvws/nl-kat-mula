@@ -1,5 +1,4 @@
 import time
-import uuid
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import List
@@ -8,9 +7,8 @@ import mmh3
 import pika
 import requests
 
-from scheduler import context, dispatchers, queues, rankers
-from scheduler.models import (OOI, Boefje, BoefjeTask, Organisation,
-                              QueuePrioritizedItem, Task, TaskStatus)
+from scheduler import context, queues, rankers
+from scheduler.models import OOI, Boefje, BoefjeTask, Organisation, TaskStatus
 
 from .scheduler import Scheduler
 
@@ -42,6 +40,7 @@ class BoefjeScheduler(Scheduler):
 
         self.organisation: Organisation = organisation
 
+    # TODO: Pylint R0912 too-many-branches
     def populate_queue(self) -> None:
         """Populate the PriorityQueue.
 
@@ -184,6 +183,8 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
+    # TODO: Pylint R0912 too-many-branches
+    # TODO: Pylint R0915 too-many-statements
     def create_tasks_for_oois(self, oois: List[OOI]) -> List[queues.PrioritizedItem]:
         """For every provided ooi we will create available and enabled boefje
         tasks.
@@ -325,7 +326,9 @@ class BoefjeScheduler(Scheduler):
                 task_db = self.ctx.datastore.get_task_by_hash(
                     mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
                 )
-                if (task_db is not None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED)):
+                if task_db is not None and (
+                    task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED
+                ):
                     self.logger.debug(
                         "Boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                         boefje.id,

@@ -5,9 +5,14 @@ from unittest import mock
 
 import pydantic
 from scheduler import config, dispatchers, models, queues, rankers, schedulers
-from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
-                             OrganisationFactory, PluginFactory,
-                             ScanProfileFactory)
+from tests.factories import (
+    BoefjeFactory,
+    BoefjeMetaFactory,
+    OOIFactory,
+    OrganisationFactory,
+    PluginFactory,
+    ScanProfileFactory,
+)
 
 
 def create_p_item(priority: int):

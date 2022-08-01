@@ -1,13 +1,11 @@
 import datetime
 import uuid
 from enum import Enum as _Enum
-from json import JSONEncoder
-from typing import Any, Dict, List, Optional
-from uuid import UUID
+from typing import List, Optional
 
 import mmh3
 from pydantic import BaseModel, Field
-from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, String
+from sqlalchemy import JSON, Column, DateTime, Enum, String
 
 from scheduler.utils import GUID
 
@@ -42,15 +40,30 @@ class Task(BaseModel):
 
 
 class TaskORM(Base):
+    """A SQLAlchemy datastore model respresentation of a Task"""
+
     __tablename__ = "tasks"
 
     id = Column(GUID, primary_key=True)
     hash = Column(String)
     scheduler_id = Column(String)
     task = Column(JSON, nullable=False)
-    status = Column(Enum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
-    modified_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    status = Column(
+        Enum(TaskStatus),
+        nullable=False,
+        default=TaskStatus.PENDING,
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.datetime.utcnow,
+    )
+    modified_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.datetime.utcnow,
+        onupdate=datetime.datetime.utcnow,
+    )
 
 
 class NormalizerTask(BaseModel):

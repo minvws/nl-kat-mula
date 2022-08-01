@@ -14,7 +14,5 @@ class NormalizerMeta(RabbitMQ):
         response = self.get(queue)
         if response is None:
             return None
-        self.logger.info(f"RESPONSE: {response}")
 
         return NormalizerMetaReceivedEvent(**response)
-

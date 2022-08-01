@@ -14,31 +14,33 @@ class GUID(TypeDecorator):
         - https://docs.sqlalchemy.org/en/13/core/custom_types.html#backend-agnostic-guid-type
         - https://github.com/yuval9313/fastapi-restful/blob/master/fastapi_restful/guid_type.py
     """
+
     impl = CHAR
     cache_ok = True
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql':
+        if dialect.name == "postgresql":
             return dialect.type_descriptor(UUID())
-        else:
-            return dialect.type_descriptor(CHAR(32))
+
+        return dialect.type_descriptor(CHAR(32))
 
     def process_bind_param(self, value, dialect):
         if value is None:
             return value
-        elif dialect.name == 'postgresql':
+
+        if dialect.name == "postgresql":
             return str(value)
-        else:
-            if not isinstance(value, uuid.UUID):
-                return "%.32x" % uuid.UUID(value).int
-            else:
-                # hexstring
-                return "%.32x" % value.int
+
+        if not isinstance(value, uuid.UUID):
+            return f"{uuid.UUID(value).int:032x}"
+
+        return f"{value.int:032x}"
 
     def process_result_value(self, value, dialect):
         if value is None:
             return value
-        else:
-            if not isinstance(value, uuid.UUID):
-                value = uuid.UUID(value)
-            return value
+
+        if not isinstance(value, uuid.UUID):
+            value = uuid.UUID(value)
+
+        return value

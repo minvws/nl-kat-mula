@@ -190,11 +190,15 @@ class Server:
         request: fastapi.Request,
         scheduler_id: Union[str, None] = None,
         status: Union[str, None] = None,
-        offset: int = 0, limit: int = 10,
+        offset: int = 0,
+        limit: int = 10,
     ) -> Any:
         try:
             results, count = self.ctx.datastore.get_tasks(
-                scheduler_id=scheduler_id, status=status, offset=offset, limit=limit,
+                scheduler_id=scheduler_id,
+                status=status,
+                offset=offset,
+                limit=limit,
             )
         except ValueError as exc:
             raise fastapi.HTTPException(
@@ -350,7 +354,6 @@ class Server:
             ) from exc_not_allowed
 
         return models.QueuePrioritizedItem(**p_item.dict())
-
 
     def run(self) -> None:
         uvicorn.run(

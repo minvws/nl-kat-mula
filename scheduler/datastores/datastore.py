@@ -18,15 +18,21 @@ class Datastore(abc.ABC):
         self.logger: logging.Logger = logging.getLogger(__name__)
 
     @abc.abstractmethod
-    def get_tasks(self, scheduler_id: Union[str, None], status: Union[str, None], offset: int = 0, limit: int = 100) -> Tuple[List[models.Task], int]:
+    def get_tasks(
+        self,
+        scheduler_id: Union[str, None],
+        status: Union[str, None],
+        offset: int = 0,
+        limit: int = 100,
+    ) -> Tuple[List[models.Task], int]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_task_by_id(self, id: str) -> Optional[models.Task]:
+    def get_task_by_id(self, task_id: str) -> Optional[models.Task]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_task_by_hash(self, hash: str) -> Optional[models.Task]:
+    def get_task_by_hash(self, task_hash: str) -> Optional[models.Task]:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -39,26 +45,41 @@ class Datastore(abc.ABC):
 
 
 class SQLAlchemy(Datastore):
-    def __init__(self, dsn: str, type: DatastoreType) -> None:
+    def __init__(self, dsn: str, datastore_type: DatastoreType) -> None:
         super().__init__()
 
         self.engine = None
 
-        if type == DatastoreType.POSTGRES:
-            self.engine = create_engine(dsn, pool_pre_ping=True, pool_size=25, json_serializer=lambda obj: json.dumps(obj, default=str))
-        elif type == DatastoreType.SQLITE:
+        if datastore_type == DatastoreType.POSTGRES:
+            self.engine = create_engine(
+                dsn,
+                pool_pre_ping=True,
+                pool_size=25,
+                json_serializer=lambda obj: json.dumps(obj, default=str),
+            )
+        elif datastore_type == DatastoreType.SQLITE:
             # See: https://docs.sqlalchemy.org/en/14/dialects/sqlite.html#using-a-memory-database-in-multiple-threads
-            self.engine = create_engine(dsn, connect_args={"check_same_thread": False}, poolclass=pool.StaticPool, json_serializer=lambda obj: json.dumps(obj, default=str))
-
+            self.engine = create_engine(
+                dsn,
+                connect_args={"check_same_thread": False},
+                poolclass=pool.StaticPool,
+                json_serializer=lambda obj: json.dumps(obj, default=str),
+            )
 
         if self.engine is None:
             raise Exception("Invalid datastore type")
 
         models.Base.metadata.create_all(self.engine)
 
-        self.conn = orm.sessionmaker(autocommit=False, autoflush=False, bind=self.engine)()
+        self.conn = orm.sessionmaker(
+            autocommit=False,
+            autoflush=False,
+            bind=self.engine,
+        )()
 
-    def get_tasks(self, scheduler_id: Union[str, None], status: Union[str, None], offset: int = 0, limit: int = 100) -> Tuple[List[models.Task], int]:
+    def get_tasks(
+        self, scheduler_id: Union[str, None], status: Union[str, None], offset: int = 0, limit: int = 100
+    ) -> Tuple[List[models.Task], int]:
         query = self.conn.query(models.TaskORM)
 
         if scheduler_id is not None:
@@ -73,8 +94,8 @@ class SQLAlchemy(Datastore):
         tasks = [models.Task.from_orm(task_orm) for task_orm in tasks_orm]
         return tasks, count
 
-    def get_task_by_id(self, id: str) -> Optional[models.Task]:
-        task_orm = self.conn.query(models.TaskORM).filter(models.TaskORM.id == id).first()
+    def get_task_by_id(self, task_id: str) -> Optional[models.Task]:
+        task_orm = self.conn.query(models.TaskORM).filter(models.TaskORM.id == task_id).first()
         if task_orm is None:
             return None
 
@@ -82,8 +103,14 @@ class SQLAlchemy(Datastore):
 
         return task
 
-    def get_task_by_hash(self, hash: str) -> Optional[models.Task]:
-        task_orm = self.conn.query(models.TaskORM).order_by(models.TaskORM.created_at.desc()).filter(models.TaskORM.hash == hash).first()
+    def get_task_by_hash(self, task_hash: str) -> Optional[models.Task]:
+        task_orm = (
+            self.conn.query(models.TaskORM)
+            .order_by(models.TaskORM.created_at.desc())
+            .filter(models.TaskORM.hash == task_hash)
+            .first()
+        )
+
         if task_orm is None:
             return None
 

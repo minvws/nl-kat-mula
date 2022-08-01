@@ -1,12 +1,10 @@
 import abc
 import datetime
-import json
 import logging
 import threading
-import uuid
 from typing import Any, Callable, Dict, List
 
-from scheduler import context, dispatchers, models, queues, rankers, utils
+from scheduler import context, models, queues, rankers, utils
 from scheduler.utils import thread
 
 
@@ -115,12 +113,16 @@ class Scheduler(abc.ABC):
         task = self.ctx.datastore.get_task_by_id(p_item.item.id)
         if task is None:
             self.logger.error(
-                "Task %s not found in datastore, not updating status [task_id = %s]", p_item.item.id, p_item.item.id,
+                "Task %s not found in datastore, not updating status [task_id = %s]",
+                p_item.item.id,
+                p_item.item.id,
             )
             return None
 
         task.status = models.TaskStatus.DISPATCHED
         self.ctx.datastore.update_task(task)
+
+        return None
 
     def pop_item_from_queue(self) -> queues.PrioritizedItem:
         """Pop an item from the queue.
@@ -149,21 +151,28 @@ class Scheduler(abc.ABC):
         Args:
             item: The item to push to the queue.
         """
-        if self.queue.full():
-            self.logger.warning(
-                "Queue %s is full, not populating new tasks [queue_id=%s, qsize=%d]",
-                self.queue.pq_id,
-                self.queue.pq_id,
-                self.queue.pq.qsize(),
-            )
-            return None
-
         try:
             self.queue.push(p_item)
         except queues.errors.NotAllowedError as exc:
             self.logger.warning(
                 "Not allowed to push to queue %s [queue_id=%s, qsize=%d]",
                 self.queue.pq_id,
+                self.queue.pq_id,
+                self.queue.pq.qsize(),
+            )
+            raise exc
+        except queues.errors.QueueFullError as exc:
+            self.logger.warning(
+                "Queue %s is full, not populating new tasks [queue_id=%s, qsize=%d]",
+                self.queue.pq_id,
+                self.queue.pq_id,
+                self.queue.pq.qsize(),
+            )
+            raise exc
+        except queues.errors.InvalidPrioritizedItemError as exc:
+            self.logger.warning(
+                "Invalid prioritized item %s [queue_id=%s, qsize=%d]",
+                p_item,
                 self.queue.pq_id,
                 self.queue.pq.qsize(),
             )
@@ -182,7 +191,7 @@ class Scheduler(abc.ABC):
         for p_item in p_items:
             try:
                 self.push_item_to_queue(p_item)
-            except Exception as exc:
+            except Exception:
                 continue
 
             count += 1
@@ -195,7 +204,6 @@ class Scheduler(abc.ABC):
                 self.queue.pq_id,
                 count,
             )
-
 
     def run_in_thread(
         self,

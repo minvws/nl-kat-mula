@@ -5,10 +5,8 @@ from unittest import mock
 
 import requests
 from fastapi.testclient import TestClient
-from scheduler import (config, connectors, datastores, dispatchers, models,
-                       queues, rankers, schedulers, server)
-from tests.factories import (BoefjeFactory, OOIFactory, OrganisationFactory,
-                             ScanProfileFactory)
+from scheduler import config, connectors, datastores, dispatchers, models, queues, rankers, schedulers, server
+from tests.factories import BoefjeFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
 
 
 def create_p_item(organisation_id: str, priority: int) -> models.QueuePrioritizedItem:

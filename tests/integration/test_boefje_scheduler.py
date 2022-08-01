@@ -3,11 +3,15 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from scheduler import (config, connectors, datastores, dispatchers, models,
-                       queues, rankers, schedulers)
-from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
-                             OrganisationFactory, PluginFactory,
-                             ScanProfileFactory)
+from scheduler import config, connectors, datastores, dispatchers, models, queues, rankers, schedulers
+from tests.factories import (
+    BoefjeFactory,
+    BoefjeMetaFactory,
+    OOIFactory,
+    OrganisationFactory,
+    PluginFactory,
+    ScanProfileFactory,
+)
 
 
 class SchedulerTestCase(unittest.TestCase):
@@ -354,9 +358,7 @@ class SchedulerTestCase(unittest.TestCase):
     @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
     @mock.patch("scheduler.context.AppContext.services.octopoes.get_random_objects")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
-    def test_post_push(
-        self, mock_create_tasks_for_oois, mock_get_random_objects, mock_get_latest_object
-    ):
+    def test_post_push(self, mock_create_tasks_for_oois, mock_get_random_objects, mock_get_latest_object):
         """When a task is added to the queue, it should be added to the database"""
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
