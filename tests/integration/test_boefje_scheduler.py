@@ -289,6 +289,28 @@ class SchedulerTestCase(unittest.TestCase):
         tasks = self.scheduler.create_tasks_for_oois([ooi])
         self.assertEqual(1, len(tasks))
 
+    @mock.patch("scheduler.context.AppContext.services.bytes.get_last_run_boefje")
+    @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_type_and_org_id")
+    def test_create_tasks_for_oois_boefje_still_running(
+        self, mock_get_boefjes_by_type_and_org_id, mock_get_last_run_boefje
+    ):
+        """When a boefje is still running, it should not return a boefje task"""
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        boefjes = [PluginFactory(type="boefje", scan_level=0)]
+        last_run_boefje = BoefjeMetaFactory(
+            boefje=boefjes[0],
+            input_ooi=ooi.primary_key,
+            ended_at=None,
+            started_at=datetime.now(timezone.utc),
+        )
+
+        mock_get_boefjes_by_type_and_org_id.return_value = boefjes
+        mock_get_last_run_boefje.return_value = last_run_boefje
+
+        tasks = self.scheduler.create_tasks_for_oois([ooi])
+        self.assertEqual(0, len(tasks))
+
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_type_and_org_id")
     def test_populate_boefjes_queue_qsize(self, mock_get_boefjes_by_type_and_org_id):
         """When the boefje queue is full, it should not return a boefje task"""
