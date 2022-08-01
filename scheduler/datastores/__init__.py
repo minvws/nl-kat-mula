@@ -1,1 +1,1 @@
-from .datastore import DatastoreType, SQLAlchemy
+from .datastore import Datastore, DatastoreType, SQLAlchemy

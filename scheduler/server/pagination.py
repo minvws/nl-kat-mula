@@ -11,14 +11,14 @@ class PaginatedResponse(BaseModel):
     results: List[Any]
 
 
-def create_next_url(request: Request, offset: int, limit: int, count: int) -> str:
+def create_next_url(request: Request, offset: int, limit: int, count: int) -> Optional[str]:
     if offset + limit <= count:
         return str(request.url.include_query_params(limit=limit, offset=offset + limit))
 
     return None
 
 
-def create_previous_url(request: Request, offset: int, limit: int, count: int) -> str:
+def create_previous_url(request: Request, offset: int, limit: int, count: int) -> Optional[str]:
     if offset - limit >= 0:
         return str(request.url.include_query_params(limit=limit, offset=offset - limit))
 

@@ -87,8 +87,16 @@ class NormalizerScheduler(Scheduler):
             boefje_task_db = self.ctx.datastore.get_task_by_id(
                 latest_raw_data.raw_data.boefje_meta.id,
             )
-            boefje_task_db.status = TaskStatus.COMPLETED
-            self.ctx.datastore.update_task(boefje_task_db)
+            if boefje_task_db is not None:
+                boefje_task_db.status = TaskStatus.COMPLETED
+                self.ctx.datastore.update_task(boefje_task_db)
+            else:
+                self.logger.warning(
+                    "Could not find boefje task in database: %s [raw_data_id=%s, org_id=%s, scheduler_id=%s]",
+                    latest_raw_data.raw_data.boefje_meta.id,
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
 
             p_items = self.create_tasks_for_raw_data(latest_raw_data.raw_data)
             if not p_items:

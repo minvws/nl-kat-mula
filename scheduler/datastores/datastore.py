@@ -2,7 +2,7 @@ import abc
 import json
 import logging
 from enum import Enum
-from typing import List, Union
+from typing import List, Optional, Tuple, Union
 
 from scheduler import models
 from sqlalchemy import create_engine, orm, pool
@@ -18,23 +18,23 @@ class Datastore(abc.ABC):
         self.logger: logging.Logger = logging.getLogger(__name__)
 
     @abc.abstractmethod
-    def get_tasks(self, scheduler_id: Union[str, None], status: Union[str, None], offset: int = 0, limit: int = 100) -> (List[models.Task], int):
+    def get_tasks(self, scheduler_id: Union[str, None], status: Union[str, None], offset: int = 0, limit: int = 100) -> Tuple[List[models.Task], int]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_task_by_id(self, id: str) -> models.Task:
+    def get_task_by_id(self, id: str) -> Optional[models.Task]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_task_by_hash(self, task_id: hash) -> models.Task:
+    def get_task_by_hash(self, hash: str) -> Optional[models.Task]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_task(self, task: models.Task) -> models.Task:
+    def add_task(self, task: models.Task) -> Optional[models.Task]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_task(self, task: models.Task) -> models.Task:
+    def update_task(self, task: models.Task) -> Optional[models.Task]:
         raise NotImplementedError
 
 
@@ -58,7 +58,7 @@ class SQLAlchemy(Datastore):
 
         self.conn = orm.sessionmaker(autocommit=False, autoflush=False, bind=self.engine)()
 
-    def get_tasks(self, scheduler_id: Union[str, None], status: Union[str, None], offset: int = 0, limit: int = 100) -> (List[models.Task], int):
+    def get_tasks(self, scheduler_id: Union[str, None], status: Union[str, None], offset: int = 0, limit: int = 100) -> Tuple[List[models.Task], int]:
         query = self.conn.query(models.TaskORM)
 
         if scheduler_id is not None:
@@ -73,7 +73,7 @@ class SQLAlchemy(Datastore):
         tasks = [models.Task.from_orm(task_orm) for task_orm in tasks_orm]
         return tasks, count
 
-    def get_task_by_id(self, id: str) -> models.Task:
+    def get_task_by_id(self, id: str) -> Optional[models.Task]:
         task_orm = self.conn.query(models.TaskORM).filter(models.TaskORM.id == id).first()
         if task_orm is None:
             return None
@@ -82,7 +82,7 @@ class SQLAlchemy(Datastore):
 
         return task
 
-    def get_task_by_hash(self, hash: str) -> models.Task:
+    def get_task_by_hash(self, hash: str) -> Optional[models.Task]:
         task_orm = self.conn.query(models.TaskORM).order_by(models.TaskORM.created_at.desc()).filter(models.TaskORM.hash == hash).first()
         if task_orm is None:
             return None
@@ -91,7 +91,7 @@ class SQLAlchemy(Datastore):
 
         return task
 
-    def add_task(self, task: models.Task) -> models.Task:
+    def add_task(self, task: models.Task) -> Optional[models.Task]:
         task_orm = models.TaskORM(**task.dict())
         self.conn.add(task_orm)
         self.conn.commit()
@@ -101,7 +101,7 @@ class SQLAlchemy(Datastore):
 
         return created_task
 
-    def update_task(self, task: models.Task) -> models.Task:
+    def update_task(self, task: models.Task) -> Optional[models.Task]:
         task_orm = self.conn.query(models.TaskORM).filter(models.TaskORM.id == task.id).first()
         task_orm.status = task.status
         self.conn.commit()
