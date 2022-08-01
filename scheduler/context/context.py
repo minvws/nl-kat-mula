@@ -21,6 +21,9 @@ class AppContext:
             are used and need to be shared in the scheduler application.
         stop_event: A threading.Event object used for communicating a stop
             event across threads.
+        datastore:
+            A SQLAlchemy.SQLAlchemy object used for storing and retrieving
+            tasks.
     """
 
     def __init__(self) -> None:

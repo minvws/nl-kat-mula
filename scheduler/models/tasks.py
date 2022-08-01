@@ -32,7 +32,7 @@ class Task(BaseModel):
     id: uuid.UUID
     hash: str
     scheduler_id: str
-    task: QueuePrioritizedItem
+    task: QueuePrioritizedItem  # FIXME: p_item?
     status: TaskStatus
     created_at: datetime.datetime
     modified_at: datetime.datetime

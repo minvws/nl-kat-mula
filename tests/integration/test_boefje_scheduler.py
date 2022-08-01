@@ -49,7 +49,7 @@ class SchedulerTestCase(unittest.TestCase):
         self.mock_ctx.services.bytes = self.mock_bytes
 
         # Datastore
-        self.mock_ctx.datastore = datastores.SQLAlchemy(dsn="sqlite://", type=datastores.DatastoreType.SQLITE)
+        self.mock_ctx.datastore = datastores.SQLAlchemy(dsn="sqlite:///", type=datastores.DatastoreType.SQLITE)
         models.Base.metadata.create_all(self.mock_ctx.datastore.engine)
 
         # Scheduler

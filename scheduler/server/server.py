@@ -124,7 +124,7 @@ class Server:
             path="/queues/{queue_id}/push",
             endpoint=self.push_queue,
             methods=["POST"],
-            status_code=204,
+            status_code=201,
         )
 
     def root(self) -> Any:
