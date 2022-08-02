@@ -32,7 +32,9 @@ class APITestCase(unittest.TestCase):
         self.mock_ctx.config = cfg
 
         # Datastore
-        self.mock_ctx.datastore = datastores.SQLAlchemy(dsn="sqlite:///", type=datastores.DatastoreType.SQLITE)
+        self.mock_ctx.datastore = datastores.SQLAlchemy(
+            dsn="sqlite:///", datastore_type=datastores.DatastoreType.SQLITE
+        )
         models.Base.metadata.create_all(self.mock_ctx.datastore.engine)
 
         # Scheduler
