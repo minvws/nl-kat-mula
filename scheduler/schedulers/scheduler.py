@@ -9,9 +9,8 @@ from scheduler.utils import thread
 
 
 class Scheduler(abc.ABC):
-    """The Scheduler class combines the priority queue, ranker and dispatcher.
-    The scheduler is responsible for populating the queue, ranking, and
-    dispatching tasks.
+    """The Scheduler class combines the priority queue, and ranker.
+    The scheduler is responsible for populating the queue, and ranking tasks.
 
     An implementation of the Scheduler will likely implement the
     `populate_queue` method, with the strategy for populating the queue. By
@@ -30,8 +29,6 @@ class Scheduler(abc.ABC):
             A queues.PriorityQueue instance
         ranker:
             A rankers.Ranker instance.
-        dispatcher:
-            A dispatchers.Dispatcher instance.
         populate_queue_enabled:
             A boolean whether to populate the queue.
         threads:
@@ -64,8 +61,6 @@ class Scheduler(abc.ABC):
                 A queues.PriorityQueue instance
             ranker:
                 A rankers.Ranker instance.
-            dispatcher:
-                A dispatchers.Dispatcher instance.
             populate_queue:
                 A boolean whether to populate the queue.
         """

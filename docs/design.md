@@ -33,6 +33,40 @@ In order to get a better overview of how the scheduler is implemented we will
 be using the [C4 model](https://c4model.com/) to give an overview of the
 scheduler system with their respective level of abstraction.
 
+#### ...
+
+```mermaid
+flowchart TB
+    subgraph App["App [module]"]
+
+        subgraph Schedulers["Scheduler [class]"]
+            
+            subgraph PriorityQueue["PriorityQueue [class]"]
+            end
+
+            subgraph Ranker["Ranker [class]"]
+            end
+
+            populate_queue[["populate_queue()<br/>(runs in thread)"]]
+
+        end
+
+
+        subgraph Listeners["Listeners [class]<br/>(runs in thread)"]
+        end
+
+        subgraph Monitors["Monitors [class]<br/>(runs in thread)"]
+        end
+
+        subgraph Dispatchers["Dispatchers [class]<br/>(runs in thread)"]
+        end
+
+        subgraph Server
+        end
+
+    end
+```
+
 #### C2 Container level:
 
 ```mermaid
@@ -70,6 +104,7 @@ graph TB
 ```mermaid
 flowchart TB
     
+    %% External services
     Rocky["Rocky<br/>[webapp]"]
     Octopoes["Octopoes<br/>[graph database]"]
     Katalogus["Katalogus<br/>[software system]"]
@@ -78,10 +113,13 @@ flowchart TB
     Bytes["Bytes<br/>[software system]"]
     RabbitMQ["RabbitMQ<br/>[message broker]"]
 
-
+    %% Rocky flow
     Rocky--"Create object"-->Octopoes
     Rocky--"Create scan job<br/>HTTP POST"--->push_queue
+    push_queue--"Push job with highest priority"-->BoefjePriorityQueue
+    push_queue--"Push job with highest priority"-->NormalizerPriorityQueue
     
+    %% External services flow
     Bytes--"Check last run of boefje and ooi<br/>HTTP GET"-->create_tasks_for_ooi
     Katalogus--"Get available boefjes<br/>HTTP GET"--->create_tasks_for_ooi
     Katalogus--"Get availalble normalizers<br/>HTTP GET"-->create_tasks_for_raw_data
@@ -89,42 +127,78 @@ flowchart TB
     RabbitMQ--"Get latest created object<br/>(scan level increase)"-->get_latest_object
     RabbitMQ--"Get latest raw data file<br/>(boefje finished)"-->get_latest_raw_data
 
-    push_queue--"Push job with highest priority"-->BoefjePriorityQueue
-
-    BoefjeDispatcher--"Send task to Boefjes"-->Boefjes
+    %% Boefje flow
+    get_latest_object-->get_random_object-->create_tasks_for_ooi-->rank_boefje-->push_boefje
+    push_boefje-->post_push_boefje
+    push_boefje--> BoefjePriorityQueue
+    post_push_boefje-->Datastore
+    post_pop_boefje-->Datastore
+    BoefjeDispatcher--"Send task to Boefjes"-->Boefjes    
+    
+    %% Normalizer flow
+    get_latest_raw_data-->create_tasks_for_raw_data-->rank_normalizer-->push_normalizer
+    push_normalizer-->post_push_normalizer
+    push_normalizer-->NormalizerPriorityQueue
+    post_push_normalizer-->Datastore
+    post_pop_normalizer-->Datastore
     NormalizerDispatcher--"Send task to Normalizers"-->Normalizers
 
-    get_latest_object-->get_random_object-->create_tasks_for_ooi-->rank_boefje-->push_boefje-->BoefjePriorityQueue-->BoefjeDispatcher
-
-    get_latest_raw_data-->create_tasks_for_raw_data-->rank_normalizer-->push_normalizer-->NormalizerPriorityQueue-->NormalizerDispatcher
 
     subgraph Scheduler["SchedulerApp [module]"]
 
         subgraph BoefjeScheduler["BoefjeScheduler [class]"]
-            get_latest_object[["get_latest_object"]]
-            get_random_object[["get_random_object"]]
-            create_tasks_for_ooi[["create_tasks_for_ooi<br/><br/>combine ooi with available <br/>boefjes to create tasks"]]
-            rank_boefje[["rank"]]
-            push_boefje[["push"]]
+            subgraph BoefjePopulateQueue["populate_queue() [method]"]
+                get_latest_object[["get_latest_object()"]]
+                get_random_object[["get_random_object()"]]
+                create_tasks_for_ooi[["create_tasks_for_ooi()<br/><br/>* combine ooi with available <br/>boefjes to create tasks<br/>* check if those tasks are able<br/>to run"]]
+                rank_boefje[["rank()"]]
+                push_boefje[["push()"]]
+            end
+
+            post_push_boefje[["post_push()<br/><br/>add tasks to database"]]
+            post_pop_boefje[["post_pop()<br/><br/>update tasks in database"]]
+
             BoefjePriorityQueue(["PriorityQueue"])
+            BoefjePriorityQueue-->BoefjeDispatcher
+            
             BoefjeDispatcher[["Dispatcher"]]
         end
 
-        subgraph NormalizerScheduler["NormalizerScheduler [class]"]
-            get_latest_raw_data[["get_latest_raw_data"]]
-            create_tasks_for_raw_data[["create_tasks_for_raw_data<br/><br/>combine ooi with available <br/>boefjes to create tasks"]]
-            rank_normalizer[["rank"]]
-            push_normalizer[["push"]]
-            NormalizerPriorityQueue(["PriorityQueue"])
-            NormalizerDispatcher[["Dispatcher"]]
+        subgraph BoefjeDispatcher["BoefjeDispatcher [class]"]
+            boefje_dispatch[["dispatch()"]]
         end
+        boefje_dispatch-->post_pop_boefje
+
+
+        subgraph NormalizerScheduler["NormalizerScheduler [class]"]
+            subgraph NormalizerPopulateQueue["populate_queue() [method]"]
+                get_latest_raw_data[["get_latest_raw_data()"]]
+                create_tasks_for_raw_data[["create_tasks_for_raw_data<br/><br/>* based on mime-types<br/>of the raw file, create<br/>normalizer tasks<br/>* check if normalizer is able to run<br/>* update status of boefje task to<br/>completed"]]
+                rank_normalizer[["rank()"]]
+                push_normalizer[["push()"]]
+            end
+
+            post_push_normalizer[["post_push()<br/><br/>add tasks to database"]]
+            post_pop_normalizer[["post_pop()<br/><br/>update tasks in database"]]
+            
+            NormalizerPriorityQueue(["PriorityQueue"])
+            NormalizerPriorityQueue-->NormalizerDispatcher
+
+            NormalizerDispatcher[["NormalizerDispatcher"]]
+        end
+
+        subgraph NormalizerDispatcher["NormalizerDispatcher [class]"]
+            normalizer_dispatch[["dispatch()"]]
+        end
+        normalizer_dispatch-->post_pop_normalizer
 
         subgraph Server
-            push_queue[["push_queue<br/>[api endpoint]"]]
+            push_queue[["push_queue()<br/>[api endpoint]"]]
         end
 
-    end
+        Datastore[("SQLite<br/>[datastore]<br/>(in-memory)")]
 
+    end
 ```
 
 * The `Scheduler` system implements multiple `schedulers`, one per
@@ -132,7 +206,6 @@ flowchart TB
 
   - A queue
   - A ranker
-  - A dispatcher
 
 * A `scheduler` implements the `populate_queue` method. It will:
 
@@ -142,6 +215,11 @@ flowchart TB
   - When the queue isn't full, it will try and fill up the queue with random
     objects from the octopoes system.
 
+* A `scheduler` implements methods for popping items of the queue and pushing
+ off the queue. After the calls to the `pop` and `push` methods a `post_pop()`
+ and `post_push` method will be called. This will be used to update the tasks
+ in the database.
+
 #### C4 Code level (Condensed class diagram)
 
 ```mermaid
@@ -149,7 +227,8 @@ classDiagram
 
     class App {
         +AppContext ctx
-        +Dict[str, Scheduler] schedulers
+        +Dict[str, ThreadRunner] threads
+        +Dict[str, Listener] listeners
         +Server server
         run()
     }
@@ -158,8 +237,13 @@ classDiagram
         +AppContext ctx
         +PriorityQueue queue
         +Ranker ranker
-        +Dispatcher dispatcher
+        +Dict[str, ThreadRunner] threads        
         populate_queue()
+        push_items_to_queue()
+        push_item_to_queue()
+        pop_item_from_queue()
+        post_push()
+        post_pop()
         run()
     }
 
@@ -187,20 +271,14 @@ classDiagram
         rank()
     }
 
-    class Dispatcher {
-        +AppContext ctx
-        dispatch()
-    }
+    App --> "many" Scheduler : Implements
 
-    App --> Scheduler
+    Scheduler --> "1" PriorityQueue : Has
+    Scheduler --> "1" Ranker : Has
 
-    Scheduler --> PriorityQueue
-    Scheduler --> Ranker
-    Scheduler --> Dispatcher
+    PriorityQueue --> "many" Entry : Has
 
-    PriorityQueue --> Entry
-
-    Entry --> PrioritizedItem
+    Entry --> "1" PrioritizedItem : Has
 ```
 
 Following describes main components of the scheduler application:
