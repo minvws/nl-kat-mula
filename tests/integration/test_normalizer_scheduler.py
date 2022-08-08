@@ -4,15 +4,11 @@ import unittest
 import uuid
 from unittest import mock
 
-from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers
-from tests.factories import (
-    BoefjeMetaFactory,
-    OOIFactory,
-    OrganisationFactory,
-    PluginFactory,
-    RawDataFactory,
-    ScanProfileFactory,
-)
+from scheduler import (config, connectors, dispatchers, models, queues,
+                       rankers, schedulers)
+from tests.factories import (BoefjeMetaFactory, OOIFactory,
+                             OrganisationFactory, PluginFactory,
+                             RawDataFactory, ScanProfileFactory)
 
 
 class NormalizerSchedulerTestCase(unittest.TestCase):
@@ -170,37 +166,3 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
 
         tasks = self.scheduler.create_tasks_for_raw_data(raw_data)
         self.assertEqual(0, len(tasks))
-
-    # def test_to_json(self):
-    #     scan_profile = ScanProfileFactory(level=0)
-    #     ooi = OOIFactory(scan_profile=scan_profile)
-    #     boefje = PluginFactory(type="boefje", scan_level=0)
-    #     boefje_meta = BoefjeMetaFactory(
-    #         boefje=boefje,
-    #         input_ooi=ooi.primary_key,
-    #     )
-    #
-    #     task_norm = models.NormalizerTask(
-    #         id=uuid.uuid4().hex,
-    #         normalizer=PluginFactory(type="normalizer"),
-    #         boefje_meta=boefje_meta,
-    #     )
-    #
-    #     task_p_item = queues.PrioritizedItem(
-    #         priority=0,
-    #         item=task_norm,
-    #     )
-    #
-    #     task = models.Task(
-    #         task=models.QueuePrioritizedItem(**task_p_item.dict()),
-    #         status=models.TaskStatus.PENDING,
-    #         created_at=datetime.datetime.now(),
-    #         modified_at=datetime.datetime.now(),
-    #     )
-    #
-    #     print(task.json())
-    #
-    #     task_orm = models.TaskORM(**task.dict())
-    #
-    #     json.dumps(task_orm)
-    #     json.dumps(task_orm, default=str)
