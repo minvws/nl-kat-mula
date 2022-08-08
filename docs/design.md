@@ -9,8 +9,8 @@ your own rules for the population, prioritization and dispatching of tasks.
 
 The *scheduler* implements a priority queue for prioritization of tasks to be
 performed by the worker(s). In the implementation of the scheduler within KAT
-the scheduler is tasked with populating the priority queue with boefje and
-normalizer tasks. The scheduler is responsible for maintaining and updating
+the scheduler is tasked with populating the priority queue with 'boefje' and
+'normalizer' tasks. The scheduler is responsible for maintaining and updating
 its internal priority queue.
 
 A priority queue is used, in as such, that it allows us to determine what jobs
@@ -24,8 +24,7 @@ that can/will leverage information from multiple (external) sources, called
 `connectors`.
 
 In this document we will outline what the scheduler does in the setup within
-KAT and how it is used, and its default configuration. Further on we will
-describe how to extend the scheduler to support your specific needs.
+KAT and how it is used.
 
 ### Architecture / Design
 
@@ -33,10 +32,10 @@ In order to get a better overview of how the scheduler is implemented we will
 be using the [C4 model](https://c4model.com/) to give an overview of the
 scheduler system with their respective level of abstraction.
 
-#### ...
-
-
 #### C2 Container level:
+
+First we'll review how the `Scheduler` system interacts with its external
+services.
 
 ```mermaid
 graph TB
@@ -60,15 +59,31 @@ graph TB
     Bytes--"Get last run boefje<br/>HTTP GET"-->Scheduler
 
     Scheduler--"Send task<br/>CELERY send_task"-->Boefjes
+    Scheduler--"Send task<br/>CELERY send_task"-->Normalizers
 ```
 
-* The `Scheduler` system combines data from the `Octopoes`, `Katalogus`, `Bytes` and
-  `RabbitMQ` systems. With these data it determines what tasks should be
-  created and dispatched.
+* The `Scheduler` system combines data from the `Octopoes`, `Katalogus`,
+`Bytes` and `RabbitMQ` systems. With these data it determines what tasks should
+be created and dispatched.
 
 * The `Scheduler` system implements multiple `schedulers` per organisation.
 
 #### C3 Component level:
+
+Following we review how different dataflows, from the `boefjes` and the
+`normalizers` are implemented within the `Scheduler` system. The following
+events within a KAT installation will trigger dataflows in the `Scheduler`:
+
+* When a plugin is enabled or disabled (`monitor_organisations`)
+
+* When an organisation is created or deleted (`monitor_organisations`)
+
+* When an scan level is increased (`get_latest_object`)
+
+* When a raw file is created (`get_latest_raw_data`)
+
+When any of these events occur it will trigger a dataflow to be executed in
+the `Scheduler`.
 
 ```mermaid
 flowchart TB
@@ -112,13 +127,12 @@ flowchart TB
     post_pop_normalizer-->Datastore
     NormalizerDispatcher--"Send task to Normalizers"-->Normalizers
 
-
-    subgraph Scheduler["SchedulerApp [module]"]
+    subgraph Scheduler["SchedulerApp [system]"]
 
         subgraph BoefjeScheduler["BoefjeScheduler [class]"]
             subgraph BoefjePopulateQueue["populate_queue() [method]"]
                 get_latest_object[["get_latest_object()"]]
-                get_random_object[["get_random_object()"]]
+                get_random_objects[["get_random_objects()"]]
                 create_tasks_for_ooi[["create_tasks_for_ooi()<br/><br/>* combine ooi with available <br/>boefjes to create tasks<br/>* check if those tasks are able<br/>to run"]]
                 rank_boefje[["rank()"]]
                 push_boefje[["push()"]]
@@ -171,23 +185,57 @@ flowchart TB
 ```
 
 * The `Scheduler` system implements multiple `schedulers`, one per
-  organisation. An individual scheduler contains:
+  organisation.
 
-  - A queue
-  - A ranker
+* A `Scheduler` implements methods for popping items of the queue and pushing
+  off the queue. After the calls to the `pop` and `push` methods a `post_pop()`
+  and `post_push` method will be called. This will be used to update the tasks
+  in the database.
 
-* A `scheduler` implements the `populate_queue` method. It will:
+* The `BoefjeScheduler` implementation of the `populate_queue()` method will:
 
-  - Get the latest created object in a loop, it will try to fill up the queue
-    with the latest created objects.
+  - Continuously get the latest scan level changes of ooi's from a message
+    queue that was sent by octopoes (`get_latest_objects()`). The tasks
+    created from these ooi's (`tasks = ooi * boefjes`) from this queue will
+    get the priority of 2.
 
-  - When the queue isn't full, it will try and fill up the queue with random
-    objects from the octopoes system.
+  - To fill up the queue, and to enforce that we reschedule tasks we get
+    random ooi's from octopoes (`get_random_objects`). The tasks of from these
+    ooi's (`tasks = ooi * boefjes`) will get the priority that has been
+    calculated by the ranker. At the moment a task will get the priority of 3,
+    when 7 days have gone by (e.g. how longer it hasn't been checked the
+    higher the priority it will get). For everything that hasn't been check
+    before the 7 days it will scale the priority appropriately.
 
-* A `scheduler` implements methods for popping items of the queue and pushing
- off the queue. After the calls to the `pop` and `push` methods a `post_pop()`
- and `post_push` method will be called. This will be used to update the tasks
- in the database.
+  - In order for a  created tasks from `get_latest_objects()` and
+    `get_random_objects()` to be elligible for execution, the task adhere to
+    the following (`create_tasks_for_ooi()`):
+
+    * Should not have run within the 'grace period', meaning a task should not
+      be scheduled again within the last 24 hours (can be configured).
+
+    * Should not schedule a task when the task is still being processed.
+
+    * Should schedule tasks with an enabled boefje.
+
+* The `NormalizerScheduler` implementation of the `populate_queue()` method
+  will:
+
+  - Continuously get the latest raw data files from the message
+    queue that was sent by the bytes (`get_latest_raw_data()`), for boefjes
+    that are done processing. 
+
+  - When a raw file has been received the task from the `BoefjeScheduler` is
+    updated as `completed`.
+
+  - For every mime-type of the raw file a task is created
+    (`create_tasks_for_raw_data()`) with its associated normalizers.
+
+  - At the moment the tasks are given a unix time-stamp that is used as its
+    priority to simulate a FIFO queue.
+
+* The `Server` exposes REST API endpoints to interact and interface with the
+`Scheduler` system.
 
 #### C4 Code level (Condensed class diagram)
 
