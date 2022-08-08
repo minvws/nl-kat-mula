@@ -71,69 +71,71 @@ class SQLAlchemy(Datastore):
 
         models.Base.metadata.create_all(self.engine)
 
-        self.conn = orm.sessionmaker(
+        self.session = orm.sessionmaker(
             autocommit=False,
             autoflush=False,
             bind=self.engine,
-        )()
+        )
 
     def get_tasks(
         self, scheduler_id: Union[str, None], status: Union[str, None], offset: int = 0, limit: int = 100
     ) -> Tuple[List[models.Task], int]:
-        query = self.conn.query(models.TaskORM)
+        with self.session.begin() as session:
+            query = session.query(models.TaskORM)
 
-        if scheduler_id is not None:
-            query = query.filter(models.TaskORM.scheduler_id == scheduler_id)
+            if scheduler_id is not None:
+                query = query.filter(models.TaskORM.scheduler_id == scheduler_id)
 
-        if status is not None:
-            query = query.filter(models.TaskORM.status == models.TaskStatus(status).name)
+            if status is not None:
+                query = query.filter(models.TaskORM.status == models.TaskStatus(status).name)
 
-        count = query.count()
-        tasks_orm = query.offset(offset).limit(limit).all()
+            count = query.count()
+            tasks_orm = query.offset(offset).limit(limit).all()
 
-        tasks = [models.Task.from_orm(task_orm) for task_orm in tasks_orm]
+            tasks = [models.Task.from_orm(task_orm) for task_orm in tasks_orm]
+
         return tasks, count
 
     def get_task_by_id(self, task_id: str) -> Optional[models.Task]:
-        task_orm = self.conn.query(models.TaskORM).filter(models.TaskORM.id == task_id).first()
-        if task_orm is None:
-            return None
+        with self.session.begin() as session:
+            task_orm = session.query(models.TaskORM).filter(models.TaskORM.id == task_id).first()
+            if task_orm is None:
+                return None
 
-        task = models.Task.from_orm(task_orm)
+            task = models.Task.from_orm(task_orm)
 
         return task
 
     def get_task_by_hash(self, task_hash: str) -> Optional[models.Task]:
-        task_orm = (
-            self.conn.query(models.TaskORM)
-            .order_by(models.TaskORM.created_at.desc())
-            .filter(models.TaskORM.hash == task_hash)
-            .first()
-        )
+        with self.session.begin() as session:
+            task_orm = (
+                session.query(models.TaskORM)
+                .order_by(models.TaskORM.created_at.desc())
+                .filter(models.TaskORM.hash == task_hash)
+                .first()
+            )
 
-        if task_orm is None:
-            return None
+            if task_orm is None:
+                return None
 
-        task = models.Task.from_orm(task_orm)
+            task = models.Task.from_orm(task_orm)
 
         return task
 
     def add_task(self, task: models.Task) -> Optional[models.Task]:
-        task_orm = models.TaskORM(**task.dict())
-        self.conn.add(task_orm)
-        self.conn.commit()
-        self.conn.refresh(task_orm)
+        with self.session.begin() as session:
+            task_orm = models.TaskORM(**task.dict())
+            session.add(task_orm)
 
-        created_task = models.Task.from_orm(task_orm)
+            created_task = models.Task.from_orm(task_orm)
 
         return created_task
 
     def update_task(self, task: models.Task) -> Optional[models.Task]:
-        task_orm = self.conn.query(models.TaskORM).filter(models.TaskORM.id == task.id).first()
-        task_orm.status = task.status
-        self.conn.commit()
-        self.conn.refresh(task_orm)
+        with self.session.begin() as session:
+            task_orm = session.query(models.TaskORM).get(task.id)
+            task_orm.status = task.status
 
-        updated_task = models.Task.from_orm(task_orm)
+            updated_task = models.Task.from_orm(task_orm)
 
         return updated_task
