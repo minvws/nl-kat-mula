@@ -1,14 +1,14 @@
 import time
-import uuid
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import List
 
+import mmh3
 import pika
 import requests
 
-from scheduler import context, dispatchers, queues, rankers
-from scheduler.models import OOI, Boefje, BoefjeTask, Organisation
+from scheduler import context, queues, rankers
+from scheduler.models import OOI, Boefje, BoefjeTask, Organisation, TaskStatus
 
 from .scheduler import Scheduler
 
@@ -27,7 +27,6 @@ class BoefjeScheduler(Scheduler):
         scheduler_id: str,
         queue: queues.PriorityQueue,
         ranker: rankers.Ranker,
-        dispatcher: dispatchers.Dispatcher,
         organisation: Organisation,
         populate_queue_enabled: bool = True,
     ):
@@ -36,12 +35,12 @@ class BoefjeScheduler(Scheduler):
             scheduler_id=scheduler_id,
             queue=queue,
             ranker=ranker,
-            dispatcher=dispatcher,
             populate_queue_enabled=populate_queue_enabled,
         )
 
         self.organisation: Organisation = organisation
 
+    # TODO: Pylint R0912 too-many-branches
     def populate_queue(self) -> None:
         """Populate the PriorityQueue.
 
@@ -105,7 +104,7 @@ class BoefjeScheduler(Scheduler):
                 )
                 time.sleep(1)
 
-            self.add_p_items_to_queue(p_items)
+            self.push_items_to_queue(p_items)
         else:
             self.logger.warning(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
@@ -173,7 +172,7 @@ class BoefjeScheduler(Scheduler):
                 )
                 time.sleep(1)
 
-            self.add_p_items_to_queue(p_items)
+            self.push_items_to_queue(p_items)
             tries = 0
         else:
             self.logger.warning(
@@ -184,6 +183,8 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
+    # TODO: Pylint R0912 too-many-branches
+    # TODO: Pylint R0915 too-many-statements
     def create_tasks_for_oois(self, oois: List[OOI]) -> List[queues.PrioritizedItem]:
         """For every provided ooi we will create available and enabled boefje
         tasks.
@@ -244,7 +245,6 @@ class BoefjeScheduler(Scheduler):
                     continue
 
                 task = BoefjeTask(
-                    id=uuid.uuid4().hex,
                     boefje=Boefje.parse_obj(boefje),
                     input_ooi=ooi.primary_key,
                     organization=self.organisation.id,
@@ -311,6 +311,26 @@ class BoefjeScheduler(Scheduler):
                 if self.queue.is_item_on_queue(task):
                     self.logger.debug(
                         "Boefje: %s is already on queue [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                        boefje.id,
+                        boefje.id,
+                        ooi.primary_key,
+                        self.organisation.id,
+                        self.scheduler_id,
+                    )
+                    continue
+
+                # Boefje should not run when it is still being processed, we
+                # try to find the same combination of ooi, boefje, and
+                # organisation (hash) to make sure that the particular task
+                # isn't being processed.
+                task_db = self.ctx.datastore.get_task_by_hash(
+                    mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
+                )
+                if task_db is not None and (
+                    task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED
+                ):
+                    self.logger.debug(
+                        "Boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                         boefje.id,
                         boefje.id,
                         ooi.primary_key,

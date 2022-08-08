@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     host_octopoes: str = Field(..., env="OCTOPOES_API")
     host_scan_profile: str = Field(..., env="SCHEDULER_RABBITMQ_DSN")
     host_raw_data: str = Field(..., env="SCHEDULER_RABBITMQ_DSN")
+    host_normalizer_meta: str = Field(..., env="SCHEDULER_RABBITMQ_DSN")
 
     # Queue settings (0 is infinite)
     pq_maxsize: int = Field(1000, env="SHEDULER_PQ_MAXSIZE")
@@ -39,3 +40,6 @@ class Settings(BaseSettings):
     # Dispatcher settings
     dsp_interval: int = Field(5, env="SHEDULER_DSP_INTERVAL")
     dsp_broker_url: str = Field(..., env="SCHEDULER_DSP_BROKER_URL")
+
+    # Database settings
+    database_dsn: str = Field(..., env="SCHEDULER_DB_DSN")
