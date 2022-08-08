@@ -35,37 +35,6 @@ scheduler system with their respective level of abstraction.
 
 #### ...
 
-```mermaid
-flowchart TB
-    subgraph App["App [module]"]
-
-        subgraph Schedulers["Scheduler [class]"]
-            
-            subgraph PriorityQueue["PriorityQueue [class]"]
-            end
-
-            subgraph Ranker["Ranker [class]"]
-            end
-
-            populate_queue[["populate_queue()<br/>(runs in thread)"]]
-
-        end
-
-
-        subgraph Listeners["Listeners [class]<br/>(runs in thread)"]
-        end
-
-        subgraph Monitors["Monitors [class]<br/>(runs in thread)"]
-        end
-
-        subgraph Dispatchers["Dispatchers [class]<br/>(runs in thread)"]
-        end
-
-        subgraph Server
-        end
-
-    end
-```
 
 #### C2 Container level:
 
@@ -228,16 +197,19 @@ classDiagram
     class App {
         +AppContext ctx
         +Dict[str, ThreadRunner] threads
+        +Dict[str, Scheduler] schedulers
+        +Dict[str, Dispatcher] dispatchers
         +Dict[str, Listener] listeners
         +Server server
         run()
     }
 
     class Scheduler {
+        <<abstract>>
         +AppContext ctx
+        +Dict[str, ThreadRunner] threads        
         +PriorityQueue queue
         +Ranker ranker
-        +Dict[str, ThreadRunner] threads        
         populate_queue()
         push_items_to_queue()
         push_item_to_queue()
@@ -267,35 +239,59 @@ classDiagram
     }
 
     class Ranker {
+        <<abstract>>
         +AppContext ctx
         rank()
     }
 
-    App --> "many" Scheduler : Implements
+    class Dispatcher {
+        +AppContext ctx
+        +Scheduler scheduler
+        dispatch()
+        run()
+    }
 
-    Scheduler --> "1" PriorityQueue : Has
-    Scheduler --> "1" Ranker : Has
+    class Listener {
 
-    PriorityQueue --> "many" Entry : Has
 
-    Entry --> "1" PrioritizedItem : Has
+    }
+
+    App --|> "many" Scheduler : Implements
+    App --|> "many" Dispatcher : Has
+
+    Scheduler --|> "1" PriorityQueue : Has
+    Scheduler --|> "1" Ranker : Has
+
+    PriorityQueue --|> "many" Entry : Has
+
+    Entry --|> "1" PrioritizedItem : Has
 ```
 
-Following describes main components of the scheduler application:
+The following describes the main components of the scheduler application:
 
 * `App` - The main application class, which is responsible for starting the
-  schedulers.
+  schedulers. It also contains the server, which is responsible for handling
+  the rest api requests. The `App` implements multiple `Scheduler` instances.
+  The `run()` method starts the schedulers, the listeners, the monitors,
+  the dispatchers, and the server in threads. The `run()` method is the main
+  thread of the application.
 
-* `Scheduler` - The main scheduler class, which is responsible for populating
-  the queue with tasks.
+* `Scheduler` - And implementation of a `Scheduler` class is responsible for
+  populating the queue with tasks. Contains has a `PriorityQueue` and a
+  `Ranker`. The `run()` method starts the `populate_queue()` method, which
+  fill up the queue with tasks. The `run()` method is run in a thread.
 
 * `PriorityQueue` - The queue class, which is responsible for storing the
   tasks.
 
-* `Ranker` - The ranker class, which is responsible for ranking the tasks.
+* `Ranker` - The ranker class, which is responsible for ranking the tasks,
+  and can be called from the `Scheduler` class in order to rank the tasks.
 
 * `Dispatcher` - The dispatcher class, which is responsible for dispatching
-  the tasks.
+  the tasks. A `Dispatcher` has a `Scheduler` instance, which it will
+  reference on pop off tasks from to be executed. The `run()` method will
+  continuously dispatch tasks from the queue. The `run()` method is run in a
+  thread.
 
 * `Server` - The server class, which is responsible for handling the HTTP
   requests.
