@@ -74,7 +74,6 @@ class NormalizerScheduler(Scheduler):
                 time.sleep(60)
                 continue
 
-
             if latest_raw_data is None:
                 self.logger.info(
                     "No latest raw data found [org_id=%s, scheduler_id=%s]",
