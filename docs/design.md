@@ -15,8 +15,8 @@ its internal priority queue.
 
 A priority queue is used, in as such, that it allows us to determine what jobs
 should be checked first, or more regularly. Because of the use of a priority
-queue we can differentiate between jobs that are to be executed first. E.g.
-job's created by the user get precedence over jobs that are created by the
+queue we can differentiate between jobs that are to be executed first, e.g.
+jobs created by the user get precedence over jobs that are created by the
 internal rescheduling processes within the scheduler.
 
 Calculations in order to determine the priority of a job is performed by logic
@@ -78,12 +78,12 @@ events within a KAT installation will trigger dataflows in the `Scheduler`:
 
 * When an organisation is created or deleted (`monitor_organisations`)
 
-* When an scan level is increased (`get_latest_object`)
+* When a scan level is increased (`get_latest_object`)
 
 * When a raw file is created (`get_latest_raw_data`)
 
-When any of these events occur it will trigger a dataflow to be executed in
-the `Scheduler`.
+When any of these events occur, it will trigger a dataflow procedure to be
+executed in the `Scheduler`.
 
 ```mermaid
 flowchart TB
@@ -107,12 +107,12 @@ flowchart TB
     Bytes--"Check last run of boefje and ooi<br/>HTTP GET"-->create_tasks_for_ooi
     Katalogus--"Get available boefjes<br/>HTTP GET"--->create_tasks_for_ooi
     Katalogus--"Get availalble normalizers<br/>HTTP GET"-->create_tasks_for_raw_data
-    Octopoes--"Get random ooi"--->get_random_object
+    Octopoes--"Get random ooi"--->get_random_objects
     RabbitMQ--"Get latest created object<br/>(scan level increase)"-->get_latest_object
     RabbitMQ--"Get latest raw data file<br/>(boefje finished)"-->get_latest_raw_data
 
     %% Boefje flow
-    get_latest_object-->get_random_object-->create_tasks_for_ooi-->rank_boefje-->push_boefje
+    get_latest_object-->get_random_objects-->create_tasks_for_ooi-->rank_boefje-->push_boefje
     push_boefje-->post_push_boefje
     push_boefje--> BoefjePriorityQueue
     post_push_boefje-->Datastore
@@ -239,6 +239,9 @@ flowchart TB
 
 #### C4 Code level (Condensed class diagram)
 
+The following diagram we can explore the code level of the scheduler
+application, and its class structure.
+
 ```mermaid
 classDiagram
 
@@ -300,12 +303,12 @@ classDiagram
     }
 
     class Listener {
-
-
+        listen()
     }
 
     App --|> "many" Scheduler : Implements
     App --|> "many" Dispatcher : Has
+    App --|> "many" Listener : Has
 
     Scheduler --|> "1" PriorityQueue : Has
     Scheduler --|> "1" Ranker : Has
