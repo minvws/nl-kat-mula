@@ -90,7 +90,7 @@ class SQLAlchemy(Datastore):
                 query = query.filter(models.TaskORM.status == models.TaskStatus(status).name)
 
             count = query.count()
-            tasks_orm = query.offset(offset).limit(limit).all()
+            tasks_orm = query.order_by(models.TaskORM.created_at.desc()).offset(offset).limit(limit).all()
 
             tasks = [models.Task.from_orm(task_orm) for task_orm in tasks_orm]
 
