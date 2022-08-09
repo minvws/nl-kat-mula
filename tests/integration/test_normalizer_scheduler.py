@@ -4,15 +4,11 @@ import unittest
 import uuid
 from unittest import mock
 
-from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers
-from tests.factories import (
-    BoefjeMetaFactory,
-    OOIFactory,
-    OrganisationFactory,
-    PluginFactory,
-    RawDataFactory,
-    ScanProfileFactory,
-)
+from scheduler import (config, connectors, dispatchers, models, queues,
+                       rankers, schedulers)
+from tests.factories import (BoefjeMetaFactory, OOIFactory,
+                             OrganisationFactory, PluginFactory,
+                             RawDataFactory, ScanProfileFactory)
 
 
 class NormalizerSchedulerTestCase(unittest.TestCase):
@@ -160,8 +156,8 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
     def test_populate_normalizer_queue_update_boefje_status_completed(
         self, mock_get_normalizers, mock_get_latest_raw_data
     ):
-        """When a boefje failed the boefje task status should be updated,
-        and no task should be created because the mime_type contains "error/"
+        """When a boefje suceeds the boefje task status should be updated
+        to completed.
         """
 
         scan_profile = ScanProfileFactory(level=0)
