@@ -131,11 +131,16 @@ class SQLAlchemy(Datastore):
 
         return created_task
 
+    # TODO: can't find the correct sqlalchemy solution to update an object
+    # and return the updated object. So I query the database to get it.
     def update_task(self, task: models.Task) -> Optional[models.Task]:
         with self.session.begin() as session:
-            task_orm = session.query(models.TaskORM).get(task.id)
-            task_orm.status = task.status
+            session.query(models.TaskORM).filter_by(id=task.id).update(task.dict())
 
-            updated_task = models.Task.from_orm(task_orm)
+        task_orm = session.query(models.TaskORM).filter(models.TaskORM.id == task.id).first()
+        if task_orm is None:
+            return None
+
+        updated_task = models.Task.from_orm(task_orm)
 
         return updated_task

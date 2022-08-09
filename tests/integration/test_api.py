@@ -12,7 +12,6 @@ from tests.factories import BoefjeFactory, OOIFactory, OrganisationFactory, Scan
 def create_p_item(organisation_id: str, priority: int) -> models.QueuePrioritizedItem:
     scan_profile = ScanProfileFactory(level=0)
     ooi = OOIFactory(scan_profile=scan_profile)
-    item_id = uuid.uuid4().hex
     item = models.QueuePrioritizedItem(
         priority=priority,
         item=models.BoefjeTask(
