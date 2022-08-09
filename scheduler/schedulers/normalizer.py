@@ -74,6 +74,7 @@ class NormalizerScheduler(Scheduler):
                 time.sleep(60)
                 continue
 
+
             if latest_raw_data is None:
                 self.logger.info(
                     "No latest raw data found [org_id=%s, scheduler_id=%s]",
@@ -99,7 +100,7 @@ class NormalizerScheduler(Scheduler):
             if boefje_task_db is not None:
                 status = TaskStatus.COMPLETED
                 for mime_type in latest_raw_data.raw_data.mime_types:
-                    if mime_type.get("value").startswith("error/"):
+                    if mime_type.get("value", "").startswith("error/"):
                         status = TaskStatus.FAILED
                         break
 
