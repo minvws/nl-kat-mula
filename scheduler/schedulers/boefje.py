@@ -352,7 +352,7 @@ class BoefjeScheduler(Scheduler):
                         organization_id=self.organisation.id,
                     )
                 except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
-                    self.logger.warning(
+                    self.logger.info(
                         "Could not get last run boefje for boefje: %s with ooi: %s [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                         boefje.name,
                         ooi.primary_key,
