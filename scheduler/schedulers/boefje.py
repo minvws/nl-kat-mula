@@ -322,26 +322,29 @@ class BoefjeScheduler(Scheduler):
                 # Boefje should not run when it is still being processed, we
                 # try to find the same combination of ooi, boefje, and
                 # organisation (hash) to make sure that the particular task
-                # isn't being processed.
+                # isn't being processed. When it's None we haven't seen it
+                # before.
                 task_db = self.ctx.datastore.get_task_by_hash(
                     mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
                 )
                 if task_db is not None and (
-                    task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED
+                    task_db.status == TaskStatus.PENDING
+                    or task_db.status == TaskStatus.QUEUED
+                    or task_db.status == TaskStatus.DISPATCHED
+                    or task_db.status == TaskStatus.RUNNING
                 ):
                     self.logger.debug(
-                        "Boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                        "Boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s, status=%s]",
                         boefje.id,
                         boefje.id,
                         ooi.primary_key,
                         self.organisation.id,
                         self.scheduler_id,
+                        task_db.status,
                     )
                     continue
 
-                # Boefjes should not run before the grace period ends, thus
-                # we will check when the combination boefje and ooi was last
-                # run.
+                # Get the latest run of a boefje from bytes
                 try:
                     last_run_boefje = self.ctx.services.bytes.get_last_run_boefje(
                         boefje_id=boefje.id,
@@ -349,7 +352,7 @@ class BoefjeScheduler(Scheduler):
                         organization_id=self.organisation.id,
                     )
                 except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
-                    self.logger.warning(
+                    self.logger.info(
                         "Could not get last run boefje for boefje: %s with ooi: %s [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                         boefje.name,
                         ooi.primary_key,
@@ -360,6 +363,9 @@ class BoefjeScheduler(Scheduler):
                     )
                     continue
 
+                # Check if boefje is still running. NOTE: This is perhaps
+                # unnecessary because of the datastore check above. And that
+                # jobs that have started are not yet present in Bytes
                 if (
                     last_run_boefje is not None
                     and last_run_boefje.ended_at is None
@@ -375,6 +381,9 @@ class BoefjeScheduler(Scheduler):
                     )
                     continue
 
+                # Boefjes should not run before the grace period ends, thus
+                # we will check when the combination boefje and ooi was last
+                # run.
                 if (
                     last_run_boefje is not None
                     and last_run_boefje.ended_at is not None
@@ -382,7 +391,7 @@ class BoefjeScheduler(Scheduler):
                     < timedelta(seconds=self.ctx.config.pq_populate_grace_period)
                 ):
                     self.logger.debug(
-                        "Boefje: %s already run for input ooi %s [last_run_boefje=%s, org_id=%s, scheduler_id=%s]",
+                        "Boefje: %s already ran for input ooi %s within the grace period [last_run_boefje=%s, org_id=%s, scheduler_id=%s]",
                         boefje.id,
                         ooi.primary_key,
                         last_run_boefje,

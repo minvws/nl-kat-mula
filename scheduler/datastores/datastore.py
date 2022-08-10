@@ -72,8 +72,6 @@ class SQLAlchemy(Datastore):
         models.Base.metadata.create_all(self.engine)
 
         self.session = orm.sessionmaker(
-            autocommit=False,
-            autoflush=False,
             bind=self.engine,
         )
 
