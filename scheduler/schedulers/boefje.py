@@ -327,15 +327,16 @@ class BoefjeScheduler(Scheduler):
                     mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
                 )
                 if task_db is not None and (
-                    task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED
+                    task_db.status != TaskStatus.COMPLETED or task_db.status != TaskStatus.FAILED
                 ):
                     self.logger.debug(
-                        "Boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                        "Boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s, status=%s]",
                         boefje.id,
                         boefje.id,
                         ooi.primary_key,
                         self.organisation.id,
                         self.scheduler_id,
+                        task_db.status,
                     )
                     continue
 
