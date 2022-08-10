@@ -322,7 +322,8 @@ class BoefjeScheduler(Scheduler):
                 # Boefje should not run when it is still being processed, we
                 # try to find the same combination of ooi, boefje, and
                 # organisation (hash) to make sure that the particular task
-                # isn't being processed.
+                # isn't being processed. When it's None we haven't seen it
+                # before.
                 task_db = self.ctx.datastore.get_task_by_hash(
                     mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
                 )
