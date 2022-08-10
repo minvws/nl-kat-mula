@@ -340,9 +340,7 @@ class BoefjeScheduler(Scheduler):
                     )
                     continue
 
-                # Boefjes should not run before the grace period ends, thus
-                # we will check when the combination boefje and ooi was last
-                # run.
+                # Get the latest run of a boefje from bytes
                 try:
                     last_run_boefje = self.ctx.services.bytes.get_last_run_boefje(
                         boefje_id=boefje.id,
@@ -361,6 +359,9 @@ class BoefjeScheduler(Scheduler):
                     )
                     continue
 
+                # Check if boefje is still running. NOTE: This is perhaps
+                # unnecessary because of the datastore check above. And that
+                # jobs that have started are not yet present in Bytes
                 if (
                     last_run_boefje is not None
                     and last_run_boefje.ended_at is None
@@ -376,6 +377,9 @@ class BoefjeScheduler(Scheduler):
                     )
                     continue
 
+                # Boefjes should not run before the grace period ends, thus
+                # we will check when the combination boefje and ooi was last
+                # run.
                 if (
                     last_run_boefje is not None
                     and last_run_boefje.ended_at is not None
@@ -383,7 +387,7 @@ class BoefjeScheduler(Scheduler):
                     < timedelta(seconds=self.ctx.config.pq_populate_grace_period)
                 ):
                     self.logger.debug(
-                        "Boefje: %s already run for input ooi %s [last_run_boefje=%s, org_id=%s, scheduler_id=%s]",
+                        "Boefje: %s already ran for input ooi %s within the grace period [last_run_boefje=%s, org_id=%s, scheduler_id=%s]",
                         boefje.id,
                         ooi.primary_key,
                         last_run_boefje,
