@@ -40,7 +40,7 @@ class Datastore(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_task(self, task: models.Task) -> Optional[models.Task]:
+    def update_task(self, task: models.Task) -> None:
         raise NotImplementedError
 
 
@@ -131,16 +131,8 @@ class SQLAlchemy(Datastore):
 
         return created_task
 
-    # TODO: can't find the correct sqlalchemy solution to update an object
-    # and return the updated object. So I query the database to get it.
-    def update_task(self, task: models.Task) -> Optional[models.Task]:
+    def update_task(self, task: models.Task) -> None:
         with self.session.begin() as session:
             session.query(models.TaskORM).filter_by(id=task.id).update(task.dict())
 
-        task_orm = session.query(models.TaskORM).filter(models.TaskORM.id == task.id).first()
-        if task_orm is None:
-            return None
-
-        updated_task = models.Task.from_orm(task_orm)
-
-        return updated_task
+        return None

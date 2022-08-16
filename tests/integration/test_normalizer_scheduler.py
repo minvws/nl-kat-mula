@@ -4,15 +4,11 @@ import unittest
 import uuid
 from unittest import mock
 
-from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers
-from tests.factories import (
-    BoefjeMetaFactory,
-    OOIFactory,
-    OrganisationFactory,
-    PluginFactory,
-    RawDataFactory,
-    ScanProfileFactory,
-)
+from scheduler import (config, connectors, dispatchers, models, queues,
+                       rankers, schedulers)
+from tests.factories import (BoefjeMetaFactory, OOIFactory,
+                             OrganisationFactory, PluginFactory,
+                             RawDataFactory, ScanProfileFactory)
 
 
 class NormalizerSchedulerTestCase(unittest.TestCase):
@@ -152,8 +148,8 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
         self.scheduler.populate_queue()
 
         self.assertEqual(0, self.scheduler.queue.qsize())
-        task_db = self.mock_ctx.datastore.get_task_by_id(task.id)
-        self.assertEqual(task_db.status, models.TaskStatus.FAILED)
+        task_db_updated = self.mock_ctx.datastore.get_task_by_id(task.id)
+        self.assertEqual(task_db_updated.status, models.TaskStatus.FAILED)
 
     @mock.patch("scheduler.context.AppContext.services.raw_data.get_latest_raw_data")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_normalizers_by_org_id_and_type")
@@ -203,8 +199,8 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
         self.scheduler.populate_queue()
 
         self.assertEqual(0, self.scheduler.queue.qsize())
-        task_db = self.mock_ctx.datastore.get_task_by_id(task.id)
-        self.assertEqual(task_db.status, models.TaskStatus.COMPLETED)
+        task_db_updated = self.mock_ctx.datastore.get_task_by_id(task.id)
+        self.assertEqual(task_db_updated.status, models.TaskStatus.COMPLETED)
 
     # TODO
     def test_update_normalizer_task(self):
