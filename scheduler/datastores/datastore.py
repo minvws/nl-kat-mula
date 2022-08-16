@@ -71,16 +71,20 @@ class SQLAlchemy(Datastore):
 
         models.Base.metadata.create_all(self.engine)
 
-        self.session = orm.sessionmaker(
-            autocommit=False,
-            autoflush=False,
-            bind=self.engine,
+        # scoped_session provides a of providing a single, global object in
+        # an application that is safe to be called upon from multiple threads.
+        self.session = orm.scoped_session(
+            orm.sessionmaker(
+                autocommit=False,
+                autoflush=False,
+                bind=self.engine,
+            ),
         )
 
     def get_tasks(
         self, scheduler_id: Union[str, None], status: Union[str, None], offset: int = 0, limit: int = 100
     ) -> Tuple[List[models.Task], int]:
-        with self.session.begin() as session:
+        with self.session() as session:
             query = session.query(models.TaskORM)
 
             if scheduler_id is not None:
@@ -90,15 +94,19 @@ class SQLAlchemy(Datastore):
                 query = query.filter(models.TaskORM.status == models.TaskStatus(status).name)
 
             count = query.count()
+
             tasks_orm = query.order_by(models.TaskORM.created_at.desc()).offset(offset).limit(limit).all()
+            session.commit()
 
             tasks = [models.Task.from_orm(task_orm) for task_orm in tasks_orm]
 
         return tasks, count
 
     def get_task_by_id(self, task_id: str) -> Optional[models.Task]:
-        with self.session.begin() as session:
+        with self.session() as session:
             task_orm = session.query(models.TaskORM).filter(models.TaskORM.id == task_id).first()
+            session.commit()
+
             if task_orm is None:
                 return None
 
@@ -107,13 +115,14 @@ class SQLAlchemy(Datastore):
         return task
 
     def get_task_by_hash(self, task_hash: str) -> Optional[models.Task]:
-        with self.session.begin() as session:
+        with self.session() as session:
             task_orm = (
                 session.query(models.TaskORM)
                 .order_by(models.TaskORM.created_at.desc())
                 .filter(models.TaskORM.hash == task_hash)
                 .first()
             )
+            session.commit()
 
             if task_orm is None:
                 return None
@@ -123,16 +132,18 @@ class SQLAlchemy(Datastore):
         return task
 
     def add_task(self, task: models.Task) -> Optional[models.Task]:
-        with self.session.begin() as session:
+        with self.session() as session:
             task_orm = models.TaskORM(**task.dict())
             session.add(task_orm)
+            session.commit()
 
             created_task = models.Task.from_orm(task_orm)
 
         return created_task
 
     def update_task(self, task: models.Task) -> None:
-        with self.session.begin() as session:
+        with self.session() as session:
             session.query(models.TaskORM).filter_by(id=task.id).update(task.dict())
+            session.commit()
 
         return None
