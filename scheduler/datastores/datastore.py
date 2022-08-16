@@ -75,8 +75,6 @@ class SQLAlchemy(Datastore):
         # an application that is safe to be called upon from multiple threads.
         self.session = orm.scoped_session(
             orm.sessionmaker(
-                autocommit=False,
-                autoflush=False,
                 bind=self.engine,
             ),
         )
