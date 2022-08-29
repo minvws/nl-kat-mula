@@ -5,7 +5,7 @@ from typing import List, Optional
 
 import mmh3
 from pydantic import BaseModel, Field
-from sqlalchemy import JSON, Column, DateTime, Enum, String
+from sqlalchemy import JSON, Column, DateTime, Enum, Integer, String
 
 from scheduler.utils import GUID
 
@@ -30,6 +30,7 @@ class Task(BaseModel):
     id: uuid.UUID
     hash: str
     scheduler_id: str
+    priority: int
     task: QueuePrioritizedItem  # FIXME: p_item?
     status: TaskStatus
     created_at: datetime.datetime
@@ -47,6 +48,7 @@ class TaskORM(Base):
     id = Column(GUID, primary_key=True)
     hash = Column(String)
     scheduler_id = Column(String)
+    priority = Column(Integer)
     task = Column(JSON, nullable=False)
     status = Column(
         Enum(TaskStatus),

@@ -8,8 +8,10 @@ from enum import Enum
 from typing import Any, Dict, Tuple, Type
 
 import pydantic
+from scheduler.repositories.sqlalchemy import PriorityQueueStore
 
-from .errors import InvalidPrioritizedItemError, NotAllowedError, QueueEmptyError, QueueFullError
+from .errors import (InvalidPrioritizedItemError, NotAllowedError,
+                     QueueEmptyError, QueueFullError)
 
 
 class EntryState(str, Enum):
@@ -44,6 +46,7 @@ class PrioritizedItem:
     def attrs(self) -> Tuple[int, Any]:
         return (self.priority, self.item)
 
+    # FIXME: hash
     def __hash__(self) -> int:
         return hash(self.attrs())
 
@@ -76,6 +79,7 @@ class Entry:
     def attrs(self) -> Tuple[int, PrioritizedItem, EntryState]:
         return (self.priority, self.p_item, self.state)
 
+    # FIXME: hash
     def __hash__(self) -> int:
         return hash(self.attrs())
 
@@ -140,6 +144,7 @@ class PriorityQueue:
     def __init__(
         self,
         pq_id: str,
+        pq_store: PriorityQueueStore,
         maxsize: int,
         item_type: Type[pydantic.BaseModel],
         allow_replace: bool = False,
@@ -363,3 +368,69 @@ class PriorityQueue:
 
     def __len__(self) -> int:
         return self.pq.qsize()
+
+
+class DataStorePriorityQueue:
+
+    def __init__(
+        self,
+        pq_id: str,
+        pq_store: PriorityQueueStore,
+        maxsize: int,
+        item_type: Type[pydantic.BaseModel]
+    ):
+        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.pq_id: str = pq_id
+        self.maxsize: int = maxsize
+        self.item_type: Type[pydantic.BaseModel] = item_type
+        self.pq: PriorityQueueStore = pq_store
+
+    def pop(self) -> PrioritizedItem:
+        """Remove and return the highest priority item from the queue.
+
+        Raises:
+            QueueEmptyError: If the queue is empty.
+        """
+        if self.pq.empty():
+            raise QueueEmptyError(f"Queue {self.pq_id} is empty.")
+
+        task = self.pq.pop(self.pq_id)
+        if task is None:
+            return None
+
+        return PrioritizedItem(item=task.item, priority=task.priority)
+
+    def push(self) -> None:
+        """Push an item onto the queue.
+
+        Raises:
+            NotAllowedError: If the item is not allowed to be pushed.
+        """
+        if not isinstance(p_item, PrioritizedItem):
+            raise InvalidPrioritizedItemError("The item is not a PrioritizedItem")
+
+        if not self._is_valid_item(p_item.item):
+            raise InvalidPrioritizedItemError(f"PrioritizedItem must be of type {self.item_type}")
+
+        if self.maxsize is not None and self.maxsize != 0 and self.pq.qsize() == self.maxsize:
+            raise QueueFullError(f"Queue {self.pq_id} is full.")
+
+    # TODO
+    def qsize(self) -> int:
+
+
+    def _is_valid_item(self, item: Any) -> bool:
+        """Validate the item to be pushed into the queue.
+
+        Args:
+            item: The item to be validated.
+
+        Returns:
+            A boolean, True if the item is valid, False otherwise.
+        """
+        try:
+            self.item_type.parse_obj(item)
+        except pydantic.ValidationError:
+            return False
+
+        return True
