@@ -8,7 +8,8 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import OOI, Boefje, BoefjeTask, Organisation, Plugin, TaskStatus
+from scheduler.models import (OOI, Boefje, BoefjeTask, Organisation, Plugin,
+                              TaskStatus)
 
 from .scheduler import Scheduler
 
@@ -208,7 +209,7 @@ class BoefjeScheduler(Scheduler):
         Returns:
             A list of BoefjeTask of type PrioritizedItem.
         """
-        boefjes = self.get_boefjes_for_ooi(ooi)
+        boefjes: List[Plugin] = self.get_boefjes_for_ooi(ooi)
         if boefjes is None or len(boefjes) == 0:
             self.logger.debug(
                 "No boefjes for ooi: %s [org_id=%s, scheduler_id=%s]",
@@ -267,7 +268,7 @@ class BoefjeScheduler(Scheduler):
 
         return boefjes
 
-    def create_p_items_for_boefjes(self, boefjes: List[Boefje], ooi: OOI) -> List[queues.PrioritizedItem]:
+    def create_p_items_for_boefjes(self, boefjes: List[Plugin], ooi: OOI) -> List[queues.PrioritizedItem]:
         """For an ooi and its associated boefjes we will create tasks that
         can be pushed onto the queue.
 
@@ -288,7 +289,7 @@ class BoefjeScheduler(Scheduler):
 
         return p_items
 
-    def create_p_item_for_boefje(self, boefje: Boefje, ooi: OOI) -> Optional[queues.PrioritizedItem]:
+    def create_p_item_for_boefje(self, boefje: Plugin, ooi: OOI) -> Optional[queues.PrioritizedItem]:
         """For an ooi and its associated boefjes we will create tasks that
         can be pushed onto the queue. It will check:
 
