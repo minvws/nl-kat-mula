@@ -246,7 +246,7 @@ class NormalizerScheduler(Scheduler):
         )
         if normalizer_task_db is None:
             self.logger.warning(
-                "Could not find normalizer task in database: %s [normalizer_meta_id=%s, org_id=%s, scheduler_id=%s]",
+                "Could not find normalizer task in database [normalizer_meta_id=%s, org_id=%s, scheduler_id=%s]",
                 latest_normalizer_meta.normalizer_meta.id,
                 self.organisation.id,
                 self.scheduler_id,
