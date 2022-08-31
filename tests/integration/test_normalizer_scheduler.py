@@ -66,12 +66,8 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
             input_ooi=ooi.primary_key,
         )
 
-        raw_data = RawDataFactory(
-            boefje_meta=boefje_meta,
-        )
-
         latest_raw_data = models.RawDataReceivedEvent(
-            raw_data=raw_data,
+            raw_data=RawDataFactory(boefje_meta=boefje_meta),
             organization=self.organisation.name,
             created_at=datetime.datetime.now(),
         )
@@ -141,7 +137,9 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
         )
 
         latest_raw_data = models.RawDataReceivedEvent(
-            raw_data=RawDataFactory(boefje_meta=boefje_meta, mime_types=[{"value": "error/boefje"}]),
+            raw_data=RawDataFactory(
+                boefje_meta=boefje_meta, mime_types=[{"value": "error/boefje"}, {"value": "text/xml"}]
+            ),
             organization=self.organisation.name,
             created_at=datetime.datetime.now(),
         )
