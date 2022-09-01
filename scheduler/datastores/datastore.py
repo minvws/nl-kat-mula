@@ -61,6 +61,7 @@ class SQLAlchemy(Datastore):
 
     See: https://docs.sqlalchemy.org/en/14/dialects/sqlite.html#using-a-memory-database-in-multiple-threads
     """
+
     def __init__(self, dsn: str, datastore_type: DatastoreType) -> None:
         super().__init__()
 
