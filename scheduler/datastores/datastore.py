@@ -89,15 +89,13 @@ class SQLAlchemy(Datastore):
         # Within the methods below, we use the session context manager to
         # ensure that the session is closed
         self.session = orm.sessionmaker(
-            autocommit=False,
-            autoflush=False,
             bind=self.engine,
         )
 
     def get_tasks(
         self, scheduler_id: Union[str, None], status: Union[str, None], offset: int = 0, limit: int = 100
     ) -> Tuple[List[models.Task], int]:
-        with self.session() as session:
+        with self.session.begin() as session:
             query = session.query(models.TaskORM)
 
             if scheduler_id is not None:
@@ -113,7 +111,7 @@ class SQLAlchemy(Datastore):
             return [models.Task.from_orm(task_orm) for task_orm in tasks_orm], count
 
     def get_task_by_id(self, task_id: str) -> Optional[models.Task]:
-        with self.session() as session:
+        with self.session.begin() as session:
             task_orm = session.query(models.TaskORM).filter(models.TaskORM.id == task_id).first()
 
             if task_orm is None:
@@ -122,7 +120,7 @@ class SQLAlchemy(Datastore):
             return models.Task.from_orm(task_orm)
 
     def get_task_by_hash(self, task_hash: str) -> Optional[models.Task]:
-        with self.session() as session:
+        with self.session.begin() as session:
             task_orm = (
                 session.query(models.TaskORM)
                 .order_by(models.TaskORM.created_at.desc())
@@ -136,16 +134,13 @@ class SQLAlchemy(Datastore):
             return models.Task.from_orm(task_orm)
 
     def add_task(self, task: models.Task) -> Optional[models.Task]:
-        with self.session() as session:
+        with self.session.begin() as session:
             task_orm = models.TaskORM(**task.dict())
             session.add(task_orm)
-            session.commit()
-            session.refresh(task_orm)
 
             return models.Task.from_orm(task_orm)
 
     def update_task(self, task: models.Task) -> None:
-        with self.session() as session:
+        with self.session.begin() as session:
             session = self.session()
             session.query(models.TaskORM).filter_by(id=task.id).update(task.dict())
-            session.commit()
