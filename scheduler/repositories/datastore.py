@@ -12,6 +12,11 @@ class DatastoreType(Enum):
     POSTGRES = 2
 
 
+class Datastore:
+    def __init__(self) -> None:
+        self.logger: logging.Logger = logging.getLogger(__name__)
+
+
 class TaskStorer(abc.ABC):
     @abc.abstractmethod
     def get_tasks(
@@ -55,7 +60,7 @@ class PriorityQueueStorer(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def remove(self, scheduler_id: str) ->  None:
+    def remove(self, scheduler_id: str) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod

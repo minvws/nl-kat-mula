@@ -5,7 +5,8 @@ from scheduler import models
 
 from sqlalchemy import create_engine, orm, pool
 
-from .datastore import DatastoreType, PriorityQueueStorer, TaskStorer
+from .datastore import (Datastore, DatastoreType, PriorityQueueStorer,
+                        TaskStorer)
 
 
 class SQLAlchemy(Datastore):
@@ -41,7 +42,7 @@ class SQLAlchemy(Datastore):
 
 
 class TaskStore(TaskStorer):
-    def __init__(self, SQLAlchemy: datastore) -> None:
+    def __init__(self, datastore: SQLAlchemy) -> None:
         super().__init__()
 
         self.datastore = datastore
@@ -119,18 +120,19 @@ class PriorityQueueStore(PriorityQueueStorer):
         pass
 
     def pop(self, scheduler_id: str) -> Optional[models.Task]:
-        task_orm = (
-            self.session.query(models.TaskORM)
-            .filter(models.TaskORM.scheduler_id == scheduler_id)
-            .order_by(models.TaskORM.priority.asc())
-            .order_by(models.TaskORM.created_at.asc())
-            .first()
-        )
+        with self.datastore.session.begin() as session:
+            task_orm = (
+                session.query(models.TaskORM)
+                .filter(models.TaskORM.scheduler_id == scheduler_id)
+                .order_by(models.TaskORM.priority.asc())
+                .order_by(models.TaskORM.created_at.asc())
+                .first()
+            )
 
-        if task_orm is None:
-            return None
+            if task_orm is None:
+                return None
 
-        return models.Task.from_orm(task_orm)
+            return models.Task.from_orm(task_orm)
 
     def peek(self, scheduler_id: str) -> Optional[models.Task]:
         pass
@@ -142,4 +144,26 @@ class PriorityQueueStore(PriorityQueueStorer):
         pass
 
     def qsize(self, scheduler_id: str) -> int:
+        with self.datastore.session.begin() as session:
+            count = session.query(models.TaskORM).filter(models.TaskORM.scheduler_id == scheduler_id).count()
+            return count
+
+    def search(self, scheduler_id: str) -> List[models.Task]:
         pass
+
+    def get_task_by_hash(self, pq_id: str, task_hash: str) -> Optional[models.Task]:
+        with self.datastore.session.begin() as session:
+            task_orm = (
+                session.query(models.TaskORM)
+                .order_by(models.TaskORM.created_at.desc())
+                .filter(models.TaskORM.scheduler_id == pq_id)
+                .filter(models.TaskORM.hash == task_hash)
+                .first()
+            )
+
+            if task_orm is None:
+                return None
+
+            task = models.Task.from_orm(task_orm)
+
+        return task

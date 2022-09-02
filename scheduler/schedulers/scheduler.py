@@ -96,7 +96,7 @@ class Scheduler(abc.ABC):
             modified_at=datetime.datetime.now(),
         )
 
-        self.ctx.datastore.add_task(task)
+        self.ctx.task_store.add_task(task)
 
     def post_pop(self, p_item: queues.PrioritizedItem) -> None:
         """When a boefje task is being removed from the queue. We
@@ -105,7 +105,7 @@ class Scheduler(abc.ABC):
         Args:
             p_item: The prioritized item to post-pop from queue.
         """
-        task = self.ctx.datastore.get_task_by_id(p_item.item.id)
+        task = self.ctx.task_store.get_task_by_id(p_item.item.id)
         if task is None:
             self.logger.error(
                 "Task %s not found in datastore, not updating status [task_id = %s]",
@@ -115,7 +115,7 @@ class Scheduler(abc.ABC):
             return None
 
         task.status = models.TaskStatus.DISPATCHED
-        self.ctx.datastore.update_task(task)
+        self.ctx.task_store.update_task(task)
 
         return None
 

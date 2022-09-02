@@ -194,7 +194,7 @@ class Server:
         limit: int = 10,
     ) -> Any:
         try:
-            results, count = self.ctx.datastore.get_tasks(
+            results, count = self.ctx.task_store.get_tasks(
                 scheduler_id=scheduler_id,
                 status=status,
                 offset=offset,
@@ -216,7 +216,7 @@ class Server:
 
     def get_task(self, task_id: str) -> Any:
         try:
-            task = self.ctx.datastore.get_task_by_id(task_id)
+            task = self.ctx.task_store.get_task_by_id(task_id)
         except ValueError as exc:
             raise fastapi.HTTPException(
                 status_code=400,
@@ -238,7 +238,7 @@ class Server:
 
     def patch_task(self, task_id: str, item: models.Task) -> Any:
         try:
-            task_db = self.ctx.datastore.get_task_by_id(task_id)
+            task_db = self.ctx.task_store.get_task_by_id(task_id)
         except ValueError as exc:
             raise fastapi.HTTPException(
                 status_code=400,
@@ -275,7 +275,7 @@ class Server:
 
         # update task in database
         try:
-            updated_task = self.ctx.datastore.update_task(task_db)
+            updated_task = self.ctx.task_store.update_task(task_db)
         except Exception as exc:
             raise fastapi.HTTPException(
                 status_code=500,

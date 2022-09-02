@@ -8,7 +8,8 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import OOI, Boefje, BoefjeTask, Organisation, Plugin, TaskStatus
+from scheduler.models import (OOI, Boefje, BoefjeTask, Organisation, Plugin,
+                              TaskStatus)
 
 from .scheduler import Scheduler
 
@@ -394,7 +395,7 @@ class BoefjeScheduler(Scheduler):
         # try to find the same combination of ooi, boefje, and
         # organisation (hash) to make sure that the particular task
         # isn't being processed.
-        task_db = self.ctx.datastore.get_task_by_hash(
+        task_db = self.ctx.task_store.get_task_by_hash(
             mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
         )
         if task_db is not None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED):

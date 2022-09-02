@@ -6,7 +6,9 @@ from types import SimpleNamespace
 import scheduler
 from scheduler.config import settings
 from scheduler.connectors import listeners, services
-from scheduler.datastores import Datastore, DatastoreType, SQLAlchemy
+from scheduler.repositories.datastore import DatastoreType
+from scheduler.repositories.sqlalchemy import (PriorityQueueStore, SQLAlchemy,
+                                               TaskStore)
 
 
 class AppContext:
@@ -79,4 +81,7 @@ class AppContext:
 
         self.stop_event: threading.Event = threading.Event()
 
-        self.datastore: Datastore = SQLAlchemy(self.config.database_dsn, DatastoreType.SQLITE)
+        # Repositories
+        datastore = SQLAlchemy(self.config.database_dsn, DatastoreType.SQLITE)
+        self.task_store = TaskStore(datastore)
+        self.priority_queue_store = PriorityQueueStore(datastore)

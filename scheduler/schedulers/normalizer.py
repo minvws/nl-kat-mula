@@ -84,7 +84,7 @@ class NormalizerScheduler(Scheduler):
 
             # When receiving this, it means the item on boefje queue has been
             # processed, update the status of that task.
-            boefje_task_db = self.ctx.datastore.get_task_by_id(
+            boefje_task_db = self.ctx.task_store.get_task_by_id(
                 latest_raw_data.raw_data.boefje_meta.id,
             )
             if boefje_task_db is None:
@@ -104,7 +104,7 @@ class NormalizerScheduler(Scheduler):
                         break
 
                 boefje_task_db.status = status
-                self.ctx.datastore.update_task(boefje_task_db)
+                self.ctx.task_store.update_task(boefje_task_db)
 
             p_items = self.create_tasks_for_raw_data(latest_raw_data.raw_data)
             if not p_items:
@@ -241,7 +241,7 @@ class NormalizerScheduler(Scheduler):
             time.sleep(60)
             return
 
-        normalizer_task_db = self.ctx.datastore.get_task_by_id(
+        normalizer_task_db = self.ctx.task_store.get_task_by_id(
             latest_normalizer_meta.normalizer_meta.id,
         )
         if normalizer_task_db is None:
@@ -254,7 +254,7 @@ class NormalizerScheduler(Scheduler):
             return
 
         normalizer_task_db.status = TaskStatus.COMPLETED
-        self.ctx.datastore.update_task(normalizer_task_db)
+        self.ctx.task_store.update_task(normalizer_task_db)
 
     def run(self) -> None:
         super().run()

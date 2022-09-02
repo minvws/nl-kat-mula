@@ -95,14 +95,8 @@ class Entry:
         return self.attrs() == other.attrs()
 
 
-class PriorityQueue:
-    """Thread-safe implementation of a priority queue.
-
-    When a multi-processing implementation is required, see:
-    https://docs.python.org/3/library/multiprocessing.html#multiprocessing.Queue
-
-    Reference:
-        https://docs.python.org/3/library/queue.html#queue.PriorityQueue
+class Base:
+    """Base class for priority queues
 
     Attributes:
         logger:
@@ -114,13 +108,8 @@ class PriorityQueue:
         item_type:
             A pydantic.BaseModel that describes the type of the items on the
             queue.
-        pq:
-            A queue.PriorityQueue object.
         timeout:
             An integer defining the timeout for blocking operations.
-        entry_finder:
-            A dict that maps items (python objects) to their corresponding
-            entries in the queue.
         allow_replace:
             A boolean that defines if the queue allows replacing an item. When
             set to True, it will update the item on the queue. It will set the
@@ -144,7 +133,6 @@ class PriorityQueue:
     def __init__(
         self,
         pq_id: str,
-        pq_store: PriorityQueueStore,
         maxsize: int,
         item_type: Type[pydantic.BaseModel],
         allow_replace: bool = False,
@@ -165,12 +153,51 @@ class PriorityQueue:
         self.pq_id: str = pq_id
         self.maxsize: int = maxsize
         self.item_type: Type[pydantic.BaseModel] = item_type
-        self.pq: queue.PriorityQueue = queue.PriorityQueue(maxsize=self.maxsize)
         self.timeout: int = 5
-        self.entry_finder: Dict[Any, Entry] = {}
         self.allow_replace: bool = allow_replace
         self.allow_updates: bool = allow_updates
         self.allow_priority_updates: bool = allow_priority_updates
+
+    # TODO: abc and methods
+
+
+class PriorityQueue(Base):
+    """Thread-safe in-memory implementation of a priority queue.
+
+    When a multi-processing implementation is required, see:
+    https://docs.python.org/3/library/multiprocessing.html#multiprocessing.Queue
+
+    Reference:
+        https://docs.python.org/3/library/queue.html#queue.PriorityQueue
+
+    Attributes:
+        pq:
+            A queue.PriorityQueue object.
+        entry_finder:
+            A dict that maps items (python objects) to their corresponding
+            entries in the queue.
+    """
+
+    def __init__(
+        self,
+        pq_id: str,
+        maxsize: int,
+        item_type: Type[pydantic.BaseModel],
+        allow_replace: bool = False,
+        allow_updates: bool = False,
+        allow_priority_updates: bool = False,
+    ):
+        super().__init__(
+            pq_id=pq_id,
+            maxsize=maxsize,
+            item_type=item_type,
+            allow_replace=allow_replace,
+            allow_updates=allow_updates,
+            allow_priority_updates=allow_priority_updates,
+        )
+
+        self.entry_finder: Dict[Any, Entry] = {}
+        self.pq: queue.PriorityQueue = queue.PriorityQueue(maxsize=self.maxsize)
 
     def pop(self) -> PrioritizedItem:
         """Pop the item with the highest priority from the queue. If optional
@@ -217,7 +244,7 @@ class PriorityQueue:
         if not self._is_valid_item(p_item.item):
             raise InvalidPrioritizedItemError(f"PrioritizedItem must be of type {self.item_type}")
 
-        if self.maxsize is not None and self.maxsize != 0 and self.pq.qsize() == self.maxsize:
+        if self.maxsize is not None and self.maxsize != 0 and self.qsize() == self.maxsize:
             raise QueueFullError(f"Queue {self.pq_id} is full.")
 
         on_queue = self.is_item_on_queue(p_item.item)
@@ -370,20 +397,28 @@ class PriorityQueue:
         return self.pq.qsize()
 
 
-class DataStorePriorityQueue:
+class DataStorePriorityQueue(Base):
 
     def __init__(
         self,
         pq_id: str,
-        pq_store: PriorityQueueStore,
         maxsize: int,
-        item_type: Type[pydantic.BaseModel]
+        item_type: Type[pydantic.BaseModel],
+        allow_replace: bool = False,
+        allow_updates: bool = False,
+        allow_priority_updates: bool = False,
+        pq_store: PriorityQueueStore = None,
     ):
-        self.logger: logging.Logger = logging.getLogger(__name__)
-        self.pq_id: str = pq_id
-        self.maxsize: int = maxsize
-        self.item_type: Type[pydantic.BaseModel] = item_type
-        self.pq: PriorityQueueStore = pq_store
+        super().__init__(
+            pq_id=pq_id,
+            maxsize=maxsize,
+            item_type=item_type,
+            allow_replace=allow_replace,
+            allow_updates=allow_updates,
+            allow_priority_updates=allow_priority_updates,
+        )
+
+        self.pq_store: PriorityQueueStore = pq_store
 
     def pop(self) -> PrioritizedItem:
         """Remove and return the highest priority item from the queue.
@@ -391,16 +426,16 @@ class DataStorePriorityQueue:
         Raises:
             QueueEmptyError: If the queue is empty.
         """
-        if self.pq.empty():
+        if self.empty():
             raise QueueEmptyError(f"Queue {self.pq_id} is empty.")
 
-        task = self.pq.pop(self.pq_id)
+        task = self.pq_store.pop(self.pq_id)
         if task is None:
             return None
 
         return PrioritizedItem(item=task.item, priority=task.priority)
 
-    def push(self) -> None:
+    def push(self, p_item: PrioritizedItem) -> None:
         """Push an item onto the queue.
 
         Raises:
@@ -412,12 +447,68 @@ class DataStorePriorityQueue:
         if not self._is_valid_item(p_item.item):
             raise InvalidPrioritizedItemError(f"PrioritizedItem must be of type {self.item_type}")
 
-        if self.maxsize is not None and self.maxsize != 0 and self.pq.qsize() == self.maxsize:
+        if self.maxsize is not None and self.maxsize != 0 and self.qsize() == self.maxsize:
             raise QueueFullError(f"Queue {self.pq_id} is full.")
 
-    # TODO
-    def qsize(self) -> int:
+        on_queue = self.is_item_on_queue(p_item.item)
 
+        # TODO
+        item_changed = None
+
+        # TODO
+        priority_changed = None
+
+        allowed = False
+        if on_queue and self.allow_replace:
+            allowed = True
+        elif self.allow_updates and item_changed and on_queue:
+            allowed = True
+        elif self.allow_priority_updates and priority_changed and on_queue:
+            allowed = True
+        elif not on_queue:
+            allowed = True
+
+        if not allowed:
+            raise NotAllowedError(
+                f"[on_queue={on_queue}, item_changed={item_changed}, priority_changed={priority_changed}, allow_replace={self.allow_replace}, allow_updates={self.allow_updates}, allow_priority_updates={self.allow_priority_updates}]"
+            )
+
+        # TODO: If already on queue update the item, else create a new one
+
+    # TODO
+    def peek(self, index: int) -> Entry:
+        raise NotImplementedError
+
+    # TODO
+    def remove(self, p_item: PrioritizedItem) -> None:
+        raise NotImplementedError
+
+    def is_item_on_queue(self, item: Any) -> bool:
+        identifier = self.get_item_identifier(item)
+
+        task = self.pq_store.get_task_by_hash(self.pq_id, identifier)
+        if task is None:
+            return False
+
+        return True
+
+    # TODO
+    def full(self) -> bool:
+        raise NotImplementedError
+
+    def empty(self) -> bool:
+        raise NotImplementedError
+
+    def qsize(self) -> int:
+        size = self.pq_store.qsize(self.pq_id)
+        return size
+
+    # TODO
+    def dict(self) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def json(self) -> str:
+        return json.dumps(self.dict())
 
     def _is_valid_item(self, item: Any) -> bool:
         """Validate the item to be pushed into the queue.
