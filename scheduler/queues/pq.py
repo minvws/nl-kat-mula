@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Any, Dict, Tuple, Type
 
 import pydantic
+from scheduler import models
 from scheduler.repositories.sqlalchemy import PriorityQueueStore
 
 from .errors import (InvalidPrioritizedItemError, NotAllowedError,
@@ -450,13 +451,19 @@ class DataStorePriorityQueue(Base):
         if self.maxsize is not None and self.maxsize != 0 and self.qsize() == self.maxsize:
             raise QueueFullError(f"Queue {self.pq_id} is full.")
 
-        on_queue = self.is_item_on_queue(p_item.item)
+        task_on_queue = self.get_task_by_item(p_item.item)
 
-        # TODO
-        item_changed = None
+        item_changed = (
+            False
+            if not task_on_queue or p_item.item == task_on_queue.item
+            else True
+        )
 
-        # TODO
-        priority_changed = None
+        priority_changed = (
+            False
+            if not task_on_queue or task_on_queue.priority == p_item.priority
+            else True
+        )
 
         allowed = False
         if on_queue and self.allow_replace:
@@ -473,15 +480,37 @@ class DataStorePriorityQueue(Base):
                 f"[on_queue={on_queue}, item_changed={item_changed}, priority_changed={priority_changed}, allow_replace={self.allow_replace}, allow_updates={self.allow_updates}, allow_priority_updates={self.allow_priority_updates}]"
             )
 
-        # TODO: If already on queue update the item, else create a new one
+        # If already on queue update the item, else create a new one
+        task = models.Task(
+            id=p_item.item.id,
+            hash=p_item.item.hash,
+            scheduler_id=self.pq_id,
+            task=models.QueuePrioritizedItem(**p_item.dict()),
+            status=models.TaskStatus.QUEUED,
+            created_at=datetime.datetime.now(),
+            modified_at=datetime.datetime.now(),
+        )
 
-    # TODO
-    def peek(self, index: int) -> Entry:
-        raise NotImplementedError
+        if task_on_queue:
+            task_db = self.pq_store.update_task(self.pq_id, task)
+        else:
+            task_db = self.pq_store.push(self.pq_id, task)
 
-    # TODO
+        if task_db is None:
+            raise IndexError  # TODO: Better error
+
+        return task_db
+
+    # TODO: change this from the super class as well Entry to PrioritizedItem
+    def peek(self, index: int) -> PrioritizedItem:
+        task = self.pq_store.peek(self.pq_id, index)
+        if task is None:
+            return None
+
+        return PrioritizedItem(item=task.item, priority=task.priority)
+
     def remove(self, p_item: PrioritizedItem) -> None:
-        raise NotImplementedError
+        self.pq_store.remove(self.pq_id, p_item)
 
     def is_item_on_queue(self, item: Any) -> bool:
         identifier = self.get_item_identifier(item)
@@ -492,16 +521,23 @@ class DataStorePriorityQueue(Base):
 
         return True
 
-    # TODO
+    def get_task_by_item(self, item: Any) -> bool:
+        identifier = self.get_item_identifier(item)
+        task = self.pq_store.get_task_by_hash(self.pq_id, identifier)
+        return task
+
     def full(self) -> bool:
-        raise NotImplementedError
+        current_size = self.pq_store.qsize()
+        if self.maxsize is None or self.maxsize == 0:
+            return False
+
+        return current_size >= self.maxsize
 
     def empty(self) -> bool:
-        raise NotImplementedError
+        return self.pq_store.empty()
 
     def qsize(self) -> int:
-        size = self.pq_store.qsize(self.pq_id)
-        return size
+        return self.pq_store.qsize(self.pq_id)
 
     # TODO
     def dict(self) -> Dict[str, Any]:

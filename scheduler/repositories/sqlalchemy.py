@@ -64,7 +64,7 @@ class TaskStore(TaskStorer):
 
             tasks = [models.Task.from_orm(task_orm) for task_orm in tasks_orm]
 
-        return tasks, count
+            return tasks, count
 
     def get_task_by_id(self, task_id: str) -> Optional[models.Task]:
         with self.datastore.session.begin() as session:
@@ -74,7 +74,7 @@ class TaskStore(TaskStorer):
 
             task = models.Task.from_orm(task_orm)
 
-        return task
+            return task
 
     def get_task_by_hash(self, task_hash: str) -> Optional[models.Task]:
         with self.datastore.session.begin() as session:
@@ -90,7 +90,7 @@ class TaskStore(TaskStorer):
 
             task = models.Task.from_orm(task_orm)
 
-        return task
+            return task
 
     def add_task(self, task: models.Task) -> Optional[models.Task]:
         with self.datastore.session.begin() as session:
@@ -99,7 +99,7 @@ class TaskStore(TaskStorer):
 
             created_task = models.Task.from_orm(task_orm)
 
-        return created_task
+            return created_task
 
     def update_task(self, task: models.Task) -> Optional[models.Task]:
         with self.datastore.session.begin() as session:
@@ -108,7 +108,7 @@ class TaskStore(TaskStorer):
 
             updated_task = models.Task.from_orm(task_orm)
 
-        return updated_task
+            return updated_task
 
 
 class PriorityQueueStore(PriorityQueueStorer):
@@ -116,8 +116,13 @@ class PriorityQueueStore(PriorityQueueStorer):
         super().__init__()
         self.datastore = datastore
 
-    def push(self, scheduler_id: str, task: models.Task) -> None:
-        pass
+    def push(self, scheduler_id: str, task: models.Task) -> Optional[models.Task]:
+        with self.datastore.session.begin() as session:
+            task_orm = models.TaskORM(**task.dict())
+            session.add(task_orm)
+
+            created_task = models.Task.from_orm(task_orm)
+            return created_task
 
     def pop(self, scheduler_id: str) -> Optional[models.Task]:
         with self.datastore.session.begin() as session:
@@ -134,14 +139,33 @@ class PriorityQueueStore(PriorityQueueStorer):
 
             return models.Task.from_orm(task_orm)
 
-    def peek(self, scheduler_id: str) -> Optional[models.Task]:
-        pass
+    def peek(self, scheduler_id: str, index: str) -> Optional[models.Task]:
+        with self.datastore.session.begin() as session:
+            task_orm = (
+                session.query(models.TaskORM)
+                .filter(models.TaskORM.scheduler_id == scheduler_id)
+                .order_by(models.TaskORM.priority.asc())
+                .order_by(models.TaskORM.created_at.asc())
+                .offset(index)
+                .first()
+            )
 
-    def remove(self, scheduler_id: str) -> None:
-        pass
+            if task_orm is None:
+                return None
+
+            return models.Task.from_orm(task_orm)
+
+    def remove(self, scheduler_id: str, task_id: str) -> None:
+        with self.datastore.session.begin() as session:
+            task_orm = session.query(models.TaskORM).get(task_id)
+            session.delete(task_orm)
+
 
     def empty(self, scheduler_id: str) -> bool:
-        pass
+        with self.datastore.session.begin() as session:
+            count = session.query(models.TaskORM).filter(models.TaskORM.scheduler_id == scheduler_id).count()
+            return count == 0
+
 
     def qsize(self, scheduler_id: str) -> int:
         with self.datastore.session.begin() as session:
@@ -167,3 +191,14 @@ class PriorityQueueStore(PriorityQueueStorer):
             task = models.Task.from_orm(task_orm)
 
         return task
+
+    def update_task(self, task: models.Task) -> Optional[models.Task]:
+        with self.datastore.session.begin() as session:
+            task_orm = session.query(models.TaskORM).filter(models..TaaskORM == task.id).one_or_none()
+            if task_orm is None:
+                return None
+
+            update_data = task.dict(exclude_unset=True)
+            updated_task = task_orm.copy(update=update_data)
+
+            return models.Task.from_orm(updated_task)
