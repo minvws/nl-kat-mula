@@ -173,6 +173,14 @@ class Scheduler(abc.ABC):
             )
             raise exc
 
+        self.logger.debug(
+            "Pushed item to queue %s [queue_id=%s, qsize=%d, item=%s]",
+            self.queue.pq_id,
+            self.queue.pq_id,
+            self.queue.pq.qsize(),
+            p_item.item,
+        )
+
         self.post_push(p_item)
 
     def push_items_to_queue(self, p_items: List[queues.PrioritizedItem]) -> None:

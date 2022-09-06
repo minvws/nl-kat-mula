@@ -102,6 +102,14 @@ class Dispatcher:
             self.scheduler.queue.pq_id,
         )
 
+        self.logger.debug(
+            "Dispatching item %s [task_id=%s, pq_id=%s, priority=%s]",
+            p_item.item,
+            task_id,
+            self.scheduler.queue.pq_id,
+            p_item.priority,
+        )
+
     def run(self) -> None:
         """Continuously dispatch items from the priority queue."""
         if self.scheduler.queue.empty():
@@ -109,7 +117,7 @@ class Dispatcher:
             return
 
         if not self._can_dispatch():
-            # self.logger.debug("Can't yet dispatch, threshold not reached")
+            self.logger.debug("Can't yet dispatch, threshold not reached")
             return
 
         p_item = self.scheduler.pop_item_from_queue()
