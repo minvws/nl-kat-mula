@@ -143,5 +143,4 @@ class SQLAlchemy(Datastore):
 
     def update_task(self, task: models.Task) -> None:
         with self.session.begin() as session:
-            session = self.session()
             session.query(models.TaskORM).filter_by(id=task.id).update(task.dict())
