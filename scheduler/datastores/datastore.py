@@ -8,11 +8,6 @@ from scheduler import models
 from sqlalchemy import create_engine, orm, pool
 
 
-class DatastoreType(Enum):
-    SQLITE = 1
-    POSTGRES = 2
-
-
 class Datastore(abc.ABC):
     def __init__(self) -> None:
         self.logger: logging.Logger = logging.getLogger(__name__)
@@ -62,28 +57,25 @@ class SQLAlchemy(Datastore):
     See: https://docs.sqlalchemy.org/en/14/dialects/sqlite.html#using-a-memory-database-in-multiple-threads
     """
 
-    def __init__(self, dsn: str, datastore_type: DatastoreType) -> None:
+    def __init__(self, dsn: str) -> None:
         super().__init__()
 
         self.engine = None
 
-        if datastore_type == DatastoreType.POSTGRES:
-            self.engine = create_engine(
-                dsn,
-                pool_pre_ping=True,
-                pool_size=25,
-                json_serializer=lambda obj: json.dumps(obj, default=str),
-            )
-        elif datastore_type == DatastoreType.SQLITE:
+        if dsn.startswith("sqlite"):
             self.engine = create_engine(
                 dsn,
                 connect_args={"check_same_thread": False},
                 poolclass=pool.StaticPool,
                 json_serializer=lambda obj: json.dumps(obj, default=str),
             )
-
-        if self.engine is None:
-            raise Exception("Invalid datastore type")
+        else:
+            self.engine = create_engine(
+                dsn,
+                pool_pre_ping=True,
+                pool_size=25,
+                json_serializer=lambda obj: json.dumps(obj, default=str),
+            )
 
         models.Base.metadata.create_all(self.engine)
 
