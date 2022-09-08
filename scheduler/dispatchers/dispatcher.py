@@ -94,18 +94,18 @@ class Dispatcher:
         Returns:
             None
         """
-        task_id = self.scheduler.queue.get_item_identifier(p_item.item)
+        pq_item_identifier = self.scheduler.queue.get_item_identifier(p_item.item)
         self.logger.info(
-            "Dispatching task %s [task_id=%s, pq_id=%s]",
-            task_id,
-            task_id,
+            "Dispatching task %s [pq_item_identifier=%s, pq_id=%s]",
+            pq_item_identifier,
+            pq_item_identifier,
             self.scheduler.queue.pq_id,
         )
 
         self.logger.debug(
-            "Dispatching item %s [task_id=%s, pq_id=%s, priority=%s]",
+            "Dispatching item %s [pq_item_identifier=%s, pq_id=%s, priority=%s]",
             p_item.item,
-            task_id,
+            pq_item_identifier,
             self.scheduler.queue.pq_id,
             p_item.priority,
         )
