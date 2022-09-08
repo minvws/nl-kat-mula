@@ -84,4 +84,4 @@ class AppContext:
         # Repositories
         datastore = SQLAlchemy(self.config.database_dsn, DatastoreType.SQLITE)
         self.task_store = TaskStore(datastore)
-        self.priority_queue_store = PriorityQueueStore(datastore)
+        self.pq_store = PriorityQueueStore(datastore)

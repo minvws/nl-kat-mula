@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict
 from scheduler import context, dispatchers, queues, rankers, schedulers, server
 from scheduler.connectors import listeners
 from scheduler.models import BoefjeTask, NormalizerTask, Organisation
+from scheduler.repositories import sqlalchemy
 from scheduler.utils import thread
 
 
@@ -145,6 +146,7 @@ class App:
             maxsize=self.ctx.config.pq_maxsize,
             item_type=NormalizerTask,
             allow_priority_updates=True,
+            pq_store=self.ctx.pq_store,
         )
 
         ranker = rankers.NormalizerRanker(
@@ -175,6 +177,7 @@ class App:
             maxsize=self.ctx.config.pq_maxsize,
             item_type=BoefjeTask,
             allow_priority_updates=True,
+            pq_store=self.ctx.pq_store,
         )
 
         ranker = rankers.BoefjeRanker(

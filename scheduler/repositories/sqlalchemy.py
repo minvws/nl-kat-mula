@@ -194,7 +194,7 @@ class PriorityQueueStore(PriorityQueueStorer):
 
     def update_task(self, task: models.Task) -> Optional[models.Task]:
         with self.datastore.session.begin() as session:
-            task_orm = session.query(models.TaskORM).filter(models..TaaskORM == task.id).one_or_none()
+            task_orm = session.query(models.TaskORM).filter(models.TaskORM == task.id).one_or_none()
             if task_orm is None:
                 return None
 

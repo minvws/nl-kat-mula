@@ -527,14 +527,14 @@ class DataStorePriorityQueue(Base):
         return task
 
     def full(self) -> bool:
-        current_size = self.pq_store.qsize()
+        current_size = self.qsize()
         if self.maxsize is None or self.maxsize == 0:
             return False
 
         return current_size >= self.maxsize
 
     def empty(self) -> bool:
-        return self.pq_store.empty()
+        return self.pq_store.empty(self.pq_id)
 
     def qsize(self) -> int:
         return self.pq_store.qsize(self.pq_id)
