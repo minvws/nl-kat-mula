@@ -21,7 +21,7 @@ class Server:
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.ctx: context.AppContext = ctx
         self.schedulers: Dict[str, schedulers.Scheduler] = s
-        self.queues: Dict[str, queues.PriorityQueue] = {k: s.queue for k, s in self.schedulers.items()}
+        # self.queues: Dict[str, queues.PriorityQueue] = {k: s.queue for k, s in self.schedulers.items()}
 
         self.api = fastapi.FastAPI()
 
@@ -116,7 +116,7 @@ class Server:
             path="/queues/{queue_id}/pop",
             endpoint=self.pop_queue,
             methods=["GET"],
-            response_model=models.QueuePrioritizedItem,
+            response_model=models.PrioritizedItem,
             status_code=200,
         )
 
@@ -313,9 +313,9 @@ class Server:
                 detail="queue is empty",
             ) from exc_empty
 
-        return models.QueuePrioritizedItem(**p_item.dict())
+        return models.PioritizedItem(**p_item.dict())
 
-    def push_queue(self, queue_id: str, item: models.QueuePrioritizedItem) -> Any:
+    def push_queue(self, queue_id: str, item: models.PrioritizedItem) -> Any:
         s = self.schedulers.get(queue_id)
         if s is None:
             raise fastapi.HTTPException(
@@ -353,7 +353,7 @@ class Server:
                 detail="not allowed",
             ) from exc_not_allowed
 
-        return models.QueuePrioritizedItem(**p_item.dict())
+        return models.PrioritizedItem(**p_item.dict())
 
     def run(self) -> None:
         uvicorn.run(

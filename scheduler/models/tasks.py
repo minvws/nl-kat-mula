@@ -12,7 +12,7 @@ from scheduler.utils import GUID
 from .base import Base
 from .boefje import Boefje, BoefjeMeta
 from .normalizer import Normalizer
-from .queue import QueuePrioritizedItem
+from .queue import PrioritizedItem
 
 
 class TaskStatus(_Enum):
@@ -28,11 +28,10 @@ class TaskStatus(_Enum):
 
 class Task(BaseModel):
     id: uuid.UUID
-    hash: str
-    scheduler_id: str
-    priority: int
-    task: QueuePrioritizedItem  # FIXME: p_item?
+    scheduler_id: uuid.UUID
+    p_item: PrioritizedItem
     status: TaskStatus
+
     created_at: datetime.datetime
     modified_at: datetime.datetime
 
@@ -46,15 +45,14 @@ class TaskORM(Base):
     __tablename__ = "tasks"
 
     id = Column(GUID, primary_key=True)
-    hash = Column(String)
-    scheduler_id = Column(String)
-    priority = Column(Integer)
-    task = Column(JSON, nullable=False)
+    scheduler_id = Column(GUID)
+    p_item = Column(JSON, nullable=False)
     status = Column(
         Enum(TaskStatus),
         nullable=False,
         default=TaskStatus.PENDING,
     )
+
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,

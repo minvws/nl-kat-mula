@@ -9,7 +9,7 @@ import requests
 
 from scheduler import context, queues, rankers
 from scheduler.models import (OOI, Boefje, BoefjeTask, Organisation, Plugin,
-                              TaskStatus)
+                              TaskStatus, PrioritizedItem)
 
 from .scheduler import Scheduler
 
@@ -183,7 +183,7 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
-    def create_tasks_for_oois(self, oois: List[OOI]) -> List[queues.PrioritizedItem]:
+    def create_tasks_for_oois(self, oois: List[OOI]) -> List[PrioritizedItem]:
         """For every provided ooi we will create available and enabled boefje
         tasks.
 
@@ -193,14 +193,14 @@ class BoefjeScheduler(Scheduler):
         Returns:
             A list of BoefjeTask of type PrioritizedItem.
         """
-        tasks: List[queues.PrioritizedItem] = []
+        tasks: List[PrioritizedItem] = []
         for ooi in oois:
             tasks_for_ooi = self.create_tasks_for_ooi(ooi)
             tasks.extend(tasks_for_ooi)
 
         return tasks
 
-    def create_tasks_for_ooi(self, ooi: OOI) -> List[queues.PrioritizedItem]:
+    def create_tasks_for_ooi(self, ooi: OOI) -> List[PrioritizedItem]:
         """For an ooi we will create available and enabled boefje tasks.
 
         Args:
@@ -268,7 +268,7 @@ class BoefjeScheduler(Scheduler):
 
         return boefjes
 
-    def create_p_items_for_boefjes(self, boefjes: List[Plugin], ooi: OOI) -> List[queues.PrioritizedItem]:
+    def create_p_items_for_boefjes(self, boefjes: List[Plugin], ooi: OOI) -> List[PrioritizedItem]:
         """For an ooi and its associated boefjes we will create tasks that
         can be pushed onto the queue.
 
@@ -279,7 +279,7 @@ class BoefjeScheduler(Scheduler):
         Returns:
             A list of Boefje tasks of type PrioritizedItem.
         """
-        p_items: List[queues.PrioritizedItem] = []
+        p_items: List[PrioritizedItem] = []
         for boefje in boefjes:
             p_item = self.create_p_item_for_boefje(boefje, ooi)
             if p_item is None:
@@ -289,7 +289,7 @@ class BoefjeScheduler(Scheduler):
 
         return p_items
 
-    def create_p_item_for_boefje(self, boefje: Plugin, ooi: OOI) -> Optional[queues.PrioritizedItem]:
+    def create_p_item_for_boefje(self, boefje: Plugin, ooi: OOI) -> Optional[PrioritizedItem]:
         """For an ooi and its associated boefjes we will create tasks that
         can be pushed onto the queue. It will check:
 
@@ -470,4 +470,4 @@ class BoefjeScheduler(Scheduler):
             )
             return None
 
-        return queues.PrioritizedItem(score, task)
+        return PrioritizedItem(score, task)

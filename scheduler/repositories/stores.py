@@ -48,15 +48,11 @@ class TaskStorer(abc.ABC):
 class PriorityQueueStorer(abc.ABC):
 
     @abc.abstractmethod
-    def push(self, scheduler_id: str, task: models.Task) -> None:
+    def push(self, scheduler_id: str, task: models.PrioritizedItem) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def pop(self, scheduler_id: str) -> Optional[models.Task]:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def peek(self, scheduler_id: str) -> Optional[models.Task]:
+    def pop(self, scheduler_id: str) -> Optional[models.PrioritizedItem]:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -64,5 +60,19 @@ class PriorityQueueStorer(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def search(self, scheduler_id: str) -> List[models.Task]:
+    def peek(self, scheduler_id: str) -> Optional[models.PrioritizedItem]:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def empty(self, scheduler_id: str) -> bool:
+        raise NotImplementedError
+
+    def qsize(self, scheduler_id: str) -> int:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def search(self, scheduler_id: str) -> List[models.PrioritizedItem]:
+        raise NotImplementedError
+
+    def update(self, scheduler_id: str, task: models.PrioritizedItem) -> Optional[models.PrioritizedItem]:
         raise NotImplementedError

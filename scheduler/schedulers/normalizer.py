@@ -9,7 +9,8 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import NormalizerTask, Organisation, RawData, TaskStatus
+from scheduler.models import (NormalizerTask, Organisation, PrioritizedItem,
+                              RawData, TaskStatus)
 
 from .scheduler import Scheduler
 
@@ -132,11 +133,11 @@ class NormalizerScheduler(Scheduler):
             )
             return
 
-    def create_tasks_for_raw_data(self, raw_data: RawData) -> List[queues.PrioritizedItem]:
+    def create_tasks_for_raw_data(self, raw_data: RawData) -> List[PrioritizedItem]:
         """Create normalizer tasks for every boefje that has been processed,
         and created raw data in Bytes.
         """
-        p_items: List[queues.PrioritizedItem] = []
+        p_items: List[PrioritizedItem] = []
 
         for mime_type in raw_data.mime_types:
             try:
@@ -204,7 +205,7 @@ class NormalizerScheduler(Scheduler):
                     continue
 
                 score = self.ranker.rank(SimpleNamespace(raw_data=raw_data, task=task))
-                p_items.append(queues.PrioritizedItem(priority=score, item=task))
+                p_items.append(PrioritizedItem(priority=score, item=task))
 
         return p_items
 

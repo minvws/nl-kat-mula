@@ -1,8 +1,13 @@
 from scheduler import models
+from scheduler.utils import dict_utils
 
-from .pq import DataStorePriorityQueue, PriorityQueue
+from .pq import PriorityQueue
 
 
-class BoefjePriorityQueue(DataStorePriorityQueue):
-    def get_item_identifier(self, item: models.BoefjeTask) -> str:
-        return f"{item.boefje.id}_{item.input_ooi}_{item.organization}"
+class BoefjePriorityQueue(PriorityQueue):
+    def get_item_identifier(self, p_item: models.PrioritizedItem) -> str:
+        boefje_id = dict_utils.deep_get(p_item, ["data", "boefje", "id"])
+        input_ooi = dict_utils.deep_get(p_item, ["data", "input_ooi"])
+        organization = dict_utils.deep_get(p_item, ["data", "organization"])
+
+        return f"{boefje_id}_{input_ooi}_{organization}"

@@ -4,7 +4,7 @@ from typing import Any, Type
 import celery
 import pydantic
 import scheduler as sdl
-from scheduler import context, queues, schedulers
+from scheduler import context, models, queues, schedulers
 
 
 class Dispatcher:
@@ -82,14 +82,14 @@ class Dispatcher:
         """
         return self.threshold
 
-    def dispatch(self, p_item: queues.PrioritizedItem) -> None:
+    def dispatch(self, p_item: models.PrioritizedItem) -> None:
         """Pop and dispatch a task item from a priority queue entry. This
         method should be extended by subclasses to implement its specific
         dispatching strategy.
 
         Arguments:
             p_item:
-                A queues.PrioritizedItem instance.
+                A models.PrioritizedItem instance.
 
         Returns:
             None
@@ -176,7 +176,7 @@ class CeleryDispatcher(Dispatcher):
             result_accept_content=["application/json", "application/x-python-serialize"],
         )
 
-    def dispatch(self, p_item: queues.PrioritizedItem) -> None:
+    def dispatch(self, p_item: models.PrioritizedItem) -> None:
         super().dispatch(p_item=p_item)
 
         item_dict = p_item.item.dict()
