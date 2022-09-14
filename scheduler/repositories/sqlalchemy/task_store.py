@@ -48,8 +48,9 @@ class TaskStore(TaskStorer):
         with self.datastore.session.begin() as session:
             task_orm = (
                 session.query(models.TaskORM)
-                .order_by(models.TaskORM.created_at.desc())
-                .filter(models.TaskORM.hash == task_hash)
+                .filter(models.TaskORM.p_item.contains(
+                    {"hash": task_hash}
+                ))
                 .first()
             )
 

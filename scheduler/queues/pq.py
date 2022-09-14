@@ -178,7 +178,7 @@ class PriorityQueue:
         if item_on_queue:
             item_db = self.pq_store.update(self.pq_id, p_item)
         else:
-            identifier = self.get_item_identifier(p_item)
+            identifier = self.get_item_identifier(p_item.data)
             p_item.hash = identifier
             item_db = self.pq_store.push(self.pq_id, p_item)
 
@@ -210,8 +210,8 @@ class PriorityQueue:
 
         return current_size >= self.maxsize
 
-    def is_item_on_queue(self, item: Any) -> bool:
-        identifier = self.get_item_identifier(p_item)
+    def is_item_on_queue(self, p_item: models.PrioritizedItem) -> bool:
+        identifier = self.get_item_identifier(p_item.data)
         item = self.pq_store.get_item_by_hash(self.pq_id, identifier)
         if item is None:
             return False
@@ -219,7 +219,7 @@ class PriorityQueue:
         return True
 
     def get_p_item_by_identifier(self, p_item: models.PrioritizedItem) -> bool:
-        identifier = self.get_item_identifier(p_item)
+        identifier = self.get_item_identifier(p_item.data)
         item = self.pq_store.get_item_by_hash(self.pq_id, identifier)
         return item
 

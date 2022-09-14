@@ -1,9 +1,9 @@
 import datetime
 import uuid
-from typing import Any, List
+from typing import Any, Dict, List, Optional
 
 import mmh3
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import JSON, Column, DateTime, Enum, Integer, String
 
 from scheduler.utils import GUID
@@ -17,32 +17,17 @@ class PrioritizedItem(BaseModel):
     representation.
     """
 
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    scheduler_id: Optional[str]
+    hash: Optional[str]
+    priority: Optional[int]
+    data: Dict
 
-    id: uuid.UUID
-    scheduler_id: uuid.UUID
-    hash: str
-    priority: int
-    data: Any   # FIXME: enforce json, dict or str?
-
-    created_at: datetime.datetime
-    modified_at: datetime.datetime
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    modified_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 
     class Config:
         orm_mode = True
-
-
-class Queue(BaseModel):
-    """Representation of an queue.PriorityQueue object. Used for unmarshalling
-    of priority queues to a JSON representation.
-    """
-
-    id: str
-    size: int
-    maxsize: int
-    allow_replace: bool
-    allow_updates: bool
-    allow_priority_updates: bool
-    pq: List[PrioritizedItem]
 
 
 class PrioritizedItemORM(Base):
@@ -53,12 +38,8 @@ class PrioritizedItemORM(Base):
 
     __tablename__ = "items"
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.id = uuid.uuid4().hex
-
     id = Column(GUID, primary_key=True)
-    scheduler_id = Column(GUID)
+    scheduler_id = Column(String)
     hash = Column(String)
 
     priority = Column(Integer)
@@ -75,3 +56,17 @@ class PrioritizedItemORM(Base):
         default=datetime.datetime.utcnow,
         onupdate=datetime.datetime.utcnow,
     )
+
+
+class Queue(BaseModel):
+    """Representation of an queue.PriorityQueue object. Used for unmarshalling
+    of priority queues to a JSON representation.
+    """
+
+    id: str
+    size: int
+    maxsize: int
+    allow_replace: bool
+    allow_updates: bool
+    allow_priority_updates: bool
+    pq: List[PrioritizedItem]

@@ -27,13 +27,13 @@ class TaskStatus(_Enum):
 
 
 class Task(BaseModel):
-    id: uuid.UUID
-    scheduler_id: uuid.UUID
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    scheduler_id: str
     p_item: PrioritizedItem
     status: TaskStatus
 
-    created_at: datetime.datetime
-    modified_at: datetime.datetime
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    modified_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 
     class Config:
         orm_mode = True
@@ -45,7 +45,7 @@ class TaskORM(Base):
     __tablename__ = "tasks"
 
     id = Column(GUID, primary_key=True)
-    scheduler_id = Column(GUID)
+    scheduler_id = Column(String)
     p_item = Column(JSON, nullable=False)
     status = Column(
         Enum(TaskStatus),

@@ -67,6 +67,7 @@ class PriorityQueueStorer(abc.ABC):
     def empty(self, scheduler_id: str) -> bool:
         raise NotImplementedError
 
+    @abc.abstractmethod
     def qsize(self, scheduler_id: str) -> int:
         raise NotImplementedError
 
@@ -74,5 +75,10 @@ class PriorityQueueStorer(abc.ABC):
     def search(self, scheduler_id: str) -> List[models.PrioritizedItem]:
         raise NotImplementedError
 
+    @abc.abstractmethod
     def update(self, scheduler_id: str, task: models.PrioritizedItem) -> Optional[models.PrioritizedItem]:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_item_by_hash(self, scheduler_id: str, item_hash: str) -> Optional[models.PrioritizedItem]:
         raise NotImplementedError

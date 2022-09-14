@@ -95,20 +95,17 @@ class PriorityQueueStore(PriorityQueueStorer):
     def search(self, scheduler_id: str) -> List[models.Task]:
         pass
 
-    def get_item_by_hash(self, pq_id: str, task_hash: str) -> Optional[models.Task]:
+    def get_item_by_hash(self, scheduler_id: str, item_hash: str) -> Optional[models.PrioritizedItem]:
         with self.datastore.session.begin() as session:
-            task_orm = (
-                session.query(models.TaskORM)
-                .order_by(models.TaskORM.created_at.desc())
-                .filter(models.TaskORM.scheduler_id == pq_id)
-                .filter(models.TaskORM.hash == task_hash)
+            item_orm = (
+                session.query(models.PrioritizedItemORM)
+                .order_by(models.PrioritizedItemORM.created_at.desc())
+                .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
+                .filter(models.PrioritizedItemORM.hash == item_hash)
                 .first()
             )
 
-            if task_orm is None:
+            if item_orm is None:
                 return None
 
-            task = models.Task.from_orm(task_orm)
-
-        return task
-
+            return models.PrioritizedItem.from_orm(item_orm)
