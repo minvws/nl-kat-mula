@@ -5,7 +5,7 @@ from unittest import mock
 
 import requests
 from fastapi.testclient import TestClient
-from scheduler import config, connectors, datastores, dispatchers, models, queues, rankers, schedulers, server
+from scheduler import config, connectors, datastores, models, queues, rankers, schedulers, server
 from tests.factories import BoefjeFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
 
 
@@ -54,14 +54,6 @@ class APITestCase(unittest.TestCase):
             queue=queue,
             ranker=ranker,
             organisation=self.organisation,
-        )
-
-        dispatcher = dispatchers.BoefjeDispatcher(
-            ctx=self.mock_ctx,
-            scheduler=self.scheduler,
-            item_type=models.BoefjeTask,
-            celery_queue="boefjes",
-            task_name="tasks.handle_boefje",
         )
 
         self.server = server.Server(self.mock_ctx, {self.scheduler.scheduler_id: self.scheduler})
