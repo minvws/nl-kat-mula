@@ -4,7 +4,7 @@ import unittest
 import uuid
 from unittest import mock
 
-from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers
+from scheduler import config, connectors, models, queues, rankers, schedulers
 from tests.factories import (
     BoefjeMetaFactory,
     OOIFactory,
@@ -42,14 +42,6 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
             queue=queue,
             ranker=ranker,
             organisation=self.organisation,
-        )
-
-        dispatcher = dispatchers.NormalizerDispatcher(
-            ctx=self.mock_ctx,
-            scheduler=self.scheduler,
-            item_type=models.NormalizerTask,
-            celery_queue="normalizers",
-            task_name="tasks.handle_ooi",
         )
 
     @mock.patch("scheduler.context.AppContext.services.raw_data.get_latest_raw_data")
