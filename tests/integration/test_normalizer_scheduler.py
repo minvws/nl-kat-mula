@@ -4,7 +4,7 @@ import unittest
 import uuid
 from unittest import mock
 
-from scheduler import config, connectors, dispatchers, models, queues, rankers, schedulers
+from scheduler import config, connectors, models, queues, rankers, schedulers
 from tests.factories import (
     BoefjeMetaFactory,
     OOIFactory,
@@ -44,14 +44,6 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
             organisation=self.organisation,
         )
 
-        dispatcher = dispatchers.NormalizerDispatcher(
-            ctx=self.mock_ctx,
-            scheduler=self.scheduler,
-            item_type=models.NormalizerTask,
-            celery_queue="normalizers",
-            task_name="tasks.handle_ooi",
-        )
-
     @mock.patch("scheduler.context.AppContext.services.raw_data.get_latest_raw_data")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_normalizers_by_org_id_and_type")
     @mock.patch("scheduler.schedulers.NormalizerScheduler.create_tasks_for_raw_data")
@@ -66,12 +58,8 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
             input_ooi=ooi.primary_key,
         )
 
-        raw_data = RawDataFactory(
-            boefje_meta=boefje_meta,
-        )
-
         latest_raw_data = models.RawDataReceivedEvent(
-            raw_data=raw_data,
+            raw_data=RawDataFactory(boefje_meta=boefje_meta),
             organization=self.organisation.name,
             created_at=datetime.datetime.now(),
         )
@@ -141,7 +129,9 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
         )
 
         latest_raw_data = models.RawDataReceivedEvent(
-            raw_data=RawDataFactory(boefje_meta=boefje_meta, mime_types=[{"value": "error/boefje"}]),
+            raw_data=RawDataFactory(
+                boefje_meta=boefje_meta, mime_types=[{"value": "error/boefje"}, {"value": "text/xml"}]
+            ),
             organization=self.organisation.name,
             created_at=datetime.datetime.now(),
         )

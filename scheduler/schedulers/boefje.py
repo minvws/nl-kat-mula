@@ -151,8 +151,8 @@ class BoefjeScheduler(Scheduler):
                 tries += 1
                 continue
             elif len(p_items) == 0 and tries >= 3:
-                self.logger.warning(
-                    "No random oois for organisation: %s [tries=%d, org_id=%s, scheduler_id=%s]",
+                self.logger.debug(
+                    "No tasks could be created for random oois for organisation: %s [tries=%d, org_id=%s, scheduler_id=%s]",
                     self.organisation.name,
                     tries,
                     self.organisation.id,
@@ -400,8 +400,9 @@ class BoefjeScheduler(Scheduler):
         )
         if task_db is not None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED):
             self.logger.debug(
-                "Boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                "Boefje: %s is still being processed, status in database %s [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                 boefje.id,
+                task_db.status,
                 boefje.id,
                 ooi.primary_key,
                 self.organisation.id,
@@ -432,7 +433,7 @@ class BoefjeScheduler(Scheduler):
 
         if last_run_boefje is not None and last_run_boefje.ended_at is None and last_run_boefje.started_at is not None:
             self.logger.debug(
-                "Boefje %s is already running [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                "Boefje %s is still running according to bytes [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                 boefje.id,
                 boefje.id,
                 ooi.primary_key,
@@ -448,10 +449,12 @@ class BoefjeScheduler(Scheduler):
             < timedelta(seconds=self.ctx.config.pq_populate_grace_period)
         ):
             self.logger.debug(
-                "Boefje: %s already run for input ooi %s [last_run_boefje=%s, org_id=%s, scheduler_id=%s]",
+                "Grace period for boefje: %s and input_ooi: %s has not yet passed, skipping ... [last_run_boefje=%s, boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                 boefje.id,
                 ooi.primary_key,
                 last_run_boefje,
+                boefje.id,
+                ooi.primary_key,
                 self.organisation.id,
                 self.scheduler_id,
             )

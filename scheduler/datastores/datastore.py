@@ -8,11 +8,6 @@ from scheduler import models
 from sqlalchemy import create_engine, orm, pool
 
 
-class DatastoreType(Enum):
-    SQLITE = 1
-    POSTGRES = 2
-
-
 class Datastore(abc.ABC):
     def __init__(self) -> None:
         self.logger: logging.Logger = logging.getLogger(__name__)
@@ -45,85 +40,99 @@ class Datastore(abc.ABC):
 
 
 class SQLAlchemy(Datastore):
-    def __init__(self, dsn: str, datastore_type: DatastoreType) -> None:
+    """SQLAlchemy datastore implementation
+
+    Note on using sqlite:
+
+    By default SQLite will only allow one thread to communicate with it,
+    assuming that each thread would handle an independent request. This is to
+    prevent accidentally sharing the same connection for different things (for
+    different requests). But within the scheduler more than one thread could
+    interact with the database. So we need to make SQLite know that it should
+    allow that with
+
+    Also, we will make sure each request gets its own database connection
+    session.
+
+    See: https://docs.sqlalchemy.org/en/14/dialects/sqlite.html#using-a-memory-database-in-multiple-threads
+    """
+
+    def __init__(self, dsn: str) -> None:
         super().__init__()
 
         self.engine = None
 
-        if datastore_type == DatastoreType.POSTGRES:
-            self.engine = create_engine(
-                dsn,
-                pool_pre_ping=True,
-                pool_size=25,
-                json_serializer=lambda obj: json.dumps(obj, default=str),
-            )
-        elif datastore_type == DatastoreType.SQLITE:
-            # See: https://docs.sqlalchemy.org/en/14/dialects/sqlite.html#using-a-memory-database-in-multiple-threads
+        if dsn.startswith("sqlite"):
             self.engine = create_engine(
                 dsn,
                 connect_args={"check_same_thread": False},
                 poolclass=pool.StaticPool,
                 json_serializer=lambda obj: json.dumps(obj, default=str),
             )
-
-        if self.engine is None:
-            raise Exception("Invalid datastore type")
+        else:
+            self.engine = create_engine(
+                dsn,
+                pool_pre_ping=True,
+                pool_size=25,
+                json_serializer=lambda obj: json.dumps(obj, default=str),
+            )
 
         models.Base.metadata.create_all(self.engine)
 
-        # scoped_session provides a of providing a single, global object in
-        # an application that is safe to be called upon from multiple threads.
+        # Within the methods below, we use the session context manager to
+        # ensure that the session is closed
         self.session = orm.sessionmaker(
-            autocommit=False,
-            autoflush=False,
             bind=self.engine,
-        )()
+        )
 
     def get_tasks(
         self, scheduler_id: Union[str, None], status: Union[str, None], offset: int = 0, limit: int = 100
     ) -> Tuple[List[models.Task], int]:
-        query = self.session.query(models.TaskORM)
+        with self.session.begin() as session:
+            query = session.query(models.TaskORM)
 
-        if scheduler_id is not None:
-            query = query.filter(models.TaskORM.scheduler_id == scheduler_id)
+            if scheduler_id is not None:
+                query = query.filter(models.TaskORM.scheduler_id == scheduler_id)
 
-        if status is not None:
-            query = query.filter(models.TaskORM.status == models.TaskStatus(status).name)
+            if status is not None:
+                query = query.filter(models.TaskORM.status == models.TaskStatus(status).name)
 
-        count = query.count()
+            count = query.count()
 
-        tasks_orm = query.order_by(models.TaskORM.created_at.desc()).offset(offset).limit(limit).all()
+            tasks_orm = query.order_by(models.TaskORM.created_at.desc()).offset(offset).limit(limit).all()
 
-        return [models.Task.from_orm(task_orm) for task_orm in tasks_orm], count
+            return [models.Task.from_orm(task_orm) for task_orm in tasks_orm], count
 
     def get_task_by_id(self, task_id: str) -> Optional[models.Task]:
-        task_orm = self.session.query(models.TaskORM).filter(models.TaskORM.id == task_id).first()
+        with self.session.begin() as session:
+            task_orm = session.query(models.TaskORM).filter(models.TaskORM.id == task_id).first()
 
-        if task_orm is None:
-            return None
+            if task_orm is None:
+                return None
 
-        return models.Task.from_orm(task_orm)
+            return models.Task.from_orm(task_orm)
 
     def get_task_by_hash(self, task_hash: str) -> Optional[models.Task]:
-        task_orm = (
-            self.session.query(models.TaskORM)
-            .order_by(models.TaskORM.created_at.desc())
-            .filter(models.TaskORM.hash == task_hash)
-            .first()
-        )
+        with self.session.begin() as session:
+            task_orm = (
+                session.query(models.TaskORM)
+                .order_by(models.TaskORM.created_at.desc())
+                .filter(models.TaskORM.hash == task_hash)
+                .first()
+            )
 
-        if task_orm is None:
-            return None
+            if task_orm is None:
+                return None
 
-        return models.Task.from_orm(task_orm)
+            return models.Task.from_orm(task_orm)
 
     def add_task(self, task: models.Task) -> Optional[models.Task]:
-        task_orm = models.TaskORM(**task.dict())
-        self.session.add(task_orm)
-        self.session.commit()
-        self.session.refresh(task_orm)
+        with self.session.begin() as session:
+            task_orm = models.TaskORM(**task.dict())
+            session.add(task_orm)
 
-        return models.Task.from_orm(task_orm)
+            return models.Task.from_orm(task_orm)
 
     def update_task(self, task: models.Task) -> None:
-        self.session.query(models.TaskORM).filter_by(id=task.id).update(task.dict())
+        with self.session.begin() as session:
+            session.query(models.TaskORM).filter_by(id=task.id).update(task.dict())
