@@ -21,7 +21,7 @@ class Server:
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.ctx: context.AppContext = ctx
         self.schedulers: Dict[str, schedulers.Scheduler] = s
-        # self.queues: Dict[str, queues.PriorityQueue] = {k: s.queue for k, s in self.schedulers.items()}
+        self.queues: Dict[str, queues.PriorityQueue] = {k: s.queue for k, s in self.schedulers.items()}
 
         self.api = fastapi.FastAPI()
 
@@ -310,7 +310,7 @@ class Server:
         except queues.QueueEmptyError as exc_empty:
             return None
 
-        return models.PioritizedItem(**p_item.dict())
+        return models.PrioritizedItem(**p_item.dict())
 
     def push_queue(self, queue_id: str, item: models.PrioritizedItem) -> Any:
         s = self.schedulers.get(queue_id)

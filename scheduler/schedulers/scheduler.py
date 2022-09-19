@@ -105,12 +105,12 @@ class Scheduler(abc.ABC):
         Args:
             p_item: The prioritized item to post-pop from queue.
         """
-        task = self.ctx.task_store.get_task_by_id(p_item.item.id)
+        task = self.ctx.task_store.get_task_by_id(p_item.data.get("id"))
         if task is None:
             self.logger.error(
                 "Task %s not found in datastore, not updating status [task_id = %s]",
-                p_item.item.id,
-                p_item.item.id,
+                p_item.data.get("id"),
+                p_item.data.get("id"),
             )
             return None
 
@@ -177,8 +177,8 @@ class Scheduler(abc.ABC):
             "Pushed item to queue %s [queue_id=%s, qsize=%d, item=%s]",
             self.queue.pq_id,
             self.queue.pq_id,
-            self.queue.pq.qsize(),
-            p_item.item,
+            self.queue.qsize(),
+            p_item,
         )
 
         self.post_push(p_item)
@@ -194,8 +194,25 @@ class Scheduler(abc.ABC):
         for p_item in p_items:
             try:
                 self.push_item_to_queue(p_item)
-            except Exception:
+            except (queues.errors.NotAllowedError, queues.errors.QueueFullError, queues.errors.InvalidPrioritizedItemError):
+                self.logger.debug(
+                    "Unable to push item to queue %s [queue_id=%s, qsize=%d, item=%s, exc=%s]",
+                    self.queue.pq_id,
+                    self.queue.pq_id,
+                    self.queue.qsize(),
+                    p_item,
+                    traceback.format_exc(),
+                )
                 continue
+            except Exception as exc:
+                self.logger.error(
+                    "Unable to push item to queue %s [queue_id=%s, qsize=%d, item=%s]",
+                    self.queue.pq_id,
+                    self.queue.pq_id,
+                    self.queue.qsize(),
+                    p_item,
+                )
+                raise exc
 
             count += 1
 

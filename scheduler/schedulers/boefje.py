@@ -220,6 +220,7 @@ class BoefjeScheduler(Scheduler):
             return []
 
         p_items = self.create_p_items_for_boefjes(boefjes, ooi)
+
         return p_items
 
     def get_boefjes_for_ooi(self, ooi) -> List[Plugin]:
@@ -391,10 +392,9 @@ class BoefjeScheduler(Scheduler):
             )
             return None
 
-        # Boefje should not run when it is still being processed, we
-        # try to find the same combination of ooi, boefje, and
-        # organisation (hash) to make sure that the particular task
-        # isn't being processed.
+        # Boefje should not run when a similar task  is still being processed,
+        # we try to find the same combination of ooi, boefje, and organisation
+        # (hash) to make sure that the particular task isn't being processed.
         task_db = self.ctx.task_store.get_task_by_hash(
             mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
         )
@@ -473,9 +473,13 @@ class BoefjeScheduler(Scheduler):
             )
             return None
 
-        return PrioritizedItem(
+        p_item = PrioritizedItem(
+            id=task.id,
             scheduler_id=self.scheduler_id,
-            hash=self.queue.get_item_identifier(task.dict()),
             priority=score,
             data=task,
         )
+
+        p_item.hash = mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
+
+        return p_item

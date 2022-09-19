@@ -109,3 +109,13 @@ class PriorityQueueStore(PriorityQueueStorer):
                 return None
 
             return models.PrioritizedItem.from_orm(item_orm)
+
+    def get_items_by_scheduler_id(self, scheduler_id: str) -> List[models.PrioritizedItem]:
+        with self.datastore.session.begin() as session:
+            items_orm = (
+                session.query(models.PrioritizedItemORM)
+                .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
+                .all()
+            )
+
+            return [models.PrioritizedItem.from_orm(item_orm) for item_orm in items_orm]

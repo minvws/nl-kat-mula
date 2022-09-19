@@ -15,40 +15,6 @@ from scheduler.repositories.sqlalchemy import PriorityQueueStore
 from .errors import (InvalidPrioritizedItemError, NotAllowedError,
                      QueueEmptyError, QueueFullError)
 
-# @dataclass(order=True)
-# class PrioritizedItem:
-#     """Solves the issue non-comparable tasks to ignore the task item and only
-#     compare the priority.
-#
-#     Attributes:
-#         priority:
-#             An integer describing the priority of the item.
-#         item:
-#             A python object that is attached to the prioritized item.
-#     """
-#
-#     def __init__(self, priority: int, item: Any):
-#         self.priority: int = priority
-#         self.item: Any = item
-#
-#     def dict(self) -> Dict[str, Any]:
-#         return {"priority": self.priority, "item": self.item}
-#
-#     def json(self) -> str:
-#         return json.dumps(self.dict())
-#
-#     def attrs(self) -> Tuple[int, Any]:
-#         return (self.priority, self.item)
-#
-#     # FIXME: hash
-#     def __hash__(self) -> int:
-#         return hash(self.attrs())
-#
-#     def __eq__(self, other: object) -> bool:
-#         if not isinstance(other, PrioritizedItem):
-#             return False
-#         return self.attrs() == other.attrs()
-
 
 class PriorityQueue:
     """
@@ -63,8 +29,6 @@ class PriorityQueue:
         item_type:
             A pydantic.BaseModel that describes the type of the items on the
             queue.
-        timeout:
-            An integer defining the timeout for blocking operations.
         allow_replace:
             A boolean that defines if the queue allows replacing an item. When
             set to True, it will update the item on the queue. It will set the
@@ -109,7 +73,6 @@ class PriorityQueue:
         self.pq_id: str = pq_id
         self.maxsize: int = maxsize
         self.item_type: Type[pydantic.BaseModel] = item_type
-        self.timeout: int = 5
         self.allow_replace: bool = allow_replace
         self.allow_updates: bool = allow_updates
         self.allow_priority_updates: bool = allow_priority_updates
@@ -131,11 +94,15 @@ class PriorityQueue:
 
         Raises:
             NotAllowedError: If the item is not allowed to be pushed.
+
+            InvalidPrioritizedItemError:
+
+            QueueFullError:
         """
         if not isinstance(p_item, models.PrioritizedItem):
             raise InvalidPrioritizedItemError("The item is not a PrioritizedItem")
 
-        if not self._is_valid_item(p_item.item):
+        if not self._is_valid_item(p_item.data):
             raise InvalidPrioritizedItemError(f"PrioritizedItem must be of type {self.item_type}")
 
         if self.full():
@@ -171,14 +138,14 @@ class PriorityQueue:
 
         if not allowed:
             raise NotAllowedError(
-                f"[on_queue={on_queue}, item_changed={item_changed}, priority_changed={priority_changed}, allow_replace={self.allow_replace}, allow_updates={self.allow_updates}, allow_priority_updates={self.allow_priority_updates}]"
+                f"[item_on_queue={item_on_queue}, item_changed={item_changed}, priority_changed={priority_changed}, allow_replace={self.allow_replace}, allow_updates={self.allow_updates}, allow_priority_updates={self.allow_priority_updates}]"
             )
 
         # If already on queue update the item, else create a new one
         if item_on_queue:
             item_db = self.pq_store.update(self.pq_id, p_item)
         else:
-            identifier = self.get_item_identifier(p_item.data)
+            identifier = self.get_item_identifier(p_item)
             p_item.hash = identifier
             item_db = self.pq_store.push(self.pq_id, p_item)
 
@@ -211,7 +178,7 @@ class PriorityQueue:
         return current_size >= self.maxsize
 
     def is_item_on_queue(self, p_item: models.PrioritizedItem) -> bool:
-        identifier = self.get_item_identifier(p_item.data)
+        identifier = self.get_item_identifier(p_item)
         item = self.pq_store.get_item_by_hash(self.pq_id, identifier)
         if item is None:
             return False
@@ -219,11 +186,11 @@ class PriorityQueue:
         return True
 
     def get_p_item_by_identifier(self, p_item: models.PrioritizedItem) -> bool:
-        identifier = self.get_item_identifier(p_item.data)
+        identifier = self.get_item_identifier(p_item)
         item = self.pq_store.get_item_by_hash(self.pq_id, identifier)
         return item
 
-    def is_valid_item(self, item: Any) -> bool:
+    def _is_valid_item(self, item: Any) -> bool:
         """Validate the item to be pushed into the queue.
 
         Args:
@@ -238,3 +205,17 @@ class PriorityQueue:
             return False
 
         return True
+
+    def dict(self) -> Dict[str, Any]:
+        """Return a dict representation of the queue."""
+        return {
+            "id": self.pq_id,
+            "size": self.qsize(),
+            "maxsize": self.maxsize,
+            "item_type": self.item_type.__name__,
+            "allow_replace": self.allow_replace,
+            "allow_updates": self.allow_updates,
+            "allow_priority_updates": self.allow_priority_updates,
+            "pq": self.pq_store.get_items_by_scheduler_id(self.pq_id),
+        }
+

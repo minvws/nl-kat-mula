@@ -82,3 +82,8 @@ class PriorityQueueStorer(abc.ABC):
     @abc.abstractmethod
     def get_item_by_hash(self, scheduler_id: str, item_hash: str) -> Optional[models.PrioritizedItem]:
         raise NotImplementedError
+
+
+    @abc.abstractmethod
+    def get_items_by_scheduler_id(self, scheduler_id: str) -> Optional[models.PrioritizedItem]:
+        raise NotImplementedError
