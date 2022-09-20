@@ -15,15 +15,11 @@ class PriorityQueueStore(PriorityQueueStorer):
 
         self.datastore = datastore
 
-    def pop(self, scheduler_id: str) -> Optional[models.Task]:
+    def pop(self, scheduler_id: str) -> Optional[models.PrioritizedItem]:
         with self.datastore.session.begin() as session:
             item_orm = (
                 session.query(models.PrioritizedItemORM)
-                # .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
-                # .filter(models.PrioritizedItemORM.data["organization"].astext == "_dev")
-                .filter(models.PrioritizedItemORM.data["scheduler_id"].as_string() == "boefje-_dev")
-                # .order_by(models.PrioritizedItemORM.priority.asc())
-                # .order_by(models.PrioritizedItemORM.created_at.asc())
+                .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
                 .first()
             )
 

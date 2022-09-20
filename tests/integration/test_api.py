@@ -1,6 +1,7 @@
 import copy
 import unittest
 import uuid
+from typing import Optional
 from unittest import mock
 
 import requests
@@ -9,16 +10,17 @@ from scheduler import config, connectors, datastores, models, queues, rankers, s
 from tests.factories import BoefjeFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
 
 
-def create_p_item(organisation_id: str, priority: int) -> models.QueuePrioritizedItem:
+def create_p_item(organisation_id: str, priority: int, data: Optional[dict] = None) -> models.PrioritizedItem:
     scan_profile = ScanProfileFactory(level=0)
     ooi = OOIFactory(scan_profile=scan_profile)
-    item = models.QueuePrioritizedItem(
+    item = models.PrioritizedItem(
         priority=priority,
         item=models.BoefjeTask(
             boefje=BoefjeFactory(),
             input_ooi=ooi.primary_key,
             organization=organisation_id,
         ),
+        data=data or {},
     )
     return item
 
