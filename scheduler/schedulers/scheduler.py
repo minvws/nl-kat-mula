@@ -2,7 +2,7 @@ import abc
 import datetime
 import logging
 import threading
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 from scheduler import context, models, queues, rankers, utils
 from scheduler.utils import thread
@@ -92,8 +92,8 @@ class Scheduler(abc.ABC):
             scheduler_id=self.scheduler_id,
             p_item=p_item,
             status=models.TaskStatus.QUEUED,
-            created_at=datetime.datetime.now(),  # FIXME: utc
-            modified_at=datetime.datetime.now(),  # FIXME: utc
+            created_at=datetime.datetime.now(datetime.timezone.utc),
+            modified_at=datetime.datetime.now(datetime.timezone.utc),
         )
 
         self.ctx.task_store.add_task(task)
@@ -119,7 +119,8 @@ class Scheduler(abc.ABC):
 
         return None
 
-    def pop_item_from_queue(self) -> models.PrioritizedItem:
+    # TODO: filter options
+    def pop_item_from_queue(self) -> Optional[models.PrioritizedItem]:
         """Pop an item from the queue.
 
         Returns:
@@ -136,7 +137,8 @@ class Scheduler(abc.ABC):
             )
             raise exc
 
-        self.post_pop(p_item)
+        if p_item is not None:
+            self.post_pop(p_item)
 
         return p_item
 

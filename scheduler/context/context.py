@@ -85,3 +85,5 @@ class AppContext:
         datastore = sqlalchemy.SQLAlchemy(self.config.database_dsn, stores.DatastoreType.SQLITE)
         self.task_store = sqlalchemy.TaskStore(datastore)
         self.pq_store = sqlalchemy.PriorityQueueStore(datastore)
+
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)

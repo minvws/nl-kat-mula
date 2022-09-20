@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple, Union
 
 from scheduler import models
 
-from sqlalchemy import create_engine, orm, pool
+from sqlalchemy import Text, create_engine, orm, pool
 
 from ..stores import PriorityQueueStorer
 from .datastore import SQLAlchemy
@@ -19,9 +19,11 @@ class PriorityQueueStore(PriorityQueueStorer):
         with self.datastore.session.begin() as session:
             item_orm = (
                 session.query(models.PrioritizedItemORM)
-                .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
-                .order_by(models.PrioritizedItemORM.priority.asc())
-                .order_by(models.PrioritizedItemORM.created_at.asc())
+                # .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
+                # .filter(models.PrioritizedItemORM.data["organization"].astext == "_dev")
+                .filter(models.PrioritizedItemORM.data["scheduler_id"].as_string() == "boefje-_dev")
+                # .order_by(models.PrioritizedItemORM.priority.asc())
+                # .order_by(models.PrioritizedItemORM.created_at.asc())
                 .first()
             )
 

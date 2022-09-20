@@ -183,7 +183,7 @@ class Server:
                     detail="attribute not found",
                 ) from exc
 
-        return updated_scheduler
+        return updated_scheduler  # TODO: check if this needs to be `s`
 
     def list_tasks(
         self,
@@ -275,14 +275,14 @@ class Server:
 
         # update task in database
         try:
-            updated_task = self.ctx.task_store.update_task(task_db)
+            self.ctx.task_store.update_task(task_db)
         except Exception as exc:
             raise fastapi.HTTPException(
                 status_code=500,
                 detail="failed to update task",
             ) from exc
 
-        return updated_task
+        return models.Task(**task_db.dict())
 
     def get_queues(self) -> Any:
         return [models.Queue(**q.dict()) for q in self.queues.values()]
@@ -309,6 +309,12 @@ class Server:
             p_item = s.pop_item_from_queue()
         except queues.QueueEmptyError as exc_empty:
             return None
+
+        if p_item is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="not able to pop item from queue",
+            )
 
         return models.PrioritizedItem(**p_item.dict())
 

@@ -396,7 +396,7 @@ class BoefjeScheduler(Scheduler):
         # we try to find the same combination of ooi, boefje, and organisation
         # (hash) to make sure that the particular task isn't being processed.
         task_db = self.ctx.task_store.get_task_by_hash(
-            mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
+            mmh3.hash_bytes(f"{boefje.id}-{ooi.primary_key}-{self.organisation.id}").hex()
         )
         if task_db is not None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED):
             self.logger.debug(
@@ -480,6 +480,6 @@ class BoefjeScheduler(Scheduler):
             data=task,
         )
 
-        p_item.hash = mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
+        p_item.hash = mmh3.hash_bytes(f"{boefje.id}-{ooi.primary_key}-{self.organisation.id}").hex()
 
         return p_item

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import json
 import logging
 import queue
@@ -16,7 +17,7 @@ from .errors import (InvalidPrioritizedItemError, NotAllowedError,
                      QueueEmptyError, QueueFullError)
 
 
-class PriorityQueue:
+class PriorityQueue(abc.ABC):
     """
 
     Attributes:
@@ -145,7 +146,7 @@ class PriorityQueue:
         if item_on_queue:
             item_db = self.pq_store.update(self.pq_id, p_item)
         else:
-            identifier = self.get_item_identifier(p_item)
+            identifier = self.create_hash(p_item)
             p_item.hash = identifier
             item_db = self.pq_store.push(self.pq_id, p_item)
 
@@ -178,7 +179,7 @@ class PriorityQueue:
         return current_size >= self.maxsize
 
     def is_item_on_queue(self, p_item: models.PrioritizedItem) -> bool:
-        identifier = self.get_item_identifier(p_item)
+        identifier = self.create_hash(p_item)
         item = self.pq_store.get_item_by_hash(self.pq_id, identifier)
         if item is None:
             return False
@@ -186,7 +187,7 @@ class PriorityQueue:
         return True
 
     def get_p_item_by_identifier(self, p_item: models.PrioritizedItem) -> bool:
-        identifier = self.get_item_identifier(p_item)
+        identifier = self.create_hash(p_item)
         item = self.pq_store.get_item_by_hash(self.pq_id, identifier)
         return item
 
@@ -219,3 +220,7 @@ class PriorityQueue:
             "pq": self.pq_store.get_items_by_scheduler_id(self.pq_id),
         }
 
+
+    @abc.abstractmethod
+    def create_hash(self, p_item: models.PrioritizedItem) -> str:
+        raise NotImplementedError

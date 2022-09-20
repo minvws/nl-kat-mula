@@ -18,6 +18,10 @@ class Datastore:
 
 
 class TaskStorer(abc.ABC):
+
+    def __init__(self) -> None:
+        self.logger: logging.Logger = logging.getLogger(__name__)
+
     @abc.abstractmethod
     def get_tasks(
         self,
@@ -46,6 +50,9 @@ class TaskStorer(abc.ABC):
 
 
 class PriorityQueueStorer(abc.ABC):
+
+    def __init__(self) -> None:
+        self.logger: logging.Logger = logging.getLogger(__name__)
 
     @abc.abstractmethod
     def push(self, scheduler_id: str, task: models.PrioritizedItem) -> None:
@@ -82,7 +89,6 @@ class PriorityQueueStorer(abc.ABC):
     @abc.abstractmethod
     def get_item_by_hash(self, scheduler_id: str, item_hash: str) -> Optional[models.PrioritizedItem]:
         raise NotImplementedError
-
 
     @abc.abstractmethod
     def get_items_by_scheduler_id(self, scheduler_id: str) -> Optional[models.PrioritizedItem]:

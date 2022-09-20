@@ -70,11 +70,10 @@ class TaskStore(TaskStorer):
 
             return created_task
 
-    def update_task(self, task: models.Task) -> Optional[models.Task]:
+    def update_task(self, task: models.Task) -> None:
         with self.datastore.session.begin() as session:
-            task_orm = session.query(models.TaskORM).get(task.id)
-            task_orm.status = task.status
-
-            updated_task = models.Task.from_orm(task_orm)
-
-            return updated_task
+            (
+                session.query(models.TaskORM)
+                .filter(models.TaskORM.id == task.id)
+                .update(task.dict())
+            )
