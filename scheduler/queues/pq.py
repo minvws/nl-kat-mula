@@ -14,7 +14,8 @@ from scheduler import models
 from scheduler.repositories.sqlalchemy import PriorityQueueStore
 
 from .errors import (InvalidPrioritizedItemError, NotAllowedError,
-                     QueueEmptyError, QueueFullError)
+                     PrioritizedItemNotFoundError, QueueEmptyError,
+                     QueueFullError)
 
 
 class PriorityQueue(abc.ABC):
@@ -90,7 +91,7 @@ class PriorityQueue(abc.ABC):
 
         return self.pq_store.pop(self.pq_id)
 
-    def push(self, p_item: models.PrioritizedItem) -> None:
+    def push(self, p_item: models.PrioritizedItem) -> Optional[models.PrioritizedItem]:
         """Push an item onto the queue.
 
         Raises:
@@ -143,15 +144,17 @@ class PriorityQueue(abc.ABC):
             )
 
         # If already on queue update the item, else create a new one
-        if item_on_queue:
-            item_db = self.pq_store.update(self.pq_id, p_item)
-        else:
+        item_db = None
+        if not item_on_queue:
             identifier = self.create_hash(p_item)
             p_item.hash = identifier
             item_db = self.pq_store.push(self.pq_id, p_item)
+        else:
+            self.pq_store.update(self.pq_id, p_item)
+            item_db = self.get_p_item_by_identifier(p_item)
 
-        if item_db is None:
-            raise IndexError  # TODO: Better error
+        if not item_db:
+            raise PrioritizedItemNotFoundError(f"Item {p_item} not found on queue {self.pq_id}")
 
         return item_db
 

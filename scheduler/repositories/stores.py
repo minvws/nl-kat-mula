@@ -83,7 +83,7 @@ class PriorityQueueStorer(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update(self, scheduler_id: str, task: models.PrioritizedItem) -> Optional[models.PrioritizedItem]:
+    def update(self, scheduler_id: str, task: models.PrioritizedItem) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod

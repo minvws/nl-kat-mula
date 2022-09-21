@@ -19,7 +19,11 @@ class PriorityQueueStore(PriorityQueueStorer):
         with self.datastore.session.begin() as session:
             item_orm = (
                 session.query(models.PrioritizedItemORM)
-                .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
+                # .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
+                # .filter(models.PrioritizedItemORM.data["organization"].astext == "_dev")
+                # .filter(models.PrioritizedItemORM.data["boefje"]["id"].as_string() == "dns-records")  # This one works
+                # .order_by(models.PrioritizedItemORM.priority.asc())
+                # .order_by(models.PrioritizedItemORM.created_at.asc())
                 .first()
             )
 
@@ -51,20 +55,15 @@ class PriorityQueueStore(PriorityQueueStorer):
 
             return models.PrioritizedItem.from_orm(item_orm)
 
-    def update(self, item: models.PrioritizedItem) -> Optional[models.PrioritizedItem]:
+    def update(self, scheduler_id: str, item: models.PrioritizedItem) -> None:
         with self.datastore.session.begin() as session:
-            task_orm = (
+            (
                 session.query(models.PrioritizedItemORM)
-                .filter(models.PrioritizedItem == item.id)
-                .one_or_none()
+                .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
+                .filter(models.PrioritizedItemORM.id == item.id)
+                .update(item.dict())
+
             )
-            if task_orm is None:
-                return None
-
-            update_data = item.dict(exclude_unset=True)
-            updated_item = item_orm.copy(update=update_data)
-
-            return models.PrioritizedItem.from_orm(updated_item)
 
     def remove(self, scheduler_id: str, item_id: str) -> None:
         with self.datastore.session.begin() as session:
