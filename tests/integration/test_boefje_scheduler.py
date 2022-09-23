@@ -3,18 +3,17 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from scheduler import config, connectors, datastores, models, queues, rankers, schedulers
-from tests.factories import (
-    BoefjeFactory,
-    BoefjeMetaFactory,
-    OOIFactory,
-    OrganisationFactory,
-    PluginFactory,
-    ScanProfileFactory,
-)
+from scheduler import (config, connectors, datastores, models, queues, rankers,
+                       repositories, schedulers)
+from scheduler.repositories.sqlalchemy import PriorityQueueStore
+from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
+                             OrganisationFactory, PluginFactory,
+                             ScanProfileFactory)
 
 
 class SchedulerTestCase(unittest.TestCase):
+
+
     def setUp(self):
         cfg = config.settings.Settings()
 
@@ -55,6 +54,7 @@ class SchedulerTestCase(unittest.TestCase):
         # Datastore
         self.mock_ctx.datastore = datastores.SQLAlchemy(dsn="sqlite:///")
         models.Base.metadata.create_all(self.mock_ctx.datastore.engine)
+        self.pq_store = repositories.sqlalchemy.PriorityQueueStore(self.mock_ctx.datastore)
 
         # Scheduler
         self.organisation = OrganisationFactory()
@@ -64,6 +64,7 @@ class SchedulerTestCase(unittest.TestCase):
             maxsize=cfg.pq_maxsize,
             item_type=models.BoefjeTask,
             allow_priority_updates=True,
+            pq_store = self.pq_store,
         )
 
         ranker = rankers.BoefjeRanker(
@@ -84,7 +85,8 @@ class SchedulerTestCase(unittest.TestCase):
     def test_populate_boefjes_queue_get_latest_object(
         self, mock_create_tasks_for_oois, mock_get_random_objects, mock_get_latest_object
     ):
-        """When oois are available, and no random oois"""
+        """When oois are available from octopoes api, and no random oois.
+        """
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
         task = models.BoefjeTask(
@@ -98,9 +100,9 @@ class SchedulerTestCase(unittest.TestCase):
         mock_get_random_objects.return_value = []
         mock_create_tasks_for_oois.side_effect = [
             [
-                queues.PrioritizedItem(
+                models.PrioritizedItem(
                     priority=0,
-                    item=task,
+                    data=task,
                 )
             ],
         ]
@@ -133,7 +135,7 @@ class SchedulerTestCase(unittest.TestCase):
         mock_get_latest_object.return_value = None
         mock_get_random_objects.side_effect = [[ooi], [], [], []]
         mock_create_tasks_for_oois.return_value = [
-            queues.PrioritizedItem(0, task),
+            models.PrioritizedItem(priority=0, data=task),
         ]
 
         self.scheduler.populate_queue()
@@ -314,6 +316,7 @@ class SchedulerTestCase(unittest.TestCase):
             maxsize=1,
             item_type=models.BoefjeTask,
             allow_priority_updates=True,
+            pq_store=self.pq_store,
         )
 
         # Add a task to the queue to make it full
@@ -325,7 +328,7 @@ class SchedulerTestCase(unittest.TestCase):
             input_ooi=ooi.primary_key,
             organization=organisation.id,
         )
-        queue.push(queues.PrioritizedItem(0, task))
+        queue.push(models.PrioritizedItem(priority=0, data=task))
 
         self.scheduler.queue = queue
 
@@ -351,9 +354,9 @@ class SchedulerTestCase(unittest.TestCase):
         mock_get_random_objects.return_value = []
         mock_create_tasks_for_oois.side_effect = [
             [
-                queues.PrioritizedItem(
+                models.PrioritizedItem(
                     priority=0,
-                    item=task,
+                    data=task,
                 )
             ],
         ]
@@ -384,9 +387,9 @@ class SchedulerTestCase(unittest.TestCase):
         mock_get_random_objects.return_value = []
         mock_create_tasks_for_oois.side_effect = [
             [
-                queues.PrioritizedItem(
+                models.PrioritizedItem(
                     priority=0,
-                    item=task,
+                    data=task,
                 )
             ],
         ]

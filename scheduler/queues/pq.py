@@ -89,7 +89,13 @@ class PriorityQueue(abc.ABC):
         if self.empty():
             raise QueueEmptyError(f"Queue {self.pq_id} is empty.")
 
-        return self.pq_store.pop(self.pq_id)
+        item = self.pq_store.pop(self.pq_id)
+        if item is None:
+            return None
+
+        self.remove(item)
+
+        return item
 
     def push(self, p_item: models.PrioritizedItem) -> Optional[models.PrioritizedItem]:
         """Push an item onto the queue.
@@ -159,14 +165,10 @@ class PriorityQueue(abc.ABC):
         return item_db
 
     def peek(self, index: int) -> Optional[models.PrioritizedItem]:
-        task = self.pq_store.peek(self.pq_id, index)
-        if task is None:
-            return None
-
-        return models.PrioritizedItem(item=task.item, priority=task.priority)
+        return self.pq_store.peek(self.pq_id, index)
 
     def remove(self, p_item: models.PrioritizedItem) -> None:
-        self.pq_store.remove(self.pq_id, p_item)
+        self.pq_store.remove(self.pq_id, p_item.id)
 
     def empty(self) -> bool:
         return self.pq_store.empty(self.pq_id)

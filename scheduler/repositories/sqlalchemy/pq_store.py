@@ -19,11 +19,11 @@ class PriorityQueueStore(PriorityQueueStorer):
         with self.datastore.session.begin() as session:
             item_orm = (
                 session.query(models.PrioritizedItemORM)
-                # .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
+                .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
+                .order_by(models.PrioritizedItemORM.priority.asc())
+                .order_by(models.PrioritizedItemORM.created_at.asc())
                 # .filter(models.PrioritizedItemORM.data["organization"].astext == "_dev")
                 # .filter(models.PrioritizedItemORM.data["boefje"]["id"].as_string() == "dns-records")  # This one works
-                # .order_by(models.PrioritizedItemORM.priority.asc())
-                # .order_by(models.PrioritizedItemORM.created_at.asc())
                 .first()
             )
 
@@ -39,10 +39,10 @@ class PriorityQueueStore(PriorityQueueStorer):
 
             return models.PrioritizedItem.from_orm(item_orm)
 
-    def peek(self, scheduler_id: str, index: str) -> Optional[models.PrioritizedItem]:
+    def peek(self, scheduler_id: str, index: int) -> Optional[models.PrioritizedItem]:
         with self.datastore.session.begin() as session:
             item_orm = (
-                session.query(models.PrioritizedItem)
+                session.query(models.PrioritizedItemORM)
                 .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
                 .order_by(models.PrioritizedItemORM.priority.asc())
                 .order_by(models.PrioritizedItemORM.created_at.asc())
@@ -67,8 +67,22 @@ class PriorityQueueStore(PriorityQueueStorer):
 
     def remove(self, scheduler_id: str, item_id: str) -> None:
         with self.datastore.session.begin() as session:
+            (
+                session.query(models.PrioritizedItemORM)
+                .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
+                .filter(models.PrioritizedItemORM.id == item_id)
+                .delete()
+            )
+
+
+    def get(self, scheduler_id, item_id: str) -> Optional[models.PrioritizedItem]:
+        with self.datastore.session.begin() as session:
             item_orm = session.query(models.PrioritizedItemORM).get(item_id)
-            session.delete(item_orm)
+
+            if item_orm is None:
+                return None
+
+            return models.PrioritizedItem.from_orm(item_orm)
 
     def empty(self, scheduler_id: str) -> bool:
         with self.datastore.session.begin() as session:
