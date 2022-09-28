@@ -225,7 +225,7 @@ class App:
             scheduler.run()
 
         # Start monitors
-        self._run_in_thread(name="monitor_organisations", func=self.monitor_organisations, interval=self.ctx.config.monitor_interval)
+        self._run_in_thread(name="monitor_organisations", func=self.monitor_organisations, interval=self.ctx.config.monitor_organisations_interval)
 
         # Main thread
         while not self.stop_event.is_set():
