@@ -285,10 +285,17 @@ class Server:
         return updated_task
 
     def get_queues(self) -> Any:
-        return [models.Queue(**q.dict()) for q in self.queues.values()]
+        return [models.Queue(**q.dict()) for s.queue in self.schedulers.values()]
 
     def get_queue(self, queue_id: str) -> Any:
-        q = self.queues.get(queue_id)
+        s = self.schedulers.get(queue_id)
+        if s is None:
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail="scheduler not found, by queue_id",
+            )
+
+        q = s.queue
         if q is None:
             raise fastapi.HTTPException(
                 status_code=404,
