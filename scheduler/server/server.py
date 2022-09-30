@@ -21,7 +21,6 @@ class Server:
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.ctx: context.AppContext = ctx
         self.schedulers: Dict[str, schedulers.Scheduler] = s
-        self.queues: Dict[str, queues.PriorityQueue] = {k: s.queue for k, s in self.schedulers.items()}
 
         self.api = fastapi.FastAPI()
 
@@ -285,7 +284,7 @@ class Server:
         return updated_task
 
     def get_queues(self) -> Any:
-        return [models.Queue(**q.dict()) for s.queue in self.schedulers.values()]
+        return [models.Queue(**s.queue.dict()) for s in self.schedulers.values()]
 
     def get_queue(self, queue_id: str) -> Any:
         s = self.schedulers.get(queue_id)
