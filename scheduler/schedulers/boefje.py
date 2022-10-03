@@ -8,7 +8,8 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import OOI, Boefje, BoefjeTask, Organisation, Plugin, TaskStatus
+from scheduler.models import (OOI, Boefje, BoefjeTask, Organisation, Plugin,
+                              TaskStatus)
 
 from .scheduler import Scheduler
 
@@ -82,7 +83,7 @@ class BoefjeScheduler(Scheduler):
                     continue
 
                 # NOTE: maxsize 0 means unlimited
-                while p_items > (self.queue.maxsize - self.queue.pq.qsize()) and self.queue.maxsize != 0:
+                while len(p_items) > (self.queue.maxsize - self.queue.pq.qsize()) and self.queue.maxsize != 0:
                     self.logger.debug(
                         "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
                         len(p_items),
