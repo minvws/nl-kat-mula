@@ -4,9 +4,9 @@ import unittest
 import uuid
 
 import pydantic
-from scheduler import datastores, models, queues
+from scheduler import models, queues
 from scheduler.models import Base
-from scheduler.repositories.sqlalchemy import PriorityQueueStore
+from scheduler.repositories import sqlalchemy, stores
 from sqlalchemy.orm import sessionmaker
 from tests.utils import functions
 
@@ -18,10 +18,10 @@ class TestPriorityQueue(queues.PriorityQueue):
 
 class PriorityQueueTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.datastore = datastores.SQLAlchemy(dsn="sqlite:///")
+        self.datastore = sqlalchemy.SQLAlchemy("sqlite:///", stores.DatastoreType.SQLITE)
         Base.metadata.create_all(self.datastore.engine)
 
-        self.pq_store = PriorityQueueStore(datastore=self.datastore)
+        self.pq_store = sqlalchemy.PriorityQueueStore(datastore=self.datastore)
 
         self.pq = TestPriorityQueue(
             pq_id="test",

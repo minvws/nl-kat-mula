@@ -27,7 +27,7 @@ class TaskStatus(_Enum):
 
 
 class Task(BaseModel):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    id: uuid.UUID
     scheduler_id: str
     p_item: PrioritizedItem
     status: TaskStatus

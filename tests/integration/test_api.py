@@ -1,4 +1,5 @@
 import copy
+import json
 import unittest
 import uuid
 from typing import Optional
@@ -6,23 +7,17 @@ from unittest import mock
 
 import requests
 from fastapi.testclient import TestClient
-from scheduler import config, connectors, datastores, models, queues, rankers, schedulers, server
-from tests.factories import BoefjeFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
+from scheduler import (config, connectors, models, queues, rankers,
+                       repositories, schedulers, server, utils)
+from tests.factories import (BoefjeFactory, OOIFactory, OrganisationFactory,
+                             ScanProfileFactory)
+from tests.utils import functions
+from tests.utils.functions import create_p_item
 
 
-def create_p_item(organisation_id: str, priority: int, data: Optional[dict] = None) -> models.PrioritizedItem:
-    scan_profile = ScanProfileFactory(level=0)
-    ooi = OOIFactory(scan_profile=scan_profile)
-    item = models.PrioritizedItem(
-        priority=priority,
-        item=models.BoefjeTask(
-            boefje=BoefjeFactory(),
-            input_ooi=ooi.primary_key,
-            organization=organisation_id,
-        ),
-        data=data or {},
-    )
-    return item
+class TestPriorityQueue(queues.PriorityQueue):
+    def create_hash(self, item: functions.TestModel):
+        return hash(item.id)
 
 
 class APITestCase(unittest.TestCase):
@@ -33,17 +28,24 @@ class APITestCase(unittest.TestCase):
         self.mock_ctx.config = cfg
 
         # Datastore
-        self.mock_ctx.datastore = datastores.SQLAlchemy(dsn="sqlite:///")
+        self.mock_ctx.datastore = repositories.sqlalchemy.SQLAlchemy("sqlite:///", repositories.stores.DatastoreType.SQLITE)
         models.Base.metadata.create_all(self.mock_ctx.datastore.engine)
+
+        self.pq_store = repositories.sqlalchemy.PriorityQueueStore(self.mock_ctx.datastore)
+        self.task_store = repositories.sqlalchemy.TaskStore(self.mock_ctx.datastore)
+
+        self.mock_ctx.pq_store = self.pq_store
+        self.mock_ctx.task_store = self.task_store
 
         # Scheduler
         self.organisation = OrganisationFactory()
 
-        queue = queues.BoefjePriorityQueue(
+        queue = TestPriorityQueue(
             pq_id=self.organisation.id,
-            maxsize=cfg.pq_maxsize,
-            item_type=models.BoefjeTask,
+            maxsize=10,
+            item_type=functions.TestModel,
             allow_priority_updates=True,
+            pq_store=self.pq_store,
         )
 
         ranker = rankers.BoefjeRanker(
@@ -97,7 +99,7 @@ class APITestCase(unittest.TestCase):
 
         item = create_p_item(self.organisation.id, 0)
 
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=item.dict())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(item.json()))
         self.assertEqual(response.status_code, 201)
         self.assertEqual(1, self.scheduler.queue.qsize())
 
@@ -105,7 +107,7 @@ class APITestCase(unittest.TestCase):
         response = self.client.post(
             f"/queues/{self.scheduler.scheduler_id}/push", json={"priority": 0, "item": "not a task"}
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 422)
 
     def test_push_queue_full(self):
         # Set maxsize of the queue to 1
@@ -113,13 +115,13 @@ class APITestCase(unittest.TestCase):
 
         # Add one task to the queue
         first_item = create_p_item(self.organisation.id, 0)
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=first_item.dict())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(first_item.json()))
         self.assertEqual(response.status_code, 201)
         self.assertEqual(1, self.scheduler.queue.qsize())
 
         # Try to add another task to the queue through the api
         second_item = create_p_item(self.organisation.id, 1)
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=second_item.dict())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(second_item.json()))
         self.assertEqual(response.status_code, 400)
         self.assertEqual(1, self.scheduler.queue.qsize())
 
@@ -132,12 +134,12 @@ class APITestCase(unittest.TestCase):
 
         # Add one task to the queue
         initial_item = create_p_item(self.organisation.id, 0)
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=initial_item.dict())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(initial_item.json()))
         self.assertEqual(response.status_code, 201)
         self.assertEqual(1, self.scheduler.queue.qsize())
 
         # Add the same item again through the api
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=initial_item.dict())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(initial_item.json()))
 
         # The queue should still have one item
         self.assertEqual(response.status_code, 400)
@@ -149,21 +151,19 @@ class APITestCase(unittest.TestCase):
 
         # Add one task to the queue
         initial_item = create_p_item(self.organisation.id, 0)
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=initial_item.dict())
-        initial_item_id = response.json().get("item").get("id")
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(initial_item.json()))
         self.assertEqual(response.status_code, 201)
         self.assertEqual(1, self.scheduler.queue.qsize())
 
         # Add the same item again through the api
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=initial_item.dict())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=response.json())
 
-        # The queue should have two items, entry_finder one
+        # The queue should have one item
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(2, self.scheduler.queue.qsize())
-        self.assertEqual(1, len(self.scheduler.queue.entry_finder))
+        self.assertEqual(1, self.scheduler.queue.qsize())
 
         # Check if the item on the queue is the replaced item
-        self.assertEqual(initial_item_id, self.scheduler.queue.peek(0).p_item.item.id)
+        self.assertEqual(response.json().get("id"), str(self.scheduler.queue.peek(0).id))
 
     def test_push_updates_not_allowed(self):
         # Set queue to no allow updates
@@ -171,21 +171,20 @@ class APITestCase(unittest.TestCase):
 
         # Add one task to the queue
         initial_item = create_p_item(self.organisation.id, 0)
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=initial_item.dict())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(initial_item.json()))
         self.assertEqual(response.status_code, 201)
         self.assertEqual(1, self.scheduler.queue.qsize())
 
         # Update the item
-        updated_item = copy.deepcopy(initial_item)
-        updated_item.item.boefje.name = "updated-name"
+        updated_item = models.PrioritizedItem(**response.json())
+        updated_item.data["name"] = "updated-name"
 
         # Try to update the item through the api
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=updated_item.dict())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(updated_item.json()))
 
         # The queue should still have one item
         self.assertEqual(response.status_code, 400)
         self.assertEqual(1, self.scheduler.queue.qsize())
-        self.assertEqual(1, len(self.scheduler.queue.entry_finder))
 
     def test_push_updates_allowed(self):
         # Set queue to allow updates
@@ -193,22 +192,24 @@ class APITestCase(unittest.TestCase):
 
         # Add one task to the queue
         initial_item = create_p_item(self.organisation.id, 0)
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=initial_item.dict())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(initial_item.json()))
         self.assertEqual(response.status_code, 201)
         self.assertEqual(1, self.scheduler.queue.qsize())
 
         # Update the item
-        updated_item = copy.deepcopy(initial_item)
-        updated_item.item.boefje.name = "updated-name"
+        updated_item = models.PrioritizedItem(**response.json())
+        updated_item.data["name"] = "updated-name"
 
         # Try to update the item through the api
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=updated_item.dict())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(updated_item.json()))
         self.assertEqual(response.status_code, 201)
 
-        # The queue should have two items, entry_finder one
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(2, self.scheduler.queue.qsize())
-        self.assertEqual(1, len(self.scheduler.queue.entry_finder))
+        # The queue should have one item
+        self.assertEqual(1, self.scheduler.queue.qsize())
+
+        # Check if the item on the queue is the updated item
+        self.assertEqual(response.json().get("id"), str(self.scheduler.queue.peek(0).id))
+        self.assertEqual(response.json().get("data").get("name"), "updated-name")
 
     def test_push_priority_updates_not_allowed(self):
         # Set queue to no allow updates
@@ -216,7 +217,7 @@ class APITestCase(unittest.TestCase):
 
         # Add one task to the queue
         initial_item = create_p_item(self.organisation.id, 0)
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=initial_item.dict())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(initial_item.json()))
         self.assertEqual(response.status_code, 201)
         self.assertEqual(1, self.scheduler.queue.qsize())
 
@@ -225,34 +226,11 @@ class APITestCase(unittest.TestCase):
         updated_item.priority = 1
 
         # Try to update the item through the api
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=updated_item.dict())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(updated_item.json()))
 
         # The queue should still have one item
         self.assertEqual(response.status_code, 400)
         self.assertEqual(1, self.scheduler.queue.qsize())
-        self.assertEqual(1, len(self.scheduler.queue.entry_finder))
-
-    def test_push_priority_updates_allowed(self):
-        # Set queue to allow updates
-        self.scheduler.queue.allow_priority_updates = True
-
-        # Add one task to the queue
-        initial_item = create_p_item(self.organisation.id, 0)
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=initial_item.dict())
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(1, self.scheduler.queue.qsize())
-
-        # Update the item
-        updated_item = copy.deepcopy(initial_item)
-        updated_item.priority = 1
-
-        # Try to update the item through the api
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=updated_item.dict())
-
-        # The queue should have two items, entry_finder one
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(2, self.scheduler.queue.qsize())
-        self.assertEqual(1, len(self.scheduler.queue.entry_finder))
 
     def test_update_priority_higher(self):
         """When updating the priority of the initial item on the priority queue
@@ -265,50 +243,23 @@ class APITestCase(unittest.TestCase):
 
         # Add one task to the queue
         initial_item = create_p_item(self.organisation.id, 2)
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=initial_item.dict())
-        initial_item_created = models.QueuePrioritizedItem(**response.json())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(initial_item.json()))
+        initial_item_created = models.PrioritizedItem(**response.json())
         self.assertEqual(response.status_code, 201)
 
         # Update priority of the item
-        updated_item = copy.deepcopy(initial_item)
+        updated_item = models.PrioritizedItem(**response.json())
         updated_item.priority = 1
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=updated_item.dict())
-        updated_item_created = models.QueuePrioritizedItem(**response.json())
+
+        # Try to update the item through the api
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(updated_item.json()))
         self.assertEqual(response.status_code, 201)
 
-        # PriorityQueue should have 2 items (one initial with entry state
-        # removed, one updated)
-        self.assertEqual(2, self.scheduler.queue.qsize())
-        self.assertEqual(1, len(self.scheduler.queue.entry_finder))
-
-        first_entry = self.scheduler.queue.peek(0)
-        last_entry = self.scheduler.queue.peek(-1)
-
-        # Last item should be an item with, EntryState.REMOVED
-        self.assertEqual(2, last_entry.priority)
-        self.assertEqual(initial_item_created, models.QueuePrioritizedItem(**last_entry.p_item.dict()))
-        self.assertEqual(queues.EntryState.REMOVED, last_entry.state)
-
-        # First item should be the updated item, EntryState. ADDED
-        self.assertEqual(1, first_entry.priority)
-        self.assertEqual(updated_item_created, models.QueuePrioritizedItem(**first_entry.p_item.dict()))
-        self.assertEqual(queues.EntryState.ADDED, first_entry.state)
-
-        # Item in entry_finder should be the updated item
-        item = self.scheduler.queue.entry_finder[self.scheduler.queue.get_item_identifier(updated_item.item)]
-        self.assertEqual(updated_item_created.priority, item.priority)
-        self.assertEqual(updated_item_created, models.QueuePrioritizedItem(**item.p_item.dict()))
-        self.assertEqual(queues.EntryState.ADDED, item.state)
-
-        # When popping off the queue you should end up with the updated_item
-        # that now has the highest priority
-        popped_item = self.client.get(f"/queues/{self.scheduler.scheduler_id}/pop")
-        self.assertEqual(updated_item_created, models.QueuePrioritizedItem(**popped_item.json()))
-
-        # The queue should now have 1 item and that was the item marked
-        # as removed.
+        # The queue should have one item
         self.assertEqual(1, self.scheduler.queue.qsize())
-        self.assertEqual(0, len(self.scheduler.queue.entry_finder))
+
+        # Check if the item on the queue is the updated item
+        self.assertEqual(response.json().get("id"), str(self.scheduler.queue.peek(0).id))
 
     def test_update_priority_lower(self):
         """When updating the priority of the initial item on the priority queue
@@ -321,73 +272,67 @@ class APITestCase(unittest.TestCase):
 
         # Add one task to the queue
         initial_item = create_p_item(self.organisation.id, 1)
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=initial_item.dict())
-        initial_item_created = models.QueuePrioritizedItem(**response.json())
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(initial_item.json()))
+        initial_item_created = models.PrioritizedItem(**response.json())
         self.assertEqual(response.status_code, 201)
 
         # Update priority of the item
-        updated_item = copy.deepcopy(initial_item)
+        updated_item = models.PrioritizedItem(**response.json())
         updated_item.priority = 2
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=updated_item.dict())
-        updated_item_created = models.QueuePrioritizedItem(**response.json())
+
+        # Try to update the item through the api
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(updated_item.json()))
         self.assertEqual(response.status_code, 201)
 
-        # PriorityQueue should have 2 items (one initial with entry state
-        # removed, one updated)
-        self.assertEqual(2, self.scheduler.queue.qsize())
-        self.assertEqual(1, len(self.scheduler.queue.entry_finder))
+        # The queue should have one item
+        self.assertEqual(1, self.scheduler.queue.qsize())
 
-        first_entry = self.scheduler.queue.peek(0)
-        last_entry = self.scheduler.queue.peek(-1)
-
-        # Last item should be the updated item
-        self.assertEqual(2, last_entry.priority)
-        self.assertEqual(updated_item_created, models.QueuePrioritizedItem(**last_entry.p_item.dict()))
-        self.assertEqual(queues.EntryState.ADDED, last_entry.state)
-
-        # Item in entry_finder should be the updated_item
-        item = self.scheduler.queue.entry_finder[self.scheduler.queue.get_item_identifier(updated_item.item)]
-        self.assertEqual(updated_item_created.priority, item.priority)
-        self.assertEqual(updated_item_created, models.QueuePrioritizedItem(**item.p_item.dict()))
-        self.assertEqual(queues.EntryState.ADDED, item.state)
-
-        # When popping off the queue you should end up with the updated item
-        # that now has the lowest priority.
-        popped_item = self.client.get(f"/queues/{self.scheduler.scheduler_id}/pop")
-        self.assertEqual(updated_item_created, models.QueuePrioritizedItem(**popped_item.json()))
-
-        # The queue should now have 1 item, because the removed item was
-        # discarded while popping.
-        self.assertEqual(0, self.scheduler.queue.qsize())
-        self.assertEqual(0, len(self.scheduler.queue.entry_finder))
+        # Check if the item on the queue is the updated item
+        self.assertEqual(response.json().get("id"), str(self.scheduler.queue.peek(0).id))
 
     def test_pop_queue(self):
         # Add one task to the queue
         initial_item = create_p_item(self.organisation.id, 0)
-        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=initial_item.dict())
-        initial_item_id = response.json().get("item").get("id")
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(initial_item.json()))
+        initial_item_id = response.json().get("id")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(1, self.scheduler.queue.qsize())
 
         response = self.client.get(f"/queues/{self.scheduler.scheduler_id}/pop")
         self.assertEqual(200, response.status_code)
-        self.assertEqual(initial_item_id, response.json().get("item").get("id"))
+        self.assertEqual(initial_item_id, response.json().get("id"))
         self.assertEqual(0, self.scheduler.queue.qsize())
 
     def test_get_tasks(self):
+        # First add a task
+        item = create_p_item(self.organisation.id, 0)
+
+        response_post = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(item.json()))
+        self.assertEqual(201, response_post.status_code)
+        self.assertEqual(1, self.scheduler.queue.qsize())
+        initial_item_id = response_post.json().get("id")
+
+        response_get = self.client.get("/tasks")
+        self.assertEqual(response_get.status_code, 200)
+        self.assertEqual(1, len(response_get.json()["results"]))
+        self.assertEqual(initial_item_id, response_get.json()["results"][0]["id"])
+
+    def test_get_tasks_empty(self):
         response = self.client.get("/tasks")
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(0, len(response.json()["results"]))
+        self.assertEqual(0, response.json()["count"])
 
     def test_get_task(self):
         # First add a task
         item = create_p_item(self.organisation.id, 0)
 
-        response_post = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=item.dict())
+        response_post = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(item.json()))
         self.assertEqual(201, response_post.status_code)
         self.assertEqual(1, self.scheduler.queue.qsize())
-        initial_item_id = response_post.json().get("item").get("id")
+        initial_item_id = response_post.json().get("id")
 
         # Then get the task
         response_get = self.client.get(f"/tasks/{initial_item_id}")
         self.assertEqual(200, response_get.status_code, 200)
-        self.assertEqual(initial_item_id, response_get.json().get("task").get("item").get("id"))
+        self.assertEqual(initial_item_id, response_get.json().get("id"))

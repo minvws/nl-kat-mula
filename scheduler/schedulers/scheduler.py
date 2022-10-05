@@ -2,6 +2,7 @@ import abc
 import datetime
 import logging
 import threading
+import traceback
 from typing import Any, Callable, Dict, List, Optional
 
 from scheduler import context, models, queues, rankers, utils
@@ -86,6 +87,8 @@ class Scheduler(abc.ABC):
         Args:
             p_item: The prioritized item to post-add to queue.
         """
+        # NOTE: we set the id of the task the same as the p_item, for easier
+        # lookup.
         task = models.Task(
             id=p_item.id,
             hash=p_item.hash,
@@ -96,6 +99,11 @@ class Scheduler(abc.ABC):
             modified_at=datetime.datetime.now(datetime.timezone.utc),
         )
 
+        task_db = self.ctx.task_store.get_task_by_id(str(p_item.id))
+        if task_db is not None:
+            self.ctx.task_store.update_task(task)
+            return
+
         self.ctx.task_store.add_task(task)
 
     def post_pop(self, p_item: models.PrioritizedItem) -> None:
@@ -105,7 +113,9 @@ class Scheduler(abc.ABC):
         Args:
             p_item: The prioritized item to post-pop from queue.
         """
-        task = self.ctx.task_store.get_task_by_id(p_item.data.get("id"))
+        # NOTE: we set the id of the task the same as the p_item, for easier
+        # lookup.
+        task = self.ctx.task_store.get_task_by_id(str(p_item.id))
         if task is None:
             self.logger.error(
                 "Task %s not found in datastore, not updating status [task_id = %s]",

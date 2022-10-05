@@ -1,19 +1,17 @@
 from unittest import TestCase
 
-from sqlalchemy.orm import sessionmaker
-
-from scheduler import datastores
 from scheduler.models import Base
-from scheduler.repositories.sqlalchemy import PriorityQueueStore
+from scheduler.repositories import sqlalchemy, stores
+from sqlalchemy.orm import sessionmaker
 from tests.integration.test_api import create_p_item
 
 
 class TestRepositories(TestCase):
     def setUp(self) -> None:
-        self.datastore = datastores.SQLAlchemy(dsn="sqlite:///")
+        self.datastore = sqlalchemy.SQLAlchemy("sqlite:///", stores.DatastoreType.SQLITE)
         Base.metadata.create_all(self.datastore.engine)
 
-        self.pq_store = PriorityQueueStore(datastore=self.datastore)
+        self.pq_store = sqlalchemy.PriorityQueueStore(datastore=self.datastore)
 
     def tearDown(self) -> None:
         session = sessionmaker(bind=self.datastore.engine)()

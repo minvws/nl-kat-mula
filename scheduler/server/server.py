@@ -21,7 +21,7 @@ class Server:
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.ctx: context.AppContext = ctx
         self.schedulers: Dict[str, schedulers.Scheduler] = s
-        self.queues: Dict[str, queues.PriorityQueue] = {k: s.queue for k, s in self.schedulers.items()}
+        self.queues: Dict[str, models.PriorityQueue] = {k: s.queue for k, s in self.schedulers.items()}
 
         self.api = fastapi.FastAPI()
 
@@ -327,11 +327,11 @@ class Server:
             )
 
         try:
-            p_item = queues.PrioritizedItem(**item.dict())
+            p_item = models.PrioritizedItem(**item.dict())
             if s.queue.item_type == models.BoefjeTask:
-                p_item.item = models.BoefjeTask(**p_item.item)
+                p_item.item = models.BoefjeTask(**p_item.data)
             elif s.queue.item_type == models.NormalizerTask:
-                p_item.item = models.NormalizerTask(**p_item.item)
+                p_item.item = models.NormalizerTask(**p_item.data)
         except Exception as exc:
             raise fastapi.HTTPException(
                 status_code=400,

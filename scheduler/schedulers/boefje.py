@@ -108,7 +108,7 @@ class BoefjeScheduler(Scheduler):
         else:
             self.logger.warning(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
-                self.queue.pq.qsize(),
+                self.queue.qsize(),
                 self.organisation.id,
                 self.scheduler_id,
             )

@@ -138,7 +138,7 @@ class NormalizerScheduler(Scheduler):
                 continue
 
             # NOTE: maxsize 0 means unlimited
-            while len(p_items) > (self.queue.maxsize - self.queue.pq.qsize()) and self.queue.maxsize != 0:
+            while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
                 self.logger.debug(
                     "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
                     len(p_items),
@@ -231,7 +231,7 @@ class NormalizerScheduler(Scheduler):
                     continue
 
                 score = self.ranker.rank(SimpleNamespace(raw_data=raw_data, task=task))
-                p_items.append(PrioritizedItem(priority=score, item=task))
+                p_items.append(PrioritizedItem(priority=score, data=task))
 
                 self.logger.debug(
                     "Created normalizer task: %s [normalizer_task_id=%s, normalizer_id=%s, boefje_meta_id=%s, org_id=%s, scheduler_id=%s]",

@@ -160,7 +160,7 @@ class PriorityQueue(abc.ABC):
             item_db = self.get_p_item_by_identifier(p_item)
 
         if not item_db:
-            raise PrioritizedItemNotFoundError(f"Item {p_item} not found on queue {self.pq_id}")
+            raise PrioritizedItemNotFoundError(f"Item {p_item} not found in datastore {self.pq_id}")
 
         return item_db
 
