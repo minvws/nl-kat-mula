@@ -18,7 +18,6 @@ class Datastore:
 
 
 class TaskStorer(abc.ABC):
-
     def __init__(self) -> None:
         self.logger: logging.Logger = logging.getLogger(__name__)
 
@@ -41,7 +40,7 @@ class TaskStorer(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_task(self, task: models.Task) -> Optional[models.Task]:
+    def create_task(self, task: models.Task) -> Optional[models.Task]:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -50,7 +49,6 @@ class TaskStorer(abc.ABC):
 
 
 class PriorityQueueStorer(abc.ABC):
-
     def __init__(self) -> None:
         self.logger: logging.Logger = logging.getLogger(__name__)
 

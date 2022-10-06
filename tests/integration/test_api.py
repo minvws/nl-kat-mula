@@ -7,10 +7,8 @@ from unittest import mock
 
 import requests
 from fastapi.testclient import TestClient
-from scheduler import (config, connectors, models, queues, rankers,
-                       repositories, schedulers, server, utils)
-from tests.factories import (BoefjeFactory, OOIFactory, OrganisationFactory,
-                             ScanProfileFactory)
+from scheduler import config, connectors, models, queues, rankers, repositories, schedulers, server, utils
+from tests.factories import BoefjeFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
 from tests.utils import functions
 from tests.utils.functions import create_p_item
 
@@ -28,7 +26,9 @@ class APITestCase(unittest.TestCase):
         self.mock_ctx.config = cfg
 
         # Datastore
-        self.mock_ctx.datastore = repositories.sqlalchemy.SQLAlchemy("sqlite:///", repositories.stores.DatastoreType.SQLITE)
+        self.mock_ctx.datastore = repositories.sqlalchemy.SQLAlchemy(
+            "sqlite:///", repositories.stores.DatastoreType.SQLITE
+        )
         models.Base.metadata.create_all(self.mock_ctx.datastore.engine)
 
         self.pq_store = repositories.sqlalchemy.PriorityQueueStore(self.mock_ctx.datastore)

@@ -62,7 +62,6 @@ class PriorityQueueStore(PriorityQueueStorer):
                 .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
                 .filter(models.PrioritizedItemORM.id == item.id)
                 .update(item.dict())
-
             )
 
     def remove(self, scheduler_id: str, item_id: str) -> None:
@@ -73,7 +72,6 @@ class PriorityQueueStore(PriorityQueueStorer):
                 .filter(models.PrioritizedItemORM.id == item_id)
                 .delete()
             )
-
 
     def get(self, scheduler_id, item_id: str) -> Optional[models.PrioritizedItem]:
         with self.datastore.session.begin() as session:

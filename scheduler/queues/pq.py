@@ -19,7 +19,7 @@ from .errors import (InvalidPrioritizedItemError, NotAllowedError,
 
 
 class PriorityQueue(abc.ABC):
-    """
+    """Base PriorityQueue class
 
     Attributes:
         logger:
@@ -33,22 +33,17 @@ class PriorityQueue(abc.ABC):
             queue.
         allow_replace:
             A boolean that defines if the queue allows replacing an item. When
-            set to True, it will update the item on the queue. It will set the
-            state of the item to REMOVED in the queue, and the updated entry
-            will be added to the queue, and the item will be removed the
-            entry_finder.
+            set to True, it will update the item on the queue.
         allow_updates:
             A boolean that defines if the queue allows updates of items on the
-            queue. When set to True, it will update the item on the queue. It
-            will set the state of the item to REMOVED in the queue, and the
-            updated entry will be added to the queue, and the item will be
-            removed the entry_finder.
+            queue. When set to True, it will update the item on the queue.
         allow_priority_updates:
             A boolean that defines if the queue allows priority updates of
             items on the queue. When set to True, it will update the item on
-            the queue. It will set the state of the item to REMOVED in the
-            queue, and the updated entry will be added to the queue, and the
-            item will be removed the entry_finder.
+            the queue.
+        pq_store:
+            A PriorityQueueStore instance that will be used to store the items
+            in a persistent way.
     """
 
     def __init__(
@@ -70,6 +65,19 @@ class PriorityQueue(abc.ABC):
                 The maximum size of the queue.
             item_type:
                 The type of the items in the queue.
+        allow_replace:
+            A boolean that defines if the queue allows replacing an item. When
+            set to True, it will update the item on the queue.
+        allow_updates:
+            A boolean that defines if the queue allows updates of items on the
+            queue. When set to True, it will update the item on the queue.
+        allow_priority_updates:
+            A boolean that defines if the queue allows priority updates of
+            items on the queue. When set to True, it will update the item on
+            the queue.
+        pq_store:
+            A PriorityQueueStore instance that will be used to store the items
+            in a persistent way.
         """
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.pq_id: str = pq_id
@@ -100,12 +108,17 @@ class PriorityQueue(abc.ABC):
     def push(self, p_item: models.PrioritizedItem) -> Optional[models.PrioritizedItem]:
         """Push an item onto the queue.
 
+        Args:
+            p_item: The item to be pushed onto the queue.
+
         Raises:
             NotAllowedError: If the item is not allowed to be pushed.
 
-            InvalidPrioritizedItemError:
+            InvalidPrioritizedItemError: If the item is not valid.
 
-            QueueFullError:
+            QueueFullError: If the queue is full.
+
+            PrioritizedItemNotFoundError: If the item is not found on the queue.
         """
         if not isinstance(p_item, models.PrioritizedItem):
             raise InvalidPrioritizedItemError("The item is not a PrioritizedItem")
@@ -123,16 +136,10 @@ class PriorityQueue(abc.ABC):
         item_on_queue = self.get_p_item_by_identifier(p_item)
 
         item_changed = (
-            False
-            if not item_on_queue or p_item.data == item_on_queue.data  # FIXM: checking json/dicts here
-            else True
+            False if not item_on_queue or p_item.data == item_on_queue.data else True  # FIXM: checking json/dicts here
         )
 
-        priority_changed = (
-            False
-            if not item_on_queue or p_item.priority == item_on_queue.priority
-            else True
-        )
+        priority_changed = False if not item_on_queue or p_item.priority == item_on_queue.priority else True
 
         allowed = False
         if item_on_queue and self.allow_replace:
@@ -165,18 +172,34 @@ class PriorityQueue(abc.ABC):
         return item_db
 
     def peek(self, index: int) -> Optional[models.PrioritizedItem]:
+        """Return the item at index without removing it.
+
+        Args:
+            index: The index of the item to be returned.
+        """
         return self.pq_store.peek(self.pq_id, index)
 
     def remove(self, p_item: models.PrioritizedItem) -> None:
+        """Remove an item from the queue.
+
+        Args:
+            p_item: The item to be removed from the queue.
+        """
         self.pq_store.remove(self.pq_id, p_item.id)
 
     def empty(self) -> bool:
+        """Return True if the queue is empty, False otherwise.
+        """
         return self.pq_store.empty(self.pq_id)
 
     def qsize(self) -> int:
+        """Return the size of the queue.
+        """
         return self.pq_store.qsize(self.pq_id)
 
     def full(self) -> bool:
+        """Return True if the queue is full, False otherwise.
+        """
         current_size = self.qsize()
         if self.maxsize is None or self.maxsize == 0:
             return False
@@ -184,6 +207,14 @@ class PriorityQueue(abc.ABC):
         return current_size >= self.maxsize
 
     def is_item_on_queue(self, p_item: models.PrioritizedItem) -> bool:
+        """Check if an item is on the queue.
+
+        Args:
+            p_item: The item to be checked.
+
+        Returns:
+            True if the item is on the queue, False otherwise.
+        """
         identifier = self.create_hash(p_item)
         item = self.pq_store.get_item_by_hash(self.pq_id, identifier)
         if item is None:
@@ -191,7 +222,15 @@ class PriorityQueue(abc.ABC):
 
         return True
 
-    def get_p_item_by_identifier(self, p_item: models.PrioritizedItem) -> bool:
+    def get_p_item_by_identifier(self, p_item: models.PrioritizedItem) -> Optional[models.PrioritizedItem]:
+        """Get an item from the queue by its identifier.
+
+        Args:
+            p_item: The item to be checked.
+
+        Returns:
+            The item if found, None otherwise.
+        """
         identifier = self.create_hash(p_item)
         item = self.pq_store.get_item_by_hash(self.pq_id, identifier)
         return item
@@ -213,7 +252,8 @@ class PriorityQueue(abc.ABC):
         return True
 
     def dict(self) -> Dict[str, Any]:
-        """Return a dict representation of the queue."""
+        """Return a dictionary representation of the queue.
+        """
         return {
             "id": self.pq_id,
             "size": self.qsize(),
@@ -225,7 +265,18 @@ class PriorityQueue(abc.ABC):
             "pq": self.pq_store.get_items_by_scheduler_id(self.pq_id),
         }
 
-
     @abc.abstractmethod
     def create_hash(self, p_item: models.PrioritizedItem) -> str:
+        """Create a hash for the item.
+
+        Abstract method to be implemented by the concrete implementation of
+        the queue. It needs to create a unique identifier for the item on
+        the queue.
+
+        Args:
+            p_item: The item to be hashed.
+
+        Returns:
+            A string representing the hash of the item.
+        """
         raise NotImplementedError

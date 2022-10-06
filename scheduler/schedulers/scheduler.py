@@ -37,7 +37,6 @@ class Scheduler(abc.ABC):
             concurrently.
         stop_event: A threading.Event object used for communicating a stop
             event across threads.
-
     """
 
     organisation: models.Organisation
@@ -104,7 +103,7 @@ class Scheduler(abc.ABC):
             self.ctx.task_store.update_task(task)
             return
 
-        self.ctx.task_store.add_task(task)
+        self.ctx.task_store.create_task(task)
 
     def post_pop(self, p_item: models.PrioritizedItem) -> None:
         """When a boefje task is being removed from the queue. We
@@ -206,7 +205,11 @@ class Scheduler(abc.ABC):
         for p_item in p_items:
             try:
                 self.push_item_to_queue(p_item)
-            except (queues.errors.NotAllowedError, queues.errors.QueueFullError, queues.errors.InvalidPrioritizedItemError):
+            except (
+                queues.errors.NotAllowedError,
+                queues.errors.QueueFullError,
+                queues.errors.InvalidPrioritizedItemError,
+            ):
                 self.logger.debug(
                     "Unable to push item to queue %s [queue_id=%s, qsize=%d, item=%s, exc=%s]",
                     self.queue.pq_id,

@@ -81,6 +81,7 @@ class AppContext:
 
         self.stop_event: threading.Event = threading.Event()
 
+        # TODO: postgres
         # Repositories
         datastore = sqlalchemy.SQLAlchemy(self.config.database_dsn, stores.DatastoreType.SQLITE)
         self.task_store = sqlalchemy.TaskStore(datastore)

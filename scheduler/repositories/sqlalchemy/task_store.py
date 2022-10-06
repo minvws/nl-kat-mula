@@ -46,13 +46,7 @@ class TaskStore(TaskStorer):
 
     def get_task_by_hash(self, task_hash: str) -> Optional[models.Task]:
         with self.datastore.session.begin() as session:
-            task_orm = (
-                session.query(models.TaskORM)
-                .filter(models.TaskORM.p_item.contains(
-                    {"hash": task_hash}
-                ))
-                .first()
-            )
+            task_orm = session.query(models.TaskORM).filter(models.TaskORM.p_item.contains({"hash": task_hash})).first()
 
             if task_orm is None:
                 return None
@@ -61,7 +55,7 @@ class TaskStore(TaskStorer):
 
             return task
 
-    def add_task(self, task: models.Task) -> Optional[models.Task]:
+    def create_task(self, task: models.Task) -> Optional[models.Task]:
         with self.datastore.session.begin() as session:
             task_orm = models.TaskORM(**task.dict())
             session.add(task_orm)
@@ -72,8 +66,4 @@ class TaskStore(TaskStorer):
 
     def update_task(self, task: models.Task) -> None:
         with self.datastore.session.begin() as session:
-            (
-                session.query(models.TaskORM)
-                .filter(models.TaskORM.id == task.id)
-                .update(task.dict())
-            )
+            (session.query(models.TaskORM).filter(models.TaskORM.id == task.id).update(task.dict()))

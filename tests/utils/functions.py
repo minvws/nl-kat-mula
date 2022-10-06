@@ -35,4 +35,3 @@ def create_task(p_item: models.PrioritizedItem) -> models.Task:
         created_at=datetime.datetime.now(datetime.timezone.utc),
         modified_at=datetime.datetime.now(datetime.timezone.utc),
     )
-

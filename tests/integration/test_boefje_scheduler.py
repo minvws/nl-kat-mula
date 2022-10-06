@@ -3,17 +3,19 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from scheduler import (config, connectors, models, queues, rankers,
-                       repositories, schedulers)
-from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
-                             OrganisationFactory, PluginFactory,
-                             ScanProfileFactory)
+from scheduler import config, connectors, models, queues, rankers, repositories, schedulers
+from tests.factories import (
+    BoefjeFactory,
+    BoefjeMetaFactory,
+    OOIFactory,
+    OrganisationFactory,
+    PluginFactory,
+    ScanProfileFactory,
+)
 from tests.utils import functions
 
 
 class SchedulerTestCase(unittest.TestCase):
-
-
     def setUp(self):
         cfg = config.settings.Settings()
 
@@ -52,7 +54,9 @@ class SchedulerTestCase(unittest.TestCase):
         self.mock_ctx.services.bytes = self.mock_bytes
 
         # Datastore
-        self.mock_ctx.datastore = repositories.sqlalchemy.SQLAlchemy("sqlite:///", repositories.stores.DatastoreType.SQLITE)
+        self.mock_ctx.datastore = repositories.sqlalchemy.SQLAlchemy(
+            "sqlite:///", repositories.stores.DatastoreType.SQLITE
+        )
         models.Base.metadata.create_all(self.mock_ctx.datastore.engine)
         self.pq_store = repositories.sqlalchemy.PriorityQueueStore(self.mock_ctx.datastore)
         self.task_store = repositories.sqlalchemy.TaskStore(self.mock_ctx.datastore)
@@ -68,7 +72,7 @@ class SchedulerTestCase(unittest.TestCase):
             maxsize=cfg.pq_maxsize,
             item_type=models.BoefjeTask,
             allow_priority_updates=True,
-            pq_store = self.pq_store,
+            pq_store=self.pq_store,
         )
 
         ranker = rankers.BoefjeRanker(
@@ -89,8 +93,7 @@ class SchedulerTestCase(unittest.TestCase):
     def test_populate_boefjes_queue_get_latest_object(
         self, mock_create_tasks_for_oois, mock_get_random_objects, mock_get_latest_object
     ):
-        """When oois are available from octopoes api, and no random oois.
-        """
+        """When oois are available from octopoes api, and no random oois."""
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
         task = models.BoefjeTask(
@@ -352,7 +355,9 @@ class SchedulerTestCase(unittest.TestCase):
         mock_get_random_objects.return_value = []
 
         p_item = functions.create_p_item(scheduler_id=self.organisation.id, priority=0, data=task)
-        mock_create_tasks_for_oois.side_effect = [ [p_item], ]
+        mock_create_tasks_for_oois.side_effect = [
+            [p_item],
+        ]
 
         self.scheduler.populate_queue()
         self.assertEqual(1, self.scheduler.queue.qsize())
@@ -379,7 +384,9 @@ class SchedulerTestCase(unittest.TestCase):
         mock_get_random_objects.return_value = []
 
         p_item = functions.create_p_item(scheduler_id=self.organisation.id, priority=0, data=task)
-        mock_create_tasks_for_oois.side_effect = [ [p_item], ]
+        mock_create_tasks_for_oois.side_effect = [
+            [p_item],
+        ]
 
         self.scheduler.populate_queue()
         self.assertEqual(1, self.scheduler.queue.qsize())

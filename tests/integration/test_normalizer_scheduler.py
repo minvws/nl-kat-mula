@@ -20,7 +20,9 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
         self.mock_ctx.config = cfg
 
         # Datastore
-        self.mock_ctx.datastore = repositories.sqlalchemy.SQLAlchemy("sqlite:///", repositories.stores.DatastoreType.SQLITE)
+        self.mock_ctx.datastore = repositories.sqlalchemy.SQLAlchemy(
+            "sqlite:///", repositories.stores.DatastoreType.SQLITE
+        )
 
         models.Base.metadata.create_all(self.mock_ctx.datastore.engine)
         self.pq_store = repositories.sqlalchemy.PriorityQueueStore(self.mock_ctx.datastore)
@@ -69,7 +71,7 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
 
         p_item = functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=1, data=boefje_task)
         task = functions.create_task(p_item)
-        self.mock_ctx.task_store.add_task(task)
+        self.mock_ctx.task_store.create_task(task)
 
         boefje_meta = BoefjeMetaFactory(
             id=p_item.id.hex,
@@ -78,10 +80,7 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
         )
 
         latest_raw_data = models.RawDataReceivedEvent(
-            raw_data=RawDataFactory(
-                boefje_meta=boefje_meta,
-                mime_types=[{"value": "text/plain"}]
-            ),
+            raw_data=RawDataFactory(boefje_meta=boefje_meta, mime_types=[{"value": "text/plain"}]),
             organization=self.organisation.name,
             created_at=datetime.datetime.now(),
         )
@@ -91,11 +90,15 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
             boefje_meta=boefje_meta,
         )
 
-        p_item_normalizer = functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=1, data=normalizer_task)
+        p_item_normalizer = functions.create_p_item(
+            scheduler_id=self.scheduler.scheduler_id, priority=1, data=normalizer_task
+        )
 
         mock_get_latest_raw_data.side_effect = [latest_raw_data, None]
         mock_get_normalizers.return_value = []
-        mock_create_tasks_for_raw_data.side_effect = [ [ p_item_normalizer ], ]
+        mock_create_tasks_for_raw_data.side_effect = [
+            [p_item_normalizer],
+        ]
 
         self.scheduler.populate_queue()
 
@@ -128,7 +131,7 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
 
         p_item = functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=1, data=boefje_task)
         task = functions.create_task(p_item)
-        self.mock_ctx.task_store.add_task(task)
+        self.mock_ctx.task_store.create_task(task)
 
         latest_raw_data = models.RawDataReceivedEvent(
             raw_data=RawDataFactory(
@@ -136,9 +139,8 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
                     id=p_item.id.hex,
                     boefje=boefje,
                     input_ooi=ooi.primary_key,
-
                 ),
-                mime_types=[{"value": "error/boefje"}, {"value": "text/xml"}]
+                mime_types=[{"value": "error/boefje"}, {"value": "text/xml"}],
             ),
             organization=self.organisation.name,
             created_at=datetime.datetime.now(),
@@ -172,7 +174,7 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
 
         p_item = functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=1, data=boefje_task)
         task = functions.create_task(p_item)
-        self.mock_ctx.task_store.add_task(task)
+        self.mock_ctx.task_store.create_task(task)
 
         latest_raw_data = models.RawDataReceivedEvent(
             raw_data=RawDataFactory(
@@ -180,9 +182,8 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
                     id=p_item.id.hex,
                     boefje=boefje,
                     input_ooi=ooi.primary_key,
-
                 ),
-                mime_types=[{"value": "text/plain"}]
+                mime_types=[{"value": "text/plain"}],
             ),
             organization=self.organisation.name,
             created_at=datetime.datetime.now(),
