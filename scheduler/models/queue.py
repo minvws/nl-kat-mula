@@ -1,6 +1,6 @@
 import datetime
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import mmh3
 from pydantic import BaseModel, Field
@@ -76,3 +76,12 @@ class Queue(BaseModel):
     allow_updates: bool
     allow_priority_updates: bool
     pq: List[PrioritizedItem]
+
+
+class Filter(BaseModel):
+    field: str
+    operator: Literal["eq", "ne", "lt", "le", "gt", "ge", "in_", "notin_"]
+    value: Union[str, int, datetime.date]
+
+    def get_field(self) -> List[str]:
+        return self.field.split("__")

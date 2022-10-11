@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import abc
+import datetime
 import json
 import logging
 import queue
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple, Type
+from typing import Any, Dict, Literal, Optional, Tuple, Type, Union
 
 import mmh3
 import pydantic
@@ -65,19 +66,20 @@ class PriorityQueue(abc.ABC):
                 The maximum size of the queue.
             item_type:
                 The type of the items in the queue.
-        allow_replace:
-            A boolean that defines if the queue allows replacing an item. When
-            set to True, it will update the item on the queue.
-        allow_updates:
-            A boolean that defines if the queue allows updates of items on the
-            queue. When set to True, it will update the item on the queue.
-        allow_priority_updates:
-            A boolean that defines if the queue allows priority updates of
-            items on the queue. When set to True, it will update the item on
-            the queue.
-        pq_store:
-            A PriorityQueueStore instance that will be used to store the items
-            in a persistent way.
+            allow_replace:
+                A boolean that defines if the queue allows replacing an item.
+                When set to True, it will update the item on the queue.
+            allow_updates:
+                A boolean that defines if the queue allows updates of items on
+                the queue. When set to True, it will update the item on the
+                queue.
+            allow_priority_updates:
+                A boolean that defines if the queue allows priority updates of
+                items on the queue. When set to True, it will update the item
+                on the queue.
+            pq_store:
+                A PriorityQueueStore instance that will be used to store the
+                items in a persistent way.
         """
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.pq_id: str = pq_id
@@ -88,7 +90,7 @@ class PriorityQueue(abc.ABC):
         self.allow_priority_updates: bool = allow_priority_updates
         self.pq_store: PriorityQueueStore = pq_store
 
-    def pop(self) -> Optional[models.PrioritizedItem]:
+    def pop(self, filters: List[models.Filter] = None) -> Optional[models.PrioritizedItem]:
         """Remove and return the highest priority item from the queue.
 
         Raises:
@@ -97,7 +99,7 @@ class PriorityQueue(abc.ABC):
         if self.empty():
             raise QueueEmptyError(f"Queue {self.pq_id} is empty.")
 
-        item = self.pq_store.pop(self.pq_id)
+        item = self.pq_store.pop(self.pq_id, filters)
         if item is None:
             return None
 

@@ -10,22 +10,27 @@ from .datastore import SQLAlchemy
 
 
 class PriorityQueueStore(PriorityQueueStorer):
+    """Datastore for PriorityQueue.
+
+    Exposes methods to interface with the database.
+
+    Attributes:
+        datastore: SQAlchemy satastore to use for the database connection.
+    """
     def __init__(self, datastore: SQLAlchemy) -> None:
         super().__init__()
 
         self.datastore = datastore
 
-    def pop(self, scheduler_id: str) -> Optional[models.PrioritizedItem]:
+    def pop(self, scheduler_id: str, filters: List[models.Filter]) -> Optional[models.PrioritizedItem]:
         with self.datastore.session.begin() as session:
-            item_orm = (
-                session.query(models.PrioritizedItemORM)
-                .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
-                .order_by(models.PrioritizedItemORM.priority.asc())
-                .order_by(models.PrioritizedItemORM.created_at.asc())
-                # .filter(models.PrioritizedItemORM.data["organization"].astext == "_dev")
-                # .filter(models.PrioritizedItemORM.data["boefje"]["id"].as_string() == "dns-records")  # This one works
-                .first()
-            )
+            query = session.query(models.PrioritizedItemORM)
+
+            if filters is not None:
+                for f in filters:
+                    query = query.filter(models.PrioritizedItemORM.data[f.get_field()].as_string() == f.value)
+
+            item_orm = query.first()
 
             if item_orm is None:
                 return None

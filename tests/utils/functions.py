@@ -11,7 +11,7 @@ class TestModel(pydantic.BaseModel):
     name: str
 
 
-def create_p_item(scheduler_id: str, priority: int, data: Dict = None) -> models.PrioritizedItem:
+def create_p_item(scheduler_id: str, priority: int, data: TestModel = None) -> models.PrioritizedItem:
     if data is None:
         data = TestModel(
             id=uuid.uuid4().hex,

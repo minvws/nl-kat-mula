@@ -128,15 +128,14 @@ class Scheduler(abc.ABC):
 
         return None
 
-    # TODO: filter options
-    def pop_item_from_queue(self) -> Optional[models.PrioritizedItem]:
+    def pop_item_from_queue(self, filters: List[models.Filter] = None) -> Optional[models.PrioritizedItem]:
         """Pop an item from the queue.
 
         Returns:
             A PrioritizedItem instance.
         """
         try:
-            p_item = self.queue.pop()
+            p_item = self.queue.pop(filters)
         except queues.QueueEmptyError as exc:
             self.logger.warning(
                 "Queue %s is empty, not populating new tasks [queue_id=%s, qsize=%d]",

@@ -7,8 +7,10 @@ from unittest import mock
 
 import requests
 from fastapi.testclient import TestClient
-from scheduler import config, connectors, models, queues, rankers, repositories, schedulers, server, utils
-from tests.factories import BoefjeFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
+from scheduler import (config, connectors, models, queues, rankers,
+                       repositories, schedulers, server, utils)
+from tests.factories import (BoefjeFactory, OOIFactory, OrganisationFactory,
+                             ScanProfileFactory)
 from tests.utils import functions
 from tests.utils.functions import create_p_item
 
@@ -301,6 +303,37 @@ class APITestCase(unittest.TestCase):
         response = self.client.get(f"/queues/{self.scheduler.scheduler_id}/pop")
         self.assertEqual(200, response.status_code)
         self.assertEqual(initial_item_id, response.json().get("id"))
+        self.assertEqual(0, self.scheduler.queue.qsize())
+
+    def test_pop_queue_filters(self):
+        # Add one task to the queue
+        first_item = create_p_item(self.organisation.id, 0, data=functions.TestModel(id="123", name="test"))
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(first_item.json()))
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(1, self.scheduler.queue.qsize())
+
+        # Add second item to the queue
+        second_item = create_p_item(self.organisation.id, 1, data=functions.TestModel(id="456", name="test"))
+        response = self.client.post(f"/queues/{self.scheduler.scheduler_id}/push", json=json.loads(second_item.json()))
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(2, self.scheduler.queue.qsize())
+
+        # Should get the first item
+        response = self.client.get(f"/queues/{self.scheduler.scheduler_id}/pop", json=[{"field": "name", "operator": "eq", "value": "test"}])
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(str(first_item.id), response.json().get("id"))
+        self.assertEqual(1, self.scheduler.queue.qsize())
+
+        # Should not return any items
+        response = self.client.get(f"/queues/{self.scheduler.scheduler_id}/pop", json=[{"field": "id", "operator": "eq", "value": "123"}])
+        self.assertEqual(404, response.status_code)
+        self.assertEqual({'detail': 'not able to pop item from queue'}, response.json())
+        self.assertEqual(1, self.scheduler.queue.qsize())
+
+        # Should get the second item
+        response = self.client.get(f"/queues/{self.scheduler.scheduler_id}/pop", json=[{"field": "name", "operator": "eq", "value": "test"}])
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(str(second_item.id), response.json().get("id"))
         self.assertEqual(0, self.scheduler.queue.qsize())
 
     def test_get_tasks(self):

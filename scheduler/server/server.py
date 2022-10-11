@@ -1,6 +1,6 @@
 import logging
 import queue as _queue
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import fastapi
 import scheduler
@@ -303,7 +303,7 @@ class Server:
 
         return models.Queue(**q.dict())
 
-    def pop_queue(self, queue_id: str) -> Any:
+    def pop_queue(self, queue_id: str, filters: List[models.Filter] = None) -> Any:
         s = self.schedulers.get(queue_id)
         if s is None:
             raise fastapi.HTTPException(
@@ -312,7 +312,7 @@ class Server:
             )
 
         try:
-            p_item = s.pop_item_from_queue()
+            p_item = s.pop_item_from_queue(filters)
         except queues.QueueEmptyError as exc_empty:
             return None
 
@@ -346,7 +346,7 @@ class Server:
 
         try:
             s.push_item_to_queue(p_item)
-        except _queue.Full as exc_full:
+        except _queue.Full as exc_full:  # FIXME
             raise fastapi.HTTPException(
                 status_code=400,
                 detail="queue is full",
