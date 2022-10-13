@@ -335,9 +335,9 @@ class Server:
         try:
             p_item = models.PrioritizedItem(**item.dict())
             if s.queue.item_type == models.BoefjeTask:
-                p_item.item = models.BoefjeTask(**p_item.data)
+                p_item.data = models.BoefjeTask(**p_item.data).dict()
             elif s.queue.item_type == models.NormalizerTask:
-                p_item.item = models.NormalizerTask(**p_item.data)
+                p_item.data = models.NormalizerTask(**p_item.data).dict()
         except Exception as exc:
             raise fastapi.HTTPException(
                 status_code=400,

@@ -4,11 +4,15 @@ import unittest
 import uuid
 from unittest import mock
 
-from scheduler import (config, connectors, models, queues, rankers,
-                       repositories, schedulers)
-from tests.factories import (BoefjeMetaFactory, OOIFactory,
-                             OrganisationFactory, PluginFactory,
-                             RawDataFactory, ScanProfileFactory)
+from scheduler import config, connectors, models, queues, rankers, repositories, schedulers
+from tests.factories import (
+    BoefjeMetaFactory,
+    OOIFactory,
+    OrganisationFactory,
+    PluginFactory,
+    RawDataFactory,
+    ScanProfileFactory,
+)
 from tests.utils import functions
 
 
@@ -200,6 +204,11 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
 
     # TODO
     def test_update_normalizer_task(self):
+        pass
+
+    # TODO: when boefje task isnt available, but it should make a normalizers
+    # task
+    def test_populate_normalizer_queue_boefje_task_not_available(self):
         pass
 
     @mock.patch("scheduler.context.AppContext.services.raw_data.get_latest_raw_data")

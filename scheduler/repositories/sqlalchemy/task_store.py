@@ -15,6 +15,7 @@ class TaskStore(TaskStorer):
     Attributes:
         datastore: SQAlchemy satastore to use for the database connection.
     """
+
     def __init__(self, datastore: SQLAlchemy) -> None:
         super().__init__()
 

@@ -7,10 +7,8 @@ from unittest import mock
 
 import requests
 from fastapi.testclient import TestClient
-from scheduler import (config, connectors, models, queues, rankers,
-                       repositories, schedulers, server, utils)
-from tests.factories import (BoefjeFactory, OOIFactory, OrganisationFactory,
-                             ScanProfileFactory)
+from scheduler import config, connectors, models, queues, rankers, repositories, schedulers, server, utils
+from tests.factories import BoefjeFactory, OOIFactory, OrganisationFactory, ScanProfileFactory
 from tests.utils import functions
 from tests.utils.functions import create_p_item
 
@@ -319,19 +317,25 @@ class APITestCase(unittest.TestCase):
         self.assertEqual(2, self.scheduler.queue.qsize())
 
         # Should get the first item
-        response = self.client.get(f"/queues/{self.scheduler.scheduler_id}/pop", json=[{"field": "name", "operator": "eq", "value": "test"}])
+        response = self.client.get(
+            f"/queues/{self.scheduler.scheduler_id}/pop", json=[{"field": "name", "operator": "eq", "value": "test"}]
+        )
         self.assertEqual(200, response.status_code)
         self.assertEqual(str(first_item.id), response.json().get("id"))
         self.assertEqual(1, self.scheduler.queue.qsize())
 
         # Should not return any items
-        response = self.client.get(f"/queues/{self.scheduler.scheduler_id}/pop", json=[{"field": "id", "operator": "eq", "value": "123"}])
+        response = self.client.get(
+            f"/queues/{self.scheduler.scheduler_id}/pop", json=[{"field": "id", "operator": "eq", "value": "123"}]
+        )
         self.assertEqual(404, response.status_code)
-        self.assertEqual({'detail': 'not able to pop item from queue'}, response.json())
+        self.assertEqual({"detail": "not able to pop item from queue"}, response.json())
         self.assertEqual(1, self.scheduler.queue.qsize())
 
         # Should get the second item
-        response = self.client.get(f"/queues/{self.scheduler.scheduler_id}/pop", json=[{"field": "name", "operator": "eq", "value": "test"}])
+        response = self.client.get(
+            f"/queues/{self.scheduler.scheduler_id}/pop", json=[{"field": "name", "operator": "eq", "value": "test"}]
+        )
         self.assertEqual(200, response.status_code)
         self.assertEqual(str(second_item.id), response.json().get("id"))
         self.assertEqual(0, self.scheduler.queue.qsize())

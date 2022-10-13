@@ -9,7 +9,8 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import NormalizerTask, Organisation, PrioritizedItem, RawData, TaskStatus
+from scheduler.models import (NormalizerTask, Organisation, PrioritizedItem,
+                              RawData, TaskStatus)
 
 from .scheduler import Scheduler
 
@@ -89,13 +90,13 @@ class NormalizerScheduler(Scheduler):
                 self.scheduler_id,
             )
 
-            # When receiving this, it means the item on boefje queue has been
-            # processed, update the status of that task.
+            # Find the associated BoefjeTask (if any), the item on boefje queue
+            # has been processed, update the status of that task.
             boefje_task_db = self.ctx.task_store.get_task_by_id(
                 latest_raw_data.raw_data.boefje_meta.id,
             )
             if boefje_task_db is None:
-                self.logger.warning(
+                self.logger.debug(
                     "Could not find boefje task in database [raw_data_id=%s, org_id=%s, scheduler_id=%s]",
                     latest_raw_data.raw_data.boefje_meta.id,
                     self.organisation.id,
@@ -141,7 +142,7 @@ class NormalizerScheduler(Scheduler):
                 self.logger.debug(
                     "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
                     len(p_items),
-                    self.queue.pq.qsize(),
+                    self.queue.qsize(),
                     self.queue.maxsize,
                     self.organisation.id,
                     self.scheduler_id,
@@ -152,7 +153,7 @@ class NormalizerScheduler(Scheduler):
         else:
             self.logger.warning(
                 "Normalizer queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
-                self.queue.pq.qsize(),
+                self.queue.qsize(),
                 self.organisation.id,
                 self.scheduler_id,
             )
@@ -218,7 +219,7 @@ class NormalizerScheduler(Scheduler):
                     boefje_meta=raw_data.boefje_meta,
                 )
 
-                if self.queue.is_item_on_queue(task):
+                if self.queue.is_item_on_queue(PrioritizedItem(data=task)):
                     self.logger.debug(
                         "Normalizer task: %s is already on queue [normalizer_id=%s, boefje_meta_id=%s, org_id=%s, scheduler_id=%s]",
                         normalizer.name,

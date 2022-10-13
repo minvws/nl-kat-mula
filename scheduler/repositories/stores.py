@@ -53,19 +53,19 @@ class PriorityQueueStorer(abc.ABC):
         self.logger: logging.Logger = logging.getLogger(__name__)
 
     @abc.abstractmethod
-    def push(self, scheduler_id: str, task: models.PrioritizedItem) -> None:
+    def push(self, scheduler_id: str, task: models.PrioritizedItem) -> Optional[models.PrioritizedItem]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def pop(self, scheduler_id: str) -> Optional[models.PrioritizedItem]:
+    def pop(self, scheduler_id: str, filters: List[models.Filter] = None) -> Optional[models.PrioritizedItem]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def remove(self, scheduler_id: str) -> None:
+    def remove(self, scheduler_id: str, item_id: str) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def peek(self, scheduler_id: str) -> Optional[models.PrioritizedItem]:
+    def peek(self, scheduler_id: str, index: int) -> Optional[models.PrioritizedItem]:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -77,10 +77,6 @@ class PriorityQueueStorer(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def search(self, scheduler_id: str) -> List[models.PrioritizedItem]:
-        raise NotImplementedError
-
-    @abc.abstractmethod
     def update(self, scheduler_id: str, task: models.PrioritizedItem) -> None:
         raise NotImplementedError
 
@@ -89,5 +85,5 @@ class PriorityQueueStorer(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_items_by_scheduler_id(self, scheduler_id: str) -> Optional[models.PrioritizedItem]:
+    def get_items_by_scheduler_id(self, scheduler_id: str) -> List[models.PrioritizedItem]:
         raise NotImplementedError

@@ -7,11 +7,11 @@ import logging
 import queue
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Literal, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
 
 import mmh3
 import pydantic
-from scheduler import models
+from scheduler import models, repositories
 from scheduler.repositories.sqlalchemy import PriorityQueueStore
 
 from .errors import (InvalidPrioritizedItemError, NotAllowedError,
@@ -52,10 +52,10 @@ class PriorityQueue(abc.ABC):
         pq_id: str,
         maxsize: int,
         item_type: Type[pydantic.BaseModel],
+        pq_store: repositories.stores.PriorityQueueStorer,
         allow_replace: bool = False,
         allow_updates: bool = False,
         allow_priority_updates: bool = False,
-        pq_store: PriorityQueueStore = None,
     ):
         """Initialize the priority queue.
 
@@ -88,7 +88,7 @@ class PriorityQueue(abc.ABC):
         self.allow_replace: bool = allow_replace
         self.allow_updates: bool = allow_updates
         self.allow_priority_updates: bool = allow_priority_updates
-        self.pq_store: PriorityQueueStore = pq_store
+        self.pq_store: repositories.stores.PriorityQueueStorer = pq_store
 
     def pop(self, filters: List[models.Filter] = None) -> Optional[models.PrioritizedItem]:
         """Remove and return the highest priority item from the queue.
@@ -187,21 +187,18 @@ class PriorityQueue(abc.ABC):
         Args:
             p_item: The item to be removed from the queue.
         """
-        self.pq_store.remove(self.pq_id, p_item.id)
+        self.pq_store.remove(self.pq_id, str(p_item.id))
 
     def empty(self) -> bool:
-        """Return True if the queue is empty, False otherwise.
-        """
+        """Return True if the queue is empty, False otherwise."""
         return self.pq_store.empty(self.pq_id)
 
     def qsize(self) -> int:
-        """Return the size of the queue.
-        """
+        """Return the size of the queue."""
         return self.pq_store.qsize(self.pq_id)
 
     def full(self) -> bool:
-        """Return True if the queue is full, False otherwise.
-        """
+        """Return True if the queue is full, False otherwise."""
         current_size = self.qsize()
         if self.maxsize is None or self.maxsize == 0:
             return False
@@ -254,8 +251,7 @@ class PriorityQueue(abc.ABC):
         return True
 
     def dict(self) -> Dict[str, Any]:
-        """Return a dictionary representation of the queue.
-        """
+        """Return a dictionary representation of the queue."""
         return {
             "id": self.pq_id,
             "size": self.qsize(),

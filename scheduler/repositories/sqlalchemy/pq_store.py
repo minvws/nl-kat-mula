@@ -17,12 +17,13 @@ class PriorityQueueStore(PriorityQueueStorer):
     Attributes:
         datastore: SQAlchemy satastore to use for the database connection.
     """
+
     def __init__(self, datastore: SQLAlchemy) -> None:
         super().__init__()
 
         self.datastore = datastore
 
-    def pop(self, scheduler_id: str, filters: List[models.Filter]) -> Optional[models.PrioritizedItem]:
+    def pop(self, scheduler_id: str, filters: List[models.Filter] = None) -> Optional[models.PrioritizedItem]:
         with self.datastore.session.begin() as session:
             query = session.query(models.PrioritizedItemORM)
 
@@ -105,9 +106,6 @@ class PriorityQueueStore(PriorityQueueStorer):
             )
 
             return count
-
-    def search(self, scheduler_id: str) -> List[models.Task]:
-        pass
 
     def get_item_by_hash(self, scheduler_id: str, item_hash: str) -> Optional[models.PrioritizedItem]:
         with self.datastore.session.begin() as session:
