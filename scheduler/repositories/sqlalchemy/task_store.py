@@ -1,9 +1,6 @@
-import json
 from typing import List, Optional, Tuple, Union
 
 from scheduler import models
-
-from sqlalchemy import create_engine, orm, pool
 
 from ..stores import TaskStorer
 from .datastore import SQLAlchemy

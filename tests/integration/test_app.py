@@ -14,9 +14,7 @@ class AppTestCase(unittest.TestCase):
         self.mock_ctx.config = cfg
 
         # Datastore
-        self.mock_ctx.datastore = repositories.sqlalchemy.SQLAlchemy(
-            "sqlite:///", repositories.stores.DatastoreType.SQLITE
-        )
+        self.mock_ctx.datastore = repositories.sqlalchemy.SQLAlchemy("sqlite:///")
         models.Base.metadata.create_all(self.mock_ctx.datastore.engine)
 
         self.pq_store = repositories.sqlalchemy.PriorityQueueStore(self.mock_ctx.datastore)

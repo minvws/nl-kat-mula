@@ -1,11 +1,10 @@
 import json
-from typing import List, Optional, Tuple, Union
 
 from scheduler import models
 
 from sqlalchemy import create_engine, orm, pool
 
-from ..stores import Datastore, DatastoreType, PriorityQueueStorer, TaskStorer
+from ..stores import Datastore
 
 
 class SQLAlchemy(Datastore):
@@ -26,7 +25,7 @@ class SQLAlchemy(Datastore):
     See: https://docs.sqlalchemy.org/en/14/dialects/sqlite.html#using-a-memory-database-in-multiple-threads
     """
 
-    def __init__(self, dsn: str, datastore_type: DatastoreType) -> None:
+    def __init__(self, dsn: str) -> None:
         super().__init__()
 
         self.engine = None

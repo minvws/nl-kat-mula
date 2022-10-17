@@ -7,7 +7,6 @@ import scheduler
 from scheduler.config import settings
 from scheduler.connectors import listeners, services
 from scheduler.repositories import sqlalchemy, stores
-from scheduler.repositories.sqlalchemy import PriorityQueueStore, SQLAlchemy, TaskStore
 
 
 class AppContext:
@@ -81,6 +80,6 @@ class AppContext:
         self.stop_event: threading.Event = threading.Event()
 
         # Repositories
-        datastore = sqlalchemy.SQLAlchemy(self.config.database_dsn, stores.DatastoreType.SQLITE)
+        datastore = sqlalchemy.SQLAlchemy(self.config.database_dsn)
         self.task_store: stores.TaskStorer = sqlalchemy.TaskStore(datastore)
         self.pq_store: stores.PriorityQueueStorer = sqlalchemy.PriorityQueueStore(datastore)

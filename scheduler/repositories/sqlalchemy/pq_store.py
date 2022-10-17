@@ -1,9 +1,6 @@
-import json
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional
 
 from scheduler import models
-
-from sqlalchemy import Text, create_engine, orm, pool
 
 from ..stores import PriorityQueueStorer
 from .datastore import SQLAlchemy
@@ -81,7 +78,12 @@ class PriorityQueueStore(PriorityQueueStorer):
 
     def get(self, scheduler_id, item_id: str) -> Optional[models.PrioritizedItem]:
         with self.datastore.session.begin() as session:
-            item_orm = session.query(models.PrioritizedItemORM).get(item_id)
+            item_orm = (
+                session.query(models.PrioritizedItemORM)
+                .filter(models.PrioritizedItemORM.scheduler_id == scheduler_id)
+                .filter(models.PrioritizedItemORM.id == item_id)
+                .first()
+            )
 
             if item_orm is None:
                 return None

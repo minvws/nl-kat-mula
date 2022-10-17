@@ -1,15 +1,8 @@
 import abc
-import json
 import logging
-from enum import Enum
 from typing import List, Optional, Tuple, Union
 
 from scheduler import models
-
-
-class DatastoreType(Enum):
-    SQLITE = 1
-    POSTGRES = 2
 
 
 class Datastore:
@@ -53,7 +46,7 @@ class PriorityQueueStorer(abc.ABC):
         self.logger: logging.Logger = logging.getLogger(__name__)
 
     @abc.abstractmethod
-    def push(self, scheduler_id: str, task: models.PrioritizedItem) -> Optional[models.PrioritizedItem]:
+    def push(self, scheduler_id: str, item: models.PrioritizedItem) -> Optional[models.PrioritizedItem]:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -77,7 +70,7 @@ class PriorityQueueStorer(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update(self, scheduler_id: str, task: models.PrioritizedItem) -> None:
+    def update(self, scheduler_id: str, item: models.PrioritizedItem) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod

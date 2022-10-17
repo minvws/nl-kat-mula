@@ -1,10 +1,7 @@
-import datetime
 import time
-import uuid
 from types import SimpleNamespace
 from typing import List
 
-import mmh3
 import pika
 import requests
 

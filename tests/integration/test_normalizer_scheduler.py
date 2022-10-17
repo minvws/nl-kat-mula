@@ -1,10 +1,8 @@
 import datetime
-import json
 import unittest
-import uuid
 from unittest import mock
 
-from scheduler import config, connectors, models, queues, rankers, repositories, schedulers
+from scheduler import config, models, queues, rankers, repositories, schedulers
 from tests.factories import (
     BoefjeMetaFactory,
     OOIFactory,
@@ -24,9 +22,7 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
         self.mock_ctx.config = cfg
 
         # Datastore
-        self.mock_ctx.datastore = repositories.sqlalchemy.SQLAlchemy(
-            "sqlite:///", repositories.stores.DatastoreType.SQLITE
-        )
+        self.mock_ctx.datastore = repositories.sqlalchemy.SQLAlchemy("sqlite:///")
 
         models.Base.metadata.create_all(self.mock_ctx.datastore.engine)
         self.pq_store = repositories.sqlalchemy.PriorityQueueStore(self.mock_ctx.datastore)

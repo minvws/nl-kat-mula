@@ -5,7 +5,7 @@ from typing import List, Optional
 
 import mmh3
 from pydantic import BaseModel, Field
-from sqlalchemy import JSON, Column, DateTime, Enum, Integer, String
+from sqlalchemy import JSON, Column, DateTime, Enum, String
 
 from scheduler.utils import GUID
 

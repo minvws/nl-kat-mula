@@ -149,7 +149,8 @@ class BoefjeScheduler(Scheduler):
             if len(p_items) == 0 and tries < 3:
                 tries += 1
                 continue
-            elif len(p_items) == 0 and tries >= 3:
+
+            if len(p_items) == 0 and tries >= 3:
                 self.logger.debug(
                     "No tasks could be created for random oois for organisation: %s [tries=%d, org_id=%s, scheduler_id=%s]",
                     self.organisation.name,

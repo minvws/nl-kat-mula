@@ -8,7 +8,7 @@ from tests.integration.test_api import create_p_item
 
 class TestRepositories(TestCase):
     def setUp(self) -> None:
-        self.datastore = sqlalchemy.SQLAlchemy("sqlite:///", stores.DatastoreType.SQLITE)
+        self.datastore = sqlalchemy.SQLAlchemy("sqlite:///")
         Base.metadata.create_all(self.datastore.engine)
 
         self.pq_store = sqlalchemy.PriorityQueueStore(datastore=self.datastore)

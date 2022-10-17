@@ -1,18 +1,11 @@
 from __future__ import annotations
 
 import abc
-import datetime
-import json
 import logging
-import queue
-from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Type
 
-import mmh3
 import pydantic
 from scheduler import models, repositories
-from scheduler.repositories.sqlalchemy import PriorityQueueStore
 
 from .errors import (
     InvalidPrioritizedItemError,

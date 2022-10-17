@@ -1,4 +1,3 @@
-import copy
 import logging
 import os
 import threading
@@ -8,7 +7,6 @@ from typing import Any, Callable, Dict
 from scheduler import context, queues, rankers, schedulers, server
 from scheduler.connectors import listeners
 from scheduler.models import BoefjeTask, NormalizerTask, Organisation
-from scheduler.repositories import sqlalchemy
 from scheduler.utils import thread
 
 
@@ -185,10 +183,10 @@ class App:
         katalogus_orgs = {org.id for org in self.ctx.services.katalogus.get_organisations()}
 
         additions = katalogus_orgs.difference(scheduler_orgs)
-        self.logger.debug(f"Organisations to add: {additions}")
+        self.logger.debug("Organisations to add: %s", len(additions))
 
         removals = scheduler_orgs.difference(katalogus_orgs)
-        self.logger.debug(f"Organisations to remove: {removals}")
+        self.logger.debug("Organisations to remove: %s", len(removals))
 
         # Get scheduler ids for removals
         removal_scheduler_ids = []

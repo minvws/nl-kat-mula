@@ -1,6 +1,6 @@
 import logging
 import queue as _queue
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 import fastapi
 import scheduler
@@ -172,7 +172,8 @@ class Server:
 
         updated_scheduler = stored_scheduler_model.copy(update=patch_data)
 
-        # Update the patched attributes
+        # We update the patched attributes, since the schedulers are kept
+        # in memory.
         for attr, value in patch_data.items():
             try:
                 setattr(s, attr, value)
@@ -182,7 +183,7 @@ class Server:
                     detail="attribute not found",
                 ) from exc
 
-        return updated_scheduler  # TODO: check if this needs to be `s`
+        return updated_scheduler
 
     def list_tasks(
         self,
@@ -314,7 +315,10 @@ class Server:
         try:
             p_item = s.pop_item_from_queue(filters)
         except queues.QueueEmptyError as exc_empty:
-            return None
+            raise fastapi.HTTPException(
+                status_code=404,
+                detail=str(exc_empty),
+            ) from exc_empty
 
         if p_item is None:
             raise fastapi.HTTPException(

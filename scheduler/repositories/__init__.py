@@ -1,1 +1,1 @@
-from .stores import Datastore, DatastoreType
+from .stores import Datastore
