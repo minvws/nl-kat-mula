@@ -32,6 +32,6 @@ def create_task(p_item: models.PrioritizedItem) -> models.Task:
         scheduler_id=p_item.scheduler_id,
         p_item=p_item,
         status=models.TaskStatus.QUEUED,
-        created_at=datetime.datetime.now(datetime.timezone.utc),
-        modified_at=datetime.datetime.now(datetime.timezone.utc),
+        created_at=datetime.datetime.utcnow(),
+        modified_at=datetime.datetime.utcnow(),
     )

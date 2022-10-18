@@ -1,4 +1,5 @@
 import json
+from functools import partial
 
 from scheduler import models
 
@@ -30,19 +31,21 @@ class SQLAlchemy(Datastore):
 
         self.engine = None
 
+        serializer = partial(json.dumps, default=str)
+
         if dsn.startswith("sqlite"):
             self.engine = create_engine(
                 dsn,
                 connect_args={"check_same_thread": False},
                 poolclass=pool.StaticPool,
-                json_serializer=lambda obj: json.dumps(obj, default=str),
+                json_serializer=serializer,
             )
         else:
             self.engine = create_engine(
                 dsn,
                 pool_pre_ping=True,
                 pool_size=25,
-                json_serializer=lambda obj: json.dumps(obj, default=str),
+                json_serializer=serializer,
             )
 
         if self.engine is None:
