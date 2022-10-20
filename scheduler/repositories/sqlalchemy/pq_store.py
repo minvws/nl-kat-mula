@@ -22,7 +22,9 @@ class PriorityQueueStore(PriorityQueueStorer):
 
     def pop(self, scheduler_id: str, filters: List[models.Filter] = None) -> Optional[models.PrioritizedItem]:
         with self.datastore.session.begin() as session:
-            query = session.query(models.PrioritizedItemORM)
+            query = session.query(models.PrioritizedItemORM).filter(
+                models.PrioritizedItemORM.scheduler_id == scheduler_id
+            )
 
             if filters is not None:
                 for f in filters:

@@ -315,15 +315,12 @@ class Server:
         try:
             p_item = s.pop_item_from_queue(filters)
         except queues.QueueEmptyError as exc_empty:
-            raise fastapi.HTTPException(
-                status_code=404,
-                detail=str(exc_empty),
-            ) from exc_empty
+            return None
 
         if p_item is None:
             raise fastapi.HTTPException(
                 status_code=404,
-                detail="not able to pop item from queue",
+                detail="could not pop item from queue, check your filters",
             )
 
         return models.PrioritizedItem(**p_item.dict())
@@ -338,6 +335,9 @@ class Server:
 
         try:
             p_item = models.PrioritizedItem(**item.dict())
+            if p_item.scheduler_id is None:
+                p_item.scheduler_id = s.scheduler_id
+
             if s.queue.item_type == models.BoefjeTask:
                 p_item.data = models.BoefjeTask(**p_item.data).dict()
             elif s.queue.item_type == models.NormalizerTask:
@@ -350,7 +350,7 @@ class Server:
 
         try:
             s.push_item_to_queue(p_item)
-        except _queue.Full as exc_full:  # FIXME
+        except queues.QueueFullError as exc_full:
             raise fastapi.HTTPException(
                 status_code=400,
                 detail="queue is full",

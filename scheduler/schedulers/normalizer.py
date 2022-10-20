@@ -215,7 +215,7 @@ class NormalizerScheduler(Scheduler):
                     boefje_meta=raw_data.boefje_meta,
                 )
 
-                if self.queue.is_item_on_queue(PrioritizedItem(data=task)):
+                if self.queue.is_item_on_queue(PrioritizedItem(scheduler_id=self.scheduler_id, data=task)):
                     self.logger.debug(
                         "Normalizer task: %s is already on queue [normalizer_id=%s, boefje_meta_id=%s, org_id=%s, scheduler_id=%s]",
                         normalizer.name,
@@ -227,7 +227,7 @@ class NormalizerScheduler(Scheduler):
                     continue
 
                 score = self.ranker.rank(SimpleNamespace(raw_data=raw_data, task=task))
-                p_items.append(PrioritizedItem(priority=score, data=task))
+                p_items.append(PrioritizedItem(id=task.id, scheduler_id=self.scheduler_id, priority=score, data=task))
 
                 self.logger.debug(
                     "Created normalizer task: %s [normalizer_task_id=%s, normalizer_id=%s, boefje_meta_id=%s, org_id=%s, scheduler_id=%s]",
@@ -261,7 +261,7 @@ class NormalizerScheduler(Scheduler):
             if self.stop_event.is_set():
                 raise e
 
-            time.sleep(60)
+            time.sleep(10)
             return
 
         if latest_normalizer_meta is None:
@@ -271,7 +271,7 @@ class NormalizerScheduler(Scheduler):
                 self.organisation.id,
                 self.scheduler_id,
             )
-            time.sleep(60)
+            time.sleep(10)
             return
 
         self.logger.debug(

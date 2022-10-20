@@ -327,7 +327,7 @@ class APITestCase(unittest.TestCase):
             f"/queues/{self.scheduler.scheduler_id}/pop", json=[{"field": "id", "operator": "eq", "value": "123"}]
         )
         self.assertEqual(404, response.status_code)
-        self.assertEqual({"detail": "not able to pop item from queue"}, response.json())
+        self.assertEqual({"detail": "could not pop item from queue, check your filters"}, response.json())
         self.assertEqual(1, self.scheduler.queue.qsize())
 
         # Should get the second item

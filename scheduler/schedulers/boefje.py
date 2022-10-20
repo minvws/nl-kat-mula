@@ -381,7 +381,7 @@ class BoefjeScheduler(Scheduler):
         # regardless. When the ranker is updated to correctly rank
         # tasks, we can allow the populator to also update the
         # priority. Then remove the following:
-        if self.queue.is_item_on_queue(PrioritizedItem(data=task)):
+        if self.queue.is_item_on_queue(PrioritizedItem(scheduler_id=self.scheduler_id, data=task)):
             self.logger.debug(
                 "Boefje: %s is already on queue [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                 boefje.id,
