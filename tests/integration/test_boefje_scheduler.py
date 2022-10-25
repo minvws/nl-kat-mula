@@ -3,15 +3,11 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from scheduler import config, connectors, models, queues, rankers, repositories, schedulers
-from tests.factories import (
-    BoefjeFactory,
-    BoefjeMetaFactory,
-    OOIFactory,
-    OrganisationFactory,
-    PluginFactory,
-    ScanProfileFactory,
-)
+from scheduler import (config, connectors, models, queues, rankers,
+                       repositories, schedulers)
+from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
+                             OrganisationFactory, PluginFactory,
+                             ScanProfileFactory)
 from tests.utils import functions
 
 
@@ -58,9 +54,11 @@ class SchedulerTestCase(unittest.TestCase):
         models.Base.metadata.create_all(self.mock_ctx.datastore.engine)
         self.pq_store = repositories.sqlalchemy.PriorityQueueStore(self.mock_ctx.datastore)
         self.task_store = repositories.sqlalchemy.TaskStore(self.mock_ctx.datastore)
+        self.ooi_store = repositories.sqlalchemy.OOIStore(self.mock_ctx.datastore)
 
         self.mock_ctx.pq_store = self.pq_store
         self.mock_ctx.task_store = self.task_store
+        self.mock_ctx.ooi_store = self.ooi_store
 
         # Scheduler
         self.organisation = OrganisationFactory()
@@ -84,6 +82,38 @@ class SchedulerTestCase(unittest.TestCase):
             ranker=ranker,
             organisation=self.organisation,
         )
+
+    @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
+    @mock.patch("scheduler.context.AppContext.services.octopoes.get_random_objects")
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.get_latest_checked_oois")
+    def test_populate_boefjes_queue_abc(self, mock_get_latest_checked_oois, mock_create_tasks_for_oois, mock_get_random_objects, mock_get_latest_object):
+        """When no oois are available, it should be filled up with oois that
+        haven't been schedulerd in a long time."""
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        task = models.BoefjeTask(
+            id=uuid.uuid4().hex,
+            boefje=BoefjeFactory(),
+            input_ooi=ooi.primary_key,
+            organization=self.organisation.id,
+        )
+
+        mock_get_latest_object.return_value = None
+        mock_get_latest_checked_oois.side_effect = [[ooi], [], [], []]
+        mock_get_random_objects.return_value = []
+
+        mock_create_tasks_for_oois.return_value = [
+            functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=0, data=task),
+        ]
+
+        self.scheduler.populate_queue()
+        self.assertEqual(1, self.scheduler.queue.qsize())
+        self.assertEqual(task, self.scheduler.queue.peek(0).data)
+
+        # OOI should be in database
+        ooi_db = self.scheduler.ctx.ooi_store.get_ooi(ooi.primary_key)
+        self.assertEqual(ooi_db, ooi)
 
     @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
     @mock.patch("scheduler.context.AppContext.services.octopoes.get_random_objects")

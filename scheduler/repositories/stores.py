@@ -1,4 +1,5 @@
 import abc
+import datetime
 import logging
 from typing import List, Optional, Tuple, Union
 
@@ -79,4 +80,32 @@ class PriorityQueueStorer(abc.ABC):
 
     @abc.abstractmethod
     def get_items_by_scheduler_id(self, scheduler_id: str) -> List[models.PrioritizedItem]:
+        raise NotImplementedError
+
+class OOIStorer(abc.ABC):
+    def __init__(self) -> None:
+        self.logger: logging.Logger = logging.getLogger(__name__)
+
+    @abc.abstractmethod
+    def create_ooi(self, ooi: models.OOI) -> Optional[models.OOI]:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def create_or_update_ooi(self, ooi: models.OOI) -> Optional[models.OOI]:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_ooi(self, ooi_id: str) -> Optional[models.OOI]:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_ooi(self, ooi: models.OOI) -> None:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def delete_ooi(self, ooi_id: str) -> None:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_oois_last_checked_since(self, since: datetime.datetime) -> List[models.OOI]:
         raise NotImplementedError

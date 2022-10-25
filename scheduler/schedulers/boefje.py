@@ -93,8 +93,6 @@ class BoefjeScheduler(Scheduler):
                 while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
                     self.logger.debug(
                         "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
-                        len(p_items),
-                        self.queue.qsize(),
                         self.queue.maxsize,
                         self.organisation.id,
                         self.scheduler_id,
@@ -102,6 +100,9 @@ class BoefjeScheduler(Scheduler):
                     time.sleep(1)
 
                 self.push_items_to_queue(p_items)
+
+                # Create or update in OOI store with checked_at
+                self.ctx.ooi_store.create_or_update_ooi(latest_ooi)
             else:
                 # Stop the loop when we've processed everything from the
                 # messaging queue, so we can continue to the next step.
@@ -112,6 +113,48 @@ class BoefjeScheduler(Scheduler):
                     self.scheduler_id,
                 )
                 break
+        else:
+            self.logger.warning(
+                "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
+                self.queue.qsize(),
+                self.organisation.id,
+                self.scheduler_id,
+            )
+            return
+
+        while not self.queue.full():
+            time.sleep(1)
+
+            oois = self.get_latest_checked_oois()
+            if not oois:
+                self.logger.debug(
+                    "No latest oois for organisation: %s [org_id=%s, scheduler_id=%s]",
+                    self.organisation.name,
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+                break
+
+            # From ooi's create prioritized items (tasks) to push onto queue
+            p_items = self.create_tasks_for_oois(oois)
+            if not p_items:
+                break
+
+            # NOTE: maxsize 0 means unlimited
+            while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
+                self.logger.debug(
+                    "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
+                    self.queue.maxsize,
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+                time.sleep(1)
+
+            self.push_items_to_queue(p_items)
+
+            # Create or update in OOI store with checked_at
+            for ooi in oois:
+                self.ctx.ooi_store.create_or_update_ooi(ooi)
         else:
             self.logger.warning(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
@@ -182,6 +225,10 @@ class BoefjeScheduler(Scheduler):
 
             self.push_items_to_queue(p_items)
             tries = 0
+
+            # Create update in OOI store with checked_at
+            for ooi in random_oois:
+                self.ctx.ooi_store.create_or_update_ooi(ooi)
         else:
             self.logger.warning(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
@@ -509,3 +556,9 @@ class BoefjeScheduler(Scheduler):
         p_item.hash = mmh3.hash_bytes(f"{boefje.id}-{ooi.primary_key}-{self.organisation.id}").hex()
 
         return p_item
+
+    def get_latest_checked_oois(self) -> List[OOI]:
+        return self.ctx.ooi_store.get_oois_last_checked_since(
+            datetime.now(timezone.utc) - timedelta(seconds=self.ctx.config.pq_populate_grace_period)
+        )
+
