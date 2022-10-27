@@ -1,3 +1,4 @@
+import copy
 import time
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
@@ -51,9 +52,23 @@ class BoefjeScheduler(Scheduler):
         When this is done we will try and fill the rest of the queue with
         random items from octopoes and schedule them accordingly.
         """
-        while not self.queue.full():
-            time.sleep(1)
 
+        # scan levels changes
+        self.create_tasks_scan_level_change()
+
+        # new boefjes
+        self.create_tasks_new_boefje()
+
+        # rescheduling of oois
+        self.create_tasks_reschedule_ooi()
+
+
+        # random oois
+        self.create_tasks_for_random_oois()
+
+    # scan levels changes
+    def create_tasks_scan_level_change(self):
+        while not self.queue.full():
             latest_ooi = None
             try:
                 latest_ooi = self.ctx.services.scan_profile.get_latest_object(
@@ -73,6 +88,9 @@ class BoefjeScheduler(Scheduler):
                 )
                 if self.stop_event.is_set():
                     raise e
+
+            if latest_ooi is None:
+                return []
 
             if latest_ooi is not None:
                 self.logger.debug(
@@ -122,13 +140,19 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
+    # TODO: new boefjes
+    def create_tasks_new_boefje(self):
+        pass
+
+    # rescheduling of oois
+    def create_tasks_reschedule_ooi(self) -> None:
         while not self.queue.full():
             time.sleep(1)
 
-            oois = self.get_latest_checked_oois()
+            oois = self.reschedule_oois()
             if not oois:
                 self.logger.debug(
-                    "No latest oois for organisation: %s [org_id=%s, scheduler_id=%s]",
+                    "No oois for organisation to be rescheduled: %s [org_id=%s, scheduler_id=%s]",
                     self.organisation.name,
                     self.organisation.id,
                     self.scheduler_id,
@@ -164,6 +188,7 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
+    def create_tasks_for_random_oois(self) -> None:
         tries = 0
         while not self.queue.full():
             time.sleep(1)
@@ -237,6 +262,8 @@ class BoefjeScheduler(Scheduler):
                 self.scheduler_id,
             )
             return
+
+
 
     def create_tasks_for_oois(self, oois: List[OOI]) -> List[PrioritizedItem]:
         """For every provided ooi we will create available and enabled boefje
@@ -557,8 +584,21 @@ class BoefjeScheduler(Scheduler):
 
         return p_item
 
-    def get_latest_checked_oois(self) -> List[OOI]:
-        return self.ctx.ooi_store.get_oois_last_checked_since(
+    def reschedule_oois(self) -> List[OOI]:
+        """Get oois that need to be rescheduled
+
+        Returns:
+            List[OOI]: List of oois that need to be rescheduled
+        """
+        datastore_oois = self.ctx.ooi_store.get_oois_last_checked_since(
             datetime.now(timezone.utc) - timedelta(seconds=self.ctx.config.pq_populate_grace_period)
         )
 
+        oois = {ooi.primary_key: ooi for ooi in datastore_oois}
+        removed_oois = [ooi.primary_key for ooi in datastore_oois if self.ctx.ooi_store.get_ooi(ooi.primary_key) is None]
+        for removal in removed_oois:
+            self.ctx.ooi_store.remove_ooi(removal.primary_key)
+            oois.pop(removal)
+            self.logger.debug("Removed ooi: %s from datastore", removal)
+
+        return list(oois.values())

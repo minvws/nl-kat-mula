@@ -86,8 +86,8 @@ class SchedulerTestCase(unittest.TestCase):
     @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
     @mock.patch("scheduler.context.AppContext.services.octopoes.get_random_objects")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
-    @mock.patch("scheduler.schedulers.BoefjeScheduler.get_latest_checked_oois")
-    def test_populate_boefjes_queue_abc(self, mock_get_latest_checked_oois, mock_create_tasks_for_oois, mock_get_random_objects, mock_get_latest_object):
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.reschedule_oois")
+    def test_populate_boefjes_queue(self, mock_reschedule_oois, mock_create_tasks_for_oois, mock_get_random_objects, mock_get_latest_object):
         """When no oois are available, it should be filled up with oois that
         haven't been schedulerd in a long time."""
         scan_profile = ScanProfileFactory(level=0)
@@ -100,7 +100,7 @@ class SchedulerTestCase(unittest.TestCase):
         )
 
         mock_get_latest_object.return_value = None
-        mock_get_latest_checked_oois.side_effect = [[ooi], [], [], []]
+        mock_reschedule_oois.side_effect = [[ooi], [], [], []]
         mock_get_random_objects.return_value = []
 
         mock_create_tasks_for_oois.return_value = [

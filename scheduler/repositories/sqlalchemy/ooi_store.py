@@ -72,8 +72,8 @@ class OOIStore(OOIStorer):
         with self.datastore.session.begin() as session:
             oois_orm =  (
                 session.query(models.OOIORM)
-                .filter(models.OOIORM.last_checked <= since)
-                .order_by(models.OOIORM.last_checked.desc())
+                .filter(models.OOIORM.checked_at <= since)
+                .order_by(models.OOIORM.checked_at.desc())
                 .all()
             )
 
