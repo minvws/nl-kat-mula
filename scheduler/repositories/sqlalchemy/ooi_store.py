@@ -7,6 +7,7 @@ from ..stores import OOIStorer
 from .datastore import SQLAlchemy
 
 
+# TODO: org id!!!!!
 class OOIStore(OOIStorer):
     """
 
@@ -32,7 +33,7 @@ class OOIStore(OOIStorer):
 
             if ooi_orm:
                 ooi.checked_at = datetime.datetime.utcnow()
-                ooi_orm.update_from_ooi(ooi)
+                self.update_ooi(ooi)
                 return models.OOI.from_orm(ooi_orm)
             else:
                 ooi_orm = models.OOIORM(**ooi.dict())
@@ -74,6 +75,17 @@ class OOIStore(OOIStorer):
                 session.query(models.OOIORM)
                 .filter(models.OOIORM.checked_at <= since)
                 .order_by(models.OOIORM.checked_at.desc())
+                .all()
+            )
+
+            return [models.OOI.from_orm(ooi_orm) for ooi_orm in oois_orm]
+
+    def get_oois_by_type(self, organisation_id: str, type: str) -> List[models.OOI]:
+        with self.datastore.session.begin() as session:
+            oois_orm = (
+                session.query(models.OOIORM)
+                .filter(models.OOIORM.organisation_id == organisation_id)
+                .filter(models.OOIORM.ooi_type == type)
                 .all()
             )
 

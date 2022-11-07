@@ -1,6 +1,7 @@
 import datetime
 from typing import Optional
 
+import mmh3
 from pydantic import BaseModel
 from sqlalchemy import JSON, Column, DateTime, Enum, String
 
@@ -14,9 +15,17 @@ class OOI(BaseModel):
     primary_key: str
     object_type: str
     scan_profile: ScanProfile
+    organisation_id: str
+
+    checked_at: Optional[datetime.datetime]
+    created_at: Optional[datetime.datetime]
+    modified_at: Optional[datetime.datetime]
 
     class Config:
         orm_mode = True
+
+    def __hash__(self):
+        return hash((self.primary_key, self.organisation_id))
 
 
 class OOIORM(Base):
@@ -30,8 +39,8 @@ class OOIORM(Base):
     name = Column(String)
     ooi_type = Column(String)
     object_type = Column(String)
-
     scan_profile = Column(JSON)
+    organisation_id = Column(String)
 
     checked_at = Column(
         DateTime(timezone=True),

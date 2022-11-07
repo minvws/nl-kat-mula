@@ -53,7 +53,7 @@ class BoefjeScheduler(Scheduler):
         random items from octopoes and schedule them accordingly.
         """
 
-        # scan levels changes
+        # scan levels changes of ooi's
         self.create_tasks_scan_level_change()
 
         # new boefjes
@@ -62,12 +62,14 @@ class BoefjeScheduler(Scheduler):
         # rescheduling of oois
         self.create_tasks_reschedule_ooi()
 
-
         # random oois
-        self.create_tasks_for_random_oois()
+        self.create_tasks_random_oois()
 
-    # scan levels changes
     def create_tasks_scan_level_change(self):
+        """ Create tasks for oois that have a scan level change.
+
+        We loop until we don't have any messages on the queue anymore.
+        """
         while not self.queue.full():
             latest_ooi = None
             try:
@@ -90,7 +92,7 @@ class BoefjeScheduler(Scheduler):
                     raise e
 
             if latest_ooi is None:
-                return []
+                return
 
             if latest_ooi is not None:
                 self.logger.debug(
@@ -140,47 +142,11 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
-    # TODO: new boefjes
-    def create_tasks_new_boefje(self):
-        pass
-
-    # rescheduling of oois
-    def create_tasks_reschedule_ooi(self) -> None:
-        while not self.queue.full():
-            time.sleep(1)
-
-            oois = self.reschedule_oois()
-            if not oois:
-                self.logger.debug(
-                    "No oois for organisation to be rescheduled: %s [org_id=%s, scheduler_id=%s]",
-                    self.organisation.name,
-                    self.organisation.id,
-                    self.scheduler_id,
-                )
-                break
-
-            # From ooi's create prioritized items (tasks) to push onto queue
-            p_items = self.create_tasks_for_oois(oois)
-            if not p_items:
-                break
-
-            # NOTE: maxsize 0 means unlimited
-            while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
-                self.logger.debug(
-                    "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
-                    self.queue.maxsize,
-                    self.organisation.id,
-                    self.scheduler_id,
-                )
-                time.sleep(1)
-
-            self.push_items_to_queue(p_items)
-
-            # Create or update in OOI store with checked_at
-            for ooi in oois:
-                self.ctx.ooi_store.create_or_update_ooi(ooi)
-        else:
-            self.logger.warning(
+    def create_tasks_new_boefje(self) -> None:
+        """Create tasks for the ooi's that are associated with a new added boefjes.
+        """
+        if self.queue.full():
+            self.logger.info(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
                 self.queue.qsize(),
                 self.organisation.id,
@@ -188,7 +154,96 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
-    def create_tasks_for_random_oois(self) -> None:
+        latest_boefje = None
+        try:
+            new_boefjes = self.ctx.services.katalogus.get_new_boefjes_by_org_id(self.organisation.id)
+        except (
+            pika.exceptions.ConnectionClosed,
+            pika.exceptions.ChannelClosed,
+            pika.exceptions.ChannelClosedByBroker,
+            pika.exceptions.AMQPConnectionError,
+        ) as e:
+            self.logger.warning(
+                "Could not connect to rabbitmq queue: %s [org_id=%s, scheduler_id=%s]",
+                f"{self.organisation.id}__scan_profile_increments",
+                self.organisation.id,
+                self.scheduler_id,
+            )
+            if self.stop_event.is_set():
+                raise e
+
+        if new_boefjes is None:
+            return
+
+        oois = set()
+        for new_boefje in new_boefjes:
+            for type_ in new_boefje.consumes:
+                oois.update(self.ctx.ooi_store.get_oois_by_type(organisation_id=self.organisation.id, type=type_))
+
+        p_items = self.create_tasks_for_oois(list(oois))
+        if not p_items:
+            return  # TODO: logging?
+
+        # NOTE: maxsize 0 means unlimited
+        while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
+            self.logger.debug(
+                "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
+                self.queue.maxsize,
+                self.organisation.id,
+                self.scheduler_id,
+            )
+            time.sleep(1)
+
+        self.push_items_to_queue(p_items)
+
+        # Create or update in OOI store with checked_at
+        for ooi in oois:
+            self.ctx.ooi_store.create_or_update_ooi(ooi)
+
+    def create_tasks_reschedule_ooi(self) -> None:
+        """Create tasks for ooi's that need to be rescheduled.
+        """
+        if self.queue.full():
+            self.logger.info(
+                "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
+                self.queue.qsize(),
+                self.organisation.id,
+                self.scheduler_id,
+            )
+            return
+
+        oois = self.reschedule_oois()
+        if not oois:
+            self.logger.debug(
+                "No oois for organisation to be rescheduled: %s [org_id=%s, scheduler_id=%s]",
+                self.organisation.name,
+                self.organisation.id,
+                self.scheduler_id,
+            )
+            return
+
+        # From ooi's create prioritized items (tasks) to push onto queue
+        p_items = self.create_tasks_for_oois(oois)
+        if not p_items:
+            return
+
+        # NOTE: maxsize 0 means unlimited
+        while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
+            self.logger.debug(
+                "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
+                self.queue.maxsize,
+                self.organisation.id,
+                self.scheduler_id,
+            )
+            time.sleep(1)
+
+        self.push_items_to_queue(p_items)
+
+        # Create or update in OOI store with checked_at
+        for ooi in oois:
+            self.ctx.ooi_store.create_or_update_ooi(ooi)
+
+    def create_tasks_random_oois(self) -> None:
         tries = 0
         while not self.queue.full():
             time.sleep(1)
@@ -262,8 +317,6 @@ class BoefjeScheduler(Scheduler):
                 self.scheduler_id,
             )
             return
-
-
 
     def create_tasks_for_oois(self, oois: List[OOI]) -> List[PrioritizedItem]:
         """For every provided ooi we will create available and enabled boefje
@@ -585,7 +638,8 @@ class BoefjeScheduler(Scheduler):
         return p_item
 
     def reschedule_oois(self) -> List[OOI]:
-        """Get oois that need to be rescheduled
+        """Get oois that need to be rescheduled. We only consider oois
+        that have been processed by the scheduler after the set grace period.
 
         Returns:
             List[OOI]: List of oois that need to be rescheduled
@@ -594,8 +648,11 @@ class BoefjeScheduler(Scheduler):
             datetime.now(timezone.utc) - timedelta(seconds=self.ctx.config.pq_populate_grace_period)
         )
 
+        # TODO: test this
+        # Remove oois from the database that are no longer present in the
+        # datastore, we check octopoes if they are still present.
         oois = {ooi.primary_key: ooi for ooi in datastore_oois}
-        removed_oois = [ooi.primary_key for ooi in datastore_oois if self.ctx.ooi_store.get_ooi(ooi.primary_key) is None]
+        removed_oois = [ooi.primary_key for ooi in datastore_oois if self.ctx.services.octopoes.get_object(self.organisation.id, ooi.primary_key) is None]
         for removal in removed_oois:
             self.ctx.ooi_store.remove_ooi(removal.primary_key)
             oois.pop(removal)
