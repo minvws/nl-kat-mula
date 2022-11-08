@@ -5,7 +5,7 @@
 The *scheduler* is tasked with populating and maintaining a priority queue of
 items that are ranked, and can be popped off (through api calls).
 The scheduler is designed to be extensible, such that you're able to create
-your own rules for the population, prioritization of tasks.
+your own rules for the population, and prioritization of tasks.
 
 The *scheduler* implements a priority queue for prioritization of tasks to be
 performed by the worker(s). In the implementation of the scheduler within KAT
