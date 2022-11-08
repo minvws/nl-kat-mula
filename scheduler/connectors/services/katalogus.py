@@ -53,29 +53,25 @@ class Katalogus(HTTPService):
         self.logger.debug("flushing plugin cache [cache=%s]", self.organisations_plugin_cache.cache)
         orgs = self.get_organisations()
 
-        # FIXME: not super happy with this
         for org in orgs:
             if org.id not in self.organisations_plugin_cache:
-                self.organisations_plugin_cache.cache[org.id] = {}
+                self.organisations_plugin_cache[org.id] = {}
 
-            plugins = self.get_plugins(org.id)
+            plugins = self.get_plugins_by_organisation(org.id)
             for plugin in plugins:
-                if plugin in self.organisations_plugin_cache[org.id]:
+                if plugin.id in self.organisations_plugin_cache[org.id]:
                     continue
 
                 # Add new boefje to organisation plugin cache and new boefjes cache
                 self.organisations_plugin_cache[org.id][plugin.id] = plugin
-                self.organisations_new_boefjes_cache[org.id][plugin.id] = plugin
 
-            # self.organisations_plugin_cache[org.id] = {
-            #     plugin.id: plugin for plugin in self.get_plugins_by_organisation(org.id)
-            # }
+                # Add new boefje to new boefjes cache
+                self.organisations_new_boefjes_cache.setdefault(org.id, {})[plugin.id] = plugin
 
     def _flush_organisations_boefje_type_cache(self) -> None:
         """boefje.consumes -> plugin type boefje"""
         self.logger.debug("flushing boefje cache [cache=%s]", self.organisations_boefje_type_cache.cache)
         orgs = self.get_organisations()
-
 
         for org in orgs:
             self.organisations_boefje_type_cache[org.id] = {}

@@ -15,7 +15,7 @@ class OOI(BaseModel):
     primary_key: str
     object_type: str
     scan_profile: ScanProfile
-    organisation_id: str
+    organisation_id: Optional[str]
 
     checked_at: Optional[datetime.datetime]
     created_at: Optional[datetime.datetime]
