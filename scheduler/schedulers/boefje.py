@@ -44,13 +44,6 @@ class BoefjeScheduler(Scheduler):
 
     def populate_queue(self) -> None:
         """Populate the PriorityQueue.
-
-        While the queue is not full we will try to fill it with items that have
-        been created, e.g. when the scan level was increased (since oois start
-        with a scan level 0 and will not start any boefjes).
-
-        When this is done we will try and fill the rest of the queue with
-        random items from octopoes and schedule them accordingly.
         """
 
         # scan levels changes of ooi's
@@ -61,9 +54,6 @@ class BoefjeScheduler(Scheduler):
 
         # rescheduling of oois
         self.create_tasks_reschedule_ooi()
-
-        # random oois
-        self.create_tasks_random_oois()
 
     def create_tasks_scan_level_change(self):
         """ Create tasks for oois that have a scan level change.
@@ -182,7 +172,7 @@ class BoefjeScheduler(Scheduler):
 
         p_items = self.create_tasks_for_oois(list(oois))
         if not p_items:
-            return  # TODO: logging?
+            return
 
         # NOTE: maxsize 0 means unlimited
         while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
@@ -242,81 +232,6 @@ class BoefjeScheduler(Scheduler):
         # Create or update in OOI store with checked_at
         for ooi in oois:
             self.ctx.ooi_store.create_or_update_ooi(ooi)
-
-    def create_tasks_random_oois(self) -> None:
-        tries = 0
-        while not self.queue.full():
-            time.sleep(1)
-
-            try:
-                random_oois = self.ctx.services.octopoes.get_random_objects(
-                    organisation_id=self.organisation.id,
-                    n=10,
-                )
-            except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):
-                self.logger.warning(
-                    "Could not get random oois for organisation: %s [org_id=%s, scheduler_id=%s]",
-                    self.organisation.name,
-                    self.organisation.id,
-                    self.scheduler_id,
-                )
-                return
-
-            if len(random_oois) == 0:
-                self.logger.debug(
-                    "No random oois for organisation: %s [org_id=%s, scheduler_id=%s]",
-                    self.organisation.name,
-                    self.organisation.id,
-                    self.scheduler_id,
-                )
-                break
-
-            # NOTE: It is possible that a random ooi will not generate any
-            # tasks, for instance when all ooi's and their boefjes have already
-            # run. When this happens 3 times in a row we will break out
-            # of the loop. We reset the tries counter to 0 when we do
-            # get new tasks from an ooi.
-            p_items = self.create_tasks_for_oois(random_oois)
-            if len(p_items) == 0 and tries < 3:
-                tries += 1
-                continue
-
-            if len(p_items) == 0 and tries >= 3:
-                self.logger.debug(
-                    "No tasks could be created for random oois for organisation: %s [tries=%d, org_id=%s, scheduler_id=%s]",
-                    self.organisation.name,
-                    tries,
-                    self.organisation.id,
-                    self.scheduler_id,
-                )
-                break
-
-            # NOTE: maxsize 0 means unlimited
-            while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
-                self.logger.debug(
-                    "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
-                    len(p_items),
-                    self.queue.qsize(),
-                    self.queue.maxsize,
-                    self.organisation.id,
-                    self.scheduler_id,
-                )
-                time.sleep(1)
-
-            self.push_items_to_queue(p_items)
-            tries = 0
-
-            # Create update in OOI store with checked_at
-            for ooi in random_oois:
-                self.ctx.ooi_store.create_or_update_ooi(ooi)
-        else:
-            self.logger.warning(
-                "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
-                self.queue.qsize(),
-                self.organisation.id,
-                self.scheduler_id,
-            )
-            return
 
     def create_tasks_for_oois(self, oois: List[OOI]) -> List[PrioritizedItem]:
         """For every provided ooi we will create available and enabled boefje
@@ -648,13 +563,13 @@ class BoefjeScheduler(Scheduler):
             datetime.now(timezone.utc) - timedelta(seconds=self.ctx.config.pq_populate_grace_period)
         )
 
-        # TODO: test this
         # Remove oois from the database that are no longer present in the
         # datastore, we check octopoes if they are still present.
         oois = {ooi.primary_key: ooi for ooi in datastore_oois}
         removed_oois = [ooi.primary_key for ooi in datastore_oois if self.ctx.services.octopoes.get_object(self.organisation.id, ooi.primary_key) is None]
+
         for removal in removed_oois:
-            self.ctx.ooi_store.remove_ooi(removal.primary_key)
+            self.ctx.ooi_store.delete_ooi(removal)
             oois.pop(removal)
             self.logger.debug("Removed ooi: %s from datastore", removal)
 

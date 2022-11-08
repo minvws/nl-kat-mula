@@ -83,14 +83,13 @@ class SchedulerTestCase(unittest.TestCase):
             organisation=self.organisation,
         )
 
-    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_scan_level_change")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_new_boefje")
-    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_random_oois")
-    @mock.patch("scheduler.schedulers.BoefjeScheduler.reschedule_oois")
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_reschedule_ooi")
+    @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
-    def test_populate_boefjes_queue_reschedule(self, mock_create_tasks, mock_reschedule, mock_random, mock_new_boefje, mock_scan_level_change):
-        """When no oois are available, it should be filled up with oois that
-        haven't been scheduled in a long time."""
+    def test_populate_boefjes_queue_scan_level_change(
+        self, mock_create_tasks_for_oois, mock_get_latest_object,  mock_reschedule, mock_new_boefje):
+        """When oois are available from octopoes api"""
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
         task = models.BoefjeTask(
@@ -100,12 +99,11 @@ class SchedulerTestCase(unittest.TestCase):
             organization=self.organisation.id,
         )
 
-        mock_scan_level_change.return_value = []
         mock_new_boefje.return_value = []
-        mock_random.return_value = []
-        mock_reschedule.side_effect = [[ooi], [], [], []]
+        mock_reschedule.return_value = []
 
-        mock_create_tasks.return_value = [
+        mock_get_latest_object.side_effect = [ooi, None]
+        mock_create_tasks_for_oois.return_value = [
             functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=0, data=task),
         ]
 
@@ -113,16 +111,11 @@ class SchedulerTestCase(unittest.TestCase):
         self.assertEqual(1, self.scheduler.queue.qsize())
         self.assertEqual(task, self.scheduler.queue.peek(0).data)
 
-        # OOI should be in database
-        ooi_db = self.scheduler.ctx.ooi_store.get_ooi(ooi.primary_key)
-        self.assertEqual(ooi_db.primary_key, ooi.primary_key)
-
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_scan_level_change")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_reschedule_ooi")
-    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_random_oois")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_new_boefjes_by_org_id")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
-    def test_populate_boefjes_queue_new_boefje(self, mock_create_tasks_for_oois, mock_get_new_boefjes_by_org_id, mock_create_tasks_random_oois, mock_create_tasks_reschedule_ooi, mock_create_tasks_scan_level_change):
+    def test_populate_boefjes_queue_new_boefje(self, mock_create_tasks_for_oois, mock_get_new_boefjes_by_org_id,mock_create_tasks_reschedule_ooi, mock_create_tasks_scan_level_change):
         """When a new boefje is added, it should be filled up with oois that
         are associated with that boefje.
         """
@@ -141,7 +134,6 @@ class SchedulerTestCase(unittest.TestCase):
         )
 
         mock_get_new_boefjes_by_org_id.side_effect = [[boefje], []]
-        mock_create_tasks_random_oois.return_value = []
         mock_create_tasks_reschedule_ooi.return_value = []
         mock_create_tasks_scan_level_change.return_value = []
         mock_create_tasks_for_oois.return_value = [
@@ -152,14 +144,13 @@ class SchedulerTestCase(unittest.TestCase):
         self.assertEqual(1, self.scheduler.queue.qsize())
         self.assertEqual(task, self.scheduler.queue.peek(0).data)
 
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_scan_level_change")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_new_boefje")
-    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_reschedule_ooi")
-    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_random_oois")
-    @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.reschedule_oois")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
-    def test_populate_boefjes_queue_scan_level_change(
-        self, mock_create_tasks_for_oois, mock_get_latest_object, mock_random, mock_reschedule, mock_new_boefje):
-        """When oois are available from octopoes api, and no random oois."""
+    def test_populate_boefjes_queue_reschedule(self, mock_create_tasks, mock_reschedule, mock_new_boefje, mock_scan_level_change):
+        """When no oois are available, it should be filled up with oois that
+        haven't been scheduled in a long time."""
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
         task = models.BoefjeTask(
@@ -169,50 +160,26 @@ class SchedulerTestCase(unittest.TestCase):
             organization=self.organisation.id,
         )
 
+        mock_scan_level_change.return_value = []
         mock_new_boefje.return_value = []
-        mock_reschedule.return_value = []
-        mock_random.return_value = []
+        mock_reschedule.side_effect = [[ooi], [], [], []]
 
-
-        mock_get_latest_object.side_effect = [ooi, None]
-        mock_create_tasks_for_oois.return_value = [
+        mock_create_tasks.return_value = [
             functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=0, data=task),
         ]
 
         self.scheduler.populate_queue()
         self.assertEqual(1, self.scheduler.queue.qsize())
         self.assertEqual(task, self.scheduler.queue.peek(0).data)
+
+        # OOI should be in database
+        ooi_db = self.scheduler.ctx.ooi_store.get_ooi(ooi.primary_key)
+        self.assertEqual(ooi_db.primary_key, ooi.primary_key)
 
     # TODO
     def test_populate_boefjes_queue_overflow(self):
         """One ooi has too many boefjes to fit in the queue"""
         pass
-
-    @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
-    @mock.patch("scheduler.context.AppContext.services.octopoes.get_random_objects")
-    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
-    def test_populate_boefjes_queue_with_no_oois(
-        self, mock_create_tasks_for_oois, mock_get_random_objects, mock_get_latest_object
-    ):
-        """When no oois are available, it should be filled up with random oois"""
-        scan_profile = ScanProfileFactory(level=0)
-        ooi = OOIFactory(scan_profile=scan_profile)
-        task = models.BoefjeTask(
-            id=uuid.uuid4().hex,
-            boefje=BoefjeFactory(),
-            input_ooi=ooi.primary_key,
-            organization=self.organisation.id,
-        )
-
-        mock_get_latest_object.return_value = None
-        mock_get_random_objects.side_effect = [[ooi], [], [], []]
-        mock_create_tasks_for_oois.return_value = [
-            functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=0, data=task),
-        ]
-
-        self.scheduler.populate_queue()
-        self.assertEqual(1, self.scheduler.queue.qsize())
-        self.assertEqual(task, self.scheduler.queue.peek(0).data)
 
     @mock.patch("scheduler.context.AppContext.services.bytes.get_last_run_boefje")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_type_and_org_id")
@@ -433,10 +400,9 @@ class SchedulerTestCase(unittest.TestCase):
 
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_new_boefje")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_reschedule_ooi")
-    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_random_oois")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
     @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
-    def test_post_push(self, mock_get_latest_object, mock_create_tasks_for_oois, mock_random, mock_reschedule, mock_new_boefje):
+    def test_post_push(self, mock_get_latest_object, mock_create_tasks_for_oois, mock_reschedule, mock_new_boefje):
         """When a task is added to the queue, it should be added to the database"""
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
@@ -447,7 +413,6 @@ class SchedulerTestCase(unittest.TestCase):
         )
 
         mock_new_boefje.return_value = []
-        mock_random.return_value = []
         mock_reschedule.return_value = []
 
         # Mock inside the create_tasks_scan_level_change method
@@ -467,10 +432,9 @@ class SchedulerTestCase(unittest.TestCase):
 
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_new_boefje")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_reschedule_ooi")
-    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_random_oois")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
     @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
-    def test_post_pop(self, mock_get_latest_object, mock_create_tasks_for_oois, mock_random, mock_reschedule, mock_new_boefje):
+    def test_post_pop(self, mock_get_latest_object, mock_create_tasks_for_oois, mock_reschedule, mock_new_boefje):
         """When a task is removed from the queue, its status should be updated"""
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
@@ -483,7 +447,6 @@ class SchedulerTestCase(unittest.TestCase):
 
         mock_new_boefje.return_value = []
         mock_reschedule.return_value = []
-        mock_random.return_value = []
 
         mock_get_latest_object.side_effect = [ooi, None]
         p_item = functions.create_p_item(scheduler_id=self.organisation.id, priority=0, data=task)
@@ -504,3 +467,22 @@ class SchedulerTestCase(unittest.TestCase):
         task_db = self.mock_ctx.task_store.get_task_by_id(p_item.id)
         self.assertEqual(task_db.id, p_item.id)
         self.assertEqual(task_db.status, models.TaskStatus.DISPATCHED)
+
+    @mock.patch("scheduler.context.AppContext.services.octopoes.get_object")
+    @mock.patch("scheduler.context.AppContext.ooi_store.get_oois_last_checked_since")
+    def test_reschedule_oois(self, mock_get_oois, mock_get_object):
+        """When ooi's are not present in octopoes anymore, they should be
+        deleted from the datastore.
+        """
+        # Add ooi's to the database
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(organisation_id=self.organisation.id ,scan_profile=scan_profile, ooi_type="test")
+        self.ooi_store.create_ooi(ooi)
+
+        # We're returning None, to make sure that we would delete all the ooi's
+        mock_get_object.return_value = None
+        mock_get_oois.return_value = [ooi]
+        self.scheduler.reschedule_oois()
+
+        ooi_db = self.scheduler.ctx.ooi_store.get_ooi(ooi.primary_key)
+        self.assertEqual(ooi_db, None)
