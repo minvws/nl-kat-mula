@@ -284,7 +284,7 @@ class BoefjeScheduler(Scheduler):
         """
         try:
             boefjes = self.ctx.services.katalogus.get_boefjes_by_type_and_org_id(
-                ooi.object_type,
+                ooi.ooi_type,
                 self.organisation.id,
             )
         except (requests.exceptions.RetryError, requests.exceptions.ConnectionError):

@@ -81,7 +81,9 @@ class Katalogus(HTTPService):
                     continue
 
                 for type_ in plugin.consumes:
-                    self.organisations_normalizer_type_cache[org.id].setdefault(type_, []).append(plugin)
+                    self.organisations_boefje_type_cache[org.id].setdefault(type_, []).append(plugin)
+
+        self.logger.debug("flushed boefje cache [cache=%s]", self.organisations_boefje_type_cache.cache)
 
     def _flush_organisations_normalizer_type_cache(self) -> None:
         """normalizer.consumes -> plugin type normalizer"""
@@ -97,6 +99,8 @@ class Katalogus(HTTPService):
 
                 for type_ in plugin.consumes:
                     self.organisations_normalizer_type_cache[org.id].setdefault(type_, []).append(plugin)
+
+        self.logger.debug("flushed normalizer cache [cache=%s]", self.organisations_normalizer_type_cache.cache)
 
     @exception_handler
     def get_boefjes(self) -> List[Boefje]:
