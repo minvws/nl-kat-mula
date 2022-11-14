@@ -8,8 +8,7 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import (OOI, Boefje, BoefjeTask, Organisation, Plugin,
-                              TaskStatus)
+from scheduler.models import OOI, Boefje, BoefjeTask, Organisation, Plugin, TaskStatus
 
 from .scheduler import Scheduler
 
@@ -415,7 +414,11 @@ class BoefjeScheduler(Scheduler):
 
         # Task has been finished (failed, or succeeded), and we have no results
         # of it in bytes.
-        if task_db is not None and last_run_boefje is None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED):
+        if (
+            task_db is not None
+            and last_run_boefje is None
+            and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED)
+        ):
             self.logger.warning(
                 "Boefje: %s is not in the last run boefjes, but is in the tasks table [task_id=%s, boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                 task_db.id,
