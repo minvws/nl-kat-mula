@@ -1,6 +1,6 @@
 import logging
 import queue as _queue
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import fastapi
 import scheduler
@@ -314,7 +314,7 @@ class Server:
         try:
             p_item = s.pop_item_from_queue()
         except queues.QueueEmptyError as exc_empty:
-            return None
+            return fastapi.Response(status_code=204)
 
         return models.QueuePrioritizedItem(**p_item.dict())
 
