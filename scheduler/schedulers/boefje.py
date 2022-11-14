@@ -212,7 +212,6 @@ class BoefjeScheduler(Scheduler):
         if boefjes is None or len(boefjes) == 0:
             self.logger.debug(
                 "No boefjes for ooi: %s [org_id=%s, scheduler_id=%s]",
-                ooi.name,
                 self.organisation.id,
                 self.scheduler_id,
             )
