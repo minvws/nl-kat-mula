@@ -3,15 +3,11 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from scheduler import config, connectors, datastores, models, queues, rankers, schedulers
-from tests.factories import (
-    BoefjeFactory,
-    BoefjeMetaFactory,
-    OOIFactory,
-    OrganisationFactory,
-    PluginFactory,
-    ScanProfileFactory,
-)
+from scheduler import (config, connectors, datastores, models, queues, rankers,
+                       schedulers)
+from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
+                             OrganisationFactory, PluginFactory,
+                             ScanProfileFactory)
 
 
 class SchedulerTestCase(unittest.TestCase):
@@ -299,6 +295,29 @@ class SchedulerTestCase(unittest.TestCase):
 
         mock_get_boefjes_by_type_and_org_id.return_value = boefjes
         mock_get_last_run_boefje.return_value = last_run_boefje
+
+        tasks = self.scheduler.create_tasks_for_oois([ooi])
+        self.assertEqual(0, len(tasks))
+
+    @mock.patch("scheduler.context.AppContext.services.bytes.get_last_run_boefje")
+    @mock.patch("scheduler.context.AppContext.services.datastore.get_task_by_hash")
+    def test_create_task_task_not_found_in_bytes(self, mock_get_last_run_boefje, mock_get_task_by_hash):
+        """When a task is not found in bytes, but is found in the datastore
+        and completed. It should not create a task.
+        """
+        # Create task in datastore, that is completed
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        task = models.BoefjeTask(
+            id=uuid.uuid4().hex,
+            boefje=BoefjeFactory(),
+            input_ooi=ooi.primary_key,
+            organization=self.organisation.id,
+            status=models.TaskStatus.COMPLETED,
+        )
+
+        mock_get_task_by_hash.return_value = task
+        mock_get_last_run_boefje.return_value = None
 
         tasks = self.scheduler.create_tasks_for_oois([ooi])
         self.assertEqual(0, len(tasks))

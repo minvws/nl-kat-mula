@@ -8,7 +8,8 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import OOI, Boefje, BoefjeTask, Organisation, Plugin, TaskStatus
+from scheduler.models import (OOI, Boefje, BoefjeTask, Organisation, Plugin,
+                              TaskStatus)
 
 from .scheduler import Scheduler
 
@@ -390,28 +391,11 @@ class BoefjeScheduler(Scheduler):
             )
             return None
 
-        # Boefje should not run when it is still being processed, we
-        # try to find the same combination of ooi, boefje, and
-        # organisation (hash) to make sure that the particular task
-        # isn't being processed.
-        task_db = self.ctx.datastore.get_task_by_hash(
-            mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
-        )
-        if task_db is not None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED):
-            self.logger.debug(
-                "Boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
-                boefje.id,
-                boefje.id,
-                ooi.primary_key,
-                self.organisation.id,
-                self.scheduler_id,
-            )
-            return None
-
-        # Boefjes should not run before the grace period ends, thus
-        # we will check when the combination boefje and ooi was last
-        # run.
         try:
+            task_db = self.ctx.datastore.get_task_by_hash(
+                mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
+            )
+
             last_run_boefje = self.ctx.services.bytes.get_last_run_boefje(
                 boefje_id=boefje.id,
                 input_ooi=ooi.primary_key,
@@ -429,6 +413,33 @@ class BoefjeScheduler(Scheduler):
             )
             return None
 
+        # Task has been finished (failed, or succeeded), and we have no results
+        # of it in bytes.
+        if task_db is not None and last_run_boefje is None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED):
+            self.logger.warning(
+                "Boefje: %s is not in the last run boefjes, but is in the tasks table [task_id=%s, boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                task_db.id,
+                boefje.name,
+                boefje.id,
+                ooi.primary_key,
+                self.organisation.id,
+                self.scheduler_id,
+            )
+            return None
+
+        # Is boefje still running according to the database?
+        if task_db is not None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED):
+            self.logger.debug(
+                "Boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                boefje.id,
+                boefje.id,
+                ooi.primary_key,
+                self.organisation.id,
+                self.scheduler_id,
+            )
+            return None
+
+        # Is boefje still running according to bytes?
         if last_run_boefje is not None and last_run_boefje.ended_at is None and last_run_boefje.started_at is not None:
             self.logger.debug(
                 "Boefje %s is already running [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
@@ -440,6 +451,7 @@ class BoefjeScheduler(Scheduler):
             )
             return None
 
+        # Did the grace period end, according to bytes?
         if (
             last_run_boefje is not None
             and last_run_boefje.ended_at is not None
@@ -456,6 +468,9 @@ class BoefjeScheduler(Scheduler):
             )
             return None
 
+        # We can calculate the priority of the task, the task is ready
+        # for rescheduling, e.g. it's a new task or the task has been
+        # completed, and the grace period has ended.
         score = self.ranker.rank(SimpleNamespace(last_run_boefje=last_run_boefje, task=task))
         if score < 0:
             self.logger.warning(
