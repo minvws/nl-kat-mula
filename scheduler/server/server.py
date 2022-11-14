@@ -115,7 +115,7 @@ class Server:
             path="/queues/{queue_id}/pop",
             endpoint=self.pop_queue,
             methods=["GET"],
-            response_model=models.QueuePrioritizedItem,
+            response_model=Optional[models.QueuePrioritizedItem],
             status_code=200,
         )
 
@@ -314,7 +314,7 @@ class Server:
         try:
             p_item = s.pop_item_from_queue()
         except queues.QueueEmptyError as exc_empty:
-            return fastapi.Response(status_code=204)
+            return None
 
         return models.QueuePrioritizedItem(**p_item.dict())
 
