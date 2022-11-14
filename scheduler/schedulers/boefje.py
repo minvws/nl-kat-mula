@@ -8,7 +8,8 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import OOI, Boefje, BoefjeTask, Organisation, Plugin, TaskStatus
+from scheduler.models import (OOI, Boefje, BoefjeTask, Organisation, Plugin,
+                              TaskStatus)
 
 from .scheduler import Scheduler
 
@@ -74,6 +75,13 @@ class BoefjeScheduler(Scheduler):
                     raise e
 
             if latest_ooi is not None:
+                self.logger.debug(
+                    "Received scan profile increment for ooi: %s [org_id=%s, scheduler_id=%s]",
+                    latest_ooi,
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+
                 # From ooi's create prioritized items (tasks) to push onto queue
                 # continue with the next object (when there are more objects)
                 # to see if there are more tasks to add.
@@ -212,6 +220,7 @@ class BoefjeScheduler(Scheduler):
         if boefjes is None or len(boefjes) == 0:
             self.logger.debug(
                 "No boefjes for ooi: %s [org_id=%s, scheduler_id=%s]",
+                ooi,
                 self.organisation.id,
                 self.scheduler_id,
             )
