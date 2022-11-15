@@ -85,7 +85,7 @@ class OOIStore(OOIStorer):
             oois_orm = (
                 session.query(models.OOIORM)
                 .filter(models.OOIORM.organisation_id == organisation_id)
-                .filter(models.OOIORM.ooi_type == type)
+                .filter(models.OOIORM.object_type == type)
                 .all()
             )
 

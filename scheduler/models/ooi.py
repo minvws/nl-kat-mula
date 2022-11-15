@@ -36,8 +36,6 @@ class OOIORM(Base):
     __tablename__ = "oois"
 
     primary_key = Column(String, primary_key=True)
-    name = Column(String)
-    ooi_type = Column(String)
     object_type = Column(String)
     scan_profile = Column(JSON)
     organisation_id = Column(String)

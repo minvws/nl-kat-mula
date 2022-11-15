@@ -121,10 +121,10 @@ class SchedulerTestCase(unittest.TestCase):
         """
         # Add ooi's with the have the same type of boefje
         scan_profile = ScanProfileFactory(level=0)
-        ooi = OOIFactory(organisation_id=self.organisation.id ,scan_profile=scan_profile, ooi_type="test")
+        ooi = OOIFactory(organisation_id=self.organisation.id ,scan_profile=scan_profile, object_type="test")
         self.ooi_store.create_ooi(ooi)
 
-        boefje = BoefjeFactory(consumes=[ooi.ooi_type])
+        boefje = BoefjeFactory(consumes=[ooi.object_type])
 
         task = models.BoefjeTask(
             id=uuid.uuid4().hex,
@@ -476,7 +476,7 @@ class SchedulerTestCase(unittest.TestCase):
         """
         # Add ooi's to the database
         scan_profile = ScanProfileFactory(level=0)
-        ooi = OOIFactory(organisation_id=self.organisation.id ,scan_profile=scan_profile, ooi_type="test")
+        ooi = OOIFactory(organisation_id=self.organisation.id ,scan_profile=scan_profile, object_type="test")
         self.ooi_store.create_ooi(ooi)
 
         # We're returning None, to make sure that we would delete all the ooi's
