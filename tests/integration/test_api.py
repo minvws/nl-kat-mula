@@ -338,6 +338,11 @@ class APITestCase(unittest.TestCase):
         self.assertEqual(str(second_item.id), response.json().get("id"))
         self.assertEqual(0, self.scheduler.queue.qsize())
 
+    def test_pop_empty(self):
+        """When queue is empty it should return an empty response"""
+        response = self.client.get(f"/queues/{self.scheduler.scheduler_id}/pop")
+        self.assertEqual(200, response.status_code)
+
     def test_get_tasks(self):
         # First add a task
         item = create_p_item(self.organisation.id, 0)

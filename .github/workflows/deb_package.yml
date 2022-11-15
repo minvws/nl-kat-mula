@@ -30,7 +30,7 @@ jobs:
             echo "RELEASE_VERSION=${{ inputs.version }}" >> $GITHUB_ENV
           fi
 
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
 
       - name: Replace version number with release version
         run: find . -type f -name 'version.py' -exec sed -ibak "s/__version__ = .*/__version__ = \"${RELEASE_TAG}\"/" {} \;

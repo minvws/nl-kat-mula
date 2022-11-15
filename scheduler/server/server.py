@@ -1,6 +1,6 @@
 import logging
 import queue as _queue
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import fastapi
 import scheduler
@@ -115,7 +115,7 @@ class Server:
             path="/queues/{queue_id}/pop",
             endpoint=self.pop_queue,
             methods=["GET"],
-            response_model=models.PrioritizedItem,
+            response_model=Optional[models.QueuePrioritizedItem],
             status_code=200,
         )
 
