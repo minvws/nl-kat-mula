@@ -26,12 +26,7 @@ class OOIFactory(Factory):
         model = OOI
 
     primary_key: str = Sequence(lambda n: n)
-<<<<<<< HEAD
     scan_profile: ScanProfile
-=======
-
-    name: str = Faker("name")
->>>>>>> dbaec3a... Update test
 
     object_type: str = Faker(
         "random_element",
