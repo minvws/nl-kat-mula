@@ -115,7 +115,7 @@ class Server:
             path="/queues/{queue_id}/pop",
             endpoint=self.pop_queue,
             methods=["GET"],
-            response_model=Optional[models.QueuePrioritizedItem],
+            response_model=Optional[models.PrioritizedItem],
             status_code=200,
         )
 

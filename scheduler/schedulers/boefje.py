@@ -9,8 +9,7 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import (OOI, Boefje, BoefjeTask, Organisation, Plugin,
-                              PrioritizedItem, TaskStatus)
+from scheduler.models import OOI, Boefje, BoefjeTask, Organisation, Plugin, PrioritizedItem, TaskStatus
 
 from .scheduler import Scheduler
 
@@ -443,7 +442,7 @@ class BoefjeScheduler(Scheduler):
             return None
 
         try:
-            task_db = self.ctx.datastore.get_task_by_hash(
+            task_db = self.ctx.task_store.get_task_by_hash(
                 mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
             )
 
