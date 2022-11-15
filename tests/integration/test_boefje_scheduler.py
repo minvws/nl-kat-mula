@@ -3,11 +3,15 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from scheduler import (config, connectors, models, queues, rankers,
-                       repositories, schedulers)
-from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
-                             OrganisationFactory, PluginFactory,
-                             ScanProfileFactory)
+from scheduler import config, connectors, models, queues, rankers, repositories, schedulers
+from tests.factories import (
+    BoefjeFactory,
+    BoefjeMetaFactory,
+    OOIFactory,
+    OrganisationFactory,
+    PluginFactory,
+    ScanProfileFactory,
+)
 from tests.utils import functions
 
 
@@ -88,7 +92,8 @@ class SchedulerTestCase(unittest.TestCase):
     @mock.patch("scheduler.context.AppContext.services.scan_profile.get_latest_object")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
     def test_populate_boefjes_queue_scan_level_change(
-        self, mock_create_tasks_for_oois, mock_get_latest_object,  mock_reschedule, mock_new_boefje):
+        self, mock_create_tasks_for_oois, mock_get_latest_object, mock_reschedule, mock_new_boefje
+    ):
         """When oois are available from octopoes api"""
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
@@ -115,13 +120,19 @@ class SchedulerTestCase(unittest.TestCase):
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_reschedule_ooi")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_new_boefjes_by_org_id")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
-    def test_populate_boefjes_queue_new_boefje(self, mock_create_tasks_for_oois, mock_get_new_boefjes_by_org_id,mock_create_tasks_reschedule_ooi, mock_create_tasks_scan_level_change):
+    def test_populate_boefjes_queue_new_boefje(
+        self,
+        mock_create_tasks_for_oois,
+        mock_get_new_boefjes_by_org_id,
+        mock_create_tasks_reschedule_ooi,
+        mock_create_tasks_scan_level_change,
+    ):
         """When a new boefje is added, it should be filled up with oois that
         are associated with that boefje.
         """
         # Add ooi's with the have the same type of boefje
         scan_profile = ScanProfileFactory(level=0)
-        ooi = OOIFactory(organisation_id=self.organisation.id ,scan_profile=scan_profile, object_type="test")
+        ooi = OOIFactory(organisation_id=self.organisation.id, scan_profile=scan_profile, object_type="test")
         self.ooi_store.create_ooi(ooi)
 
         boefje = BoefjeFactory(consumes=[ooi.object_type])
@@ -148,7 +159,9 @@ class SchedulerTestCase(unittest.TestCase):
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_new_boefje")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.reschedule_oois")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
-    def test_populate_boefjes_queue_reschedule(self, mock_create_tasks, mock_reschedule, mock_new_boefje, mock_scan_level_change):
+    def test_populate_boefjes_queue_reschedule(
+        self, mock_create_tasks, mock_reschedule, mock_new_boefje, mock_scan_level_change
+    ):
         """When no oois are available, it should be filled up with oois that
         haven't been scheduled in a long time."""
         scan_profile = ScanProfileFactory(level=0)
@@ -444,7 +457,6 @@ class SchedulerTestCase(unittest.TestCase):
             organization=self.organisation.id,
         )
 
-
         mock_new_boefje.return_value = []
         mock_reschedule.return_value = []
 
@@ -476,7 +488,7 @@ class SchedulerTestCase(unittest.TestCase):
         """
         # Add ooi's to the database
         scan_profile = ScanProfileFactory(level=0)
-        ooi = OOIFactory(organisation_id=self.organisation.id ,scan_profile=scan_profile, object_type="test")
+        ooi = OOIFactory(organisation_id=self.organisation.id, scan_profile=scan_profile, object_type="test")
         self.ooi_store.create_ooi(ooi)
 
         # We're returning None, to make sure that we would delete all the ooi's

@@ -34,7 +34,6 @@ class Katalogus(HTTPService):
         self.organisations_boefje_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict(lifetime=30)
         self.organisations_normalizer_type_cache: dict_utils.ExpiringDict = dict_utils.ExpiringDict(lifetime=30)
 
-
         # Example:
         #
         # {
@@ -156,4 +155,3 @@ class Katalogus(HTTPService):
         new_boefjes = self.organisations_new_boefjes_cache[organisation_id].values()
         self.organisations_new_boefjes_cache[organisation_id] = {}
         return new_boefjes
-

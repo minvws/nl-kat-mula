@@ -42,8 +42,7 @@ class BoefjeScheduler(Scheduler):
         self.organisation: Organisation = organisation
 
     def populate_queue(self) -> None:
-        """Populate the PriorityQueue.
-        """
+        """Populate the PriorityQueue."""
 
         # scan levels changes of ooi's
         self.create_tasks_scan_level_change()
@@ -55,7 +54,7 @@ class BoefjeScheduler(Scheduler):
         self.create_tasks_reschedule_ooi()
 
     def create_tasks_scan_level_change(self):
-        """ Create tasks for oois that have a scan level change.
+        """Create tasks for oois that have a scan level change.
 
         We loop until we don't have any messages on the queue anymore.
         """
@@ -132,8 +131,7 @@ class BoefjeScheduler(Scheduler):
             return
 
     def create_tasks_new_boefje(self) -> None:
-        """Create tasks for the ooi's that are associated with a new added boefjes.
-        """
+        """Create tasks for the ooi's that are associated with a new added boefjes."""
         if self.queue.full():
             self.logger.info(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
@@ -190,8 +188,7 @@ class BoefjeScheduler(Scheduler):
             self.ctx.ooi_store.create_or_update_ooi(ooi)
 
     def create_tasks_reschedule_ooi(self) -> None:
-        """Create tasks for ooi's that need to be rescheduled.
-        """
+        """Create tasks for ooi's that need to be rescheduled."""
         if self.queue.full():
             self.logger.info(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
@@ -565,7 +562,11 @@ class BoefjeScheduler(Scheduler):
         # Remove oois from the database that are no longer present in the
         # datastore, we check octopoes if they are still present.
         oois = {ooi.primary_key: ooi for ooi in datastore_oois}
-        removed_oois = [ooi.primary_key for ooi in datastore_oois if self.ctx.services.octopoes.get_object(self.organisation.id, ooi.primary_key) is None]
+        removed_oois = [
+            ooi.primary_key
+            for ooi in datastore_oois
+            if self.ctx.services.octopoes.get_object(self.organisation.id, ooi.primary_key) is None
+        ]
 
         for removal in removed_oois:
             self.ctx.ooi_store.delete_ooi(removal)

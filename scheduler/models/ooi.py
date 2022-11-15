@@ -33,6 +33,7 @@ class OOIORM(Base):
     specifically done for BoefjeSchedulers to keep track of the OOI's
     that have been and are being scanned.
     """
+
     __tablename__ = "oois"
 
     primary_key = Column(String, primary_key=True)

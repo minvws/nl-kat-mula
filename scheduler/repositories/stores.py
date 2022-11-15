@@ -82,6 +82,7 @@ class PriorityQueueStorer(abc.ABC):
     def get_items_by_scheduler_id(self, scheduler_id: str) -> List[models.PrioritizedItem]:
         raise NotImplementedError
 
+
 class OOIStorer(abc.ABC):
     def __init__(self) -> None:
         self.logger: logging.Logger = logging.getLogger(__name__)

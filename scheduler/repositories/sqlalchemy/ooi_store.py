@@ -9,9 +9,8 @@ from .datastore import SQLAlchemy
 
 # TODO: org id!!!!!
 class OOIStore(OOIStorer):
-    """
+    """ """
 
-    """
     def __init__(self, datastore: SQLAlchemy) -> None:
         super().__init__()
 
@@ -25,11 +24,7 @@ class OOIStore(OOIStorer):
 
     def create_or_update_ooi(self, ooi: models.OOI) -> Optional[models.OOI]:
         with self.datastore.session.begin() as session:
-            ooi_orm = (
-                session.query(models.OOIORM)
-                .filter(models.OOIORM.primary_key == ooi.primary_key)
-                .first()
-            )
+            ooi_orm = session.query(models.OOIORM).filter(models.OOIORM.primary_key == ooi.primary_key).first()
 
             if ooi_orm:
                 ooi.checked_at = datetime.datetime.utcnow()
@@ -42,11 +37,7 @@ class OOIStore(OOIStorer):
 
     def get_ooi(self, ooi_id: str) -> Optional[models.OOI]:
         with self.datastore.session.begin() as session:
-            ooi_orm = (
-                session.query(models.OOIORM)
-                .filter(models.OOIORM.primary_key == ooi_id)
-                .first()
-            )
+            ooi_orm = session.query(models.OOIORM).filter(models.OOIORM.primary_key == ooi_id).first()
 
             if ooi_orm is None:
                 return None
@@ -55,23 +46,15 @@ class OOIStore(OOIStorer):
 
     def update_ooi(self, ooi: models.OOI) -> None:
         with self.datastore.session.begin() as session:
-            (
-                session.query(models.OOIORM)
-                .filter(models.OOIORM.primary_key == ooi.primary_key)
-                .update(ooi.dict())
-            )
+            (session.query(models.OOIORM).filter(models.OOIORM.primary_key == ooi.primary_key).update(ooi.dict()))
 
     def delete_ooi(self, ooi_id: str) -> None:
         with self.datastore.session.begin() as session:
-            (
-                session.query(models.OOIORM)
-                .filter(models.OOIORM.primary_key == ooi_id)
-                .delete()
-            )
+            (session.query(models.OOIORM).filter(models.OOIORM.primary_key == ooi_id).delete())
 
     def get_oois_last_checked_since(self, since: datetime) -> List[models.OOI]:
         with self.datastore.session.begin() as session:
-            oois_orm =  (
+            oois_orm = (
                 session.query(models.OOIORM)
                 .filter(models.OOIORM.checked_at <= since)
                 .order_by(models.OOIORM.checked_at.desc())
