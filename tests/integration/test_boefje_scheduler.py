@@ -303,6 +303,29 @@ class SchedulerTestCase(unittest.TestCase):
         tasks = self.scheduler.create_tasks_for_oois([ooi])
         self.assertEqual(0, len(tasks))
 
+    @mock.patch("scheduler.context.AppContext.services.bytes.get_last_run_boefje")
+    @mock.patch("scheduler.context.AppContext.services.datastore.get_task_by_hash")
+    def test_create_task_task_not_found_in_bytes(self, mock_get_last_run_boefje, mock_get_task_by_hash):
+        """When a task is not found in bytes, but is found in the datastore
+        and completed. It should not create a task.
+        """
+        # Create task in datastore, that is completed
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        task = models.BoefjeTask(
+            id=uuid.uuid4().hex,
+            boefje=BoefjeFactory(),
+            input_ooi=ooi.primary_key,
+            organization=self.organisation.id,
+            status=models.TaskStatus.COMPLETED,
+        )
+
+        mock_get_task_by_hash.return_value = task
+        mock_get_last_run_boefje.return_value = None
+
+        tasks = self.scheduler.create_tasks_for_oois([ooi])
+        self.assertEqual(0, len(tasks))
+
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_boefjes_by_type_and_org_id")
     def test_populate_boefjes_queue_qsize(self, mock_get_boefjes_by_type_and_org_id):
         """When the boefje queue is full, it should not return a boefje task"""
