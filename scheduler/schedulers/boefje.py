@@ -9,7 +9,8 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import OOI, Boefje, BoefjeTask, Organisation, Plugin, PrioritizedItem, TaskStatus
+from scheduler.models import (OOI, Boefje, BoefjeTask, Organisation, Plugin,
+                              PrioritizedItem, TaskStatus)
 
 from .scheduler import Scheduler
 
@@ -42,8 +43,14 @@ class BoefjeScheduler(Scheduler):
         self.organisation: Organisation = organisation
 
     def populate_queue(self) -> None:
-        """Populate the PriorityQueue."""
+        """Populate the PriorityQueue
 
+        This method will populate the queue with tasks. It will first
+        create tasks for oois that have a scan level change. Then it
+        will create tasks for newly added/enabled boefjes. Finally it
+        will create tasks for oois that have not been checked in a
+        while.
+        """
         # scan levels changes of ooi's
         self.create_tasks_scan_level_change()
 
@@ -59,10 +66,12 @@ class BoefjeScheduler(Scheduler):
         We loop until we don't have any messages on the queue anymore.
         """
         while not self.queue.full():
-            latest_ooi = None
+            time.sleep(1)
+
+            mutation = None
             try:
-                latest_ooi = self.ctx.services.scan_profile.get_latest_object(
-                    queue=f"{self.organisation.id}__scan_profile_increments",
+                mutation = self.ctx.services.scan_profile_mutation.get_scan_profile_mutation(
+                    queue=f"{self.organisation.id}__scan_profile_mutations",
                 )
             except (
                 pika.exceptions.ConnectionClosed,
@@ -72,28 +81,57 @@ class BoefjeScheduler(Scheduler):
             ) as e:
                 self.logger.warning(
                     "Could not connect to rabbitmq queue: %s [org_id=%s, scheduler_id=%s]",
-                    f"{self.organisation.id}__scan_profile_increments",
+                    f"{self.organisation.id}__scan_profile_mutations",
                     self.organisation.id,
                     self.scheduler_id,
                 )
                 if self.stop_event.is_set():
                     raise e
 
-            if latest_ooi is None:
+            if mutation is None:
                 return
 
-            if latest_ooi is not None:
+            if mutation is not None:
                 self.logger.debug(
-                    "Received scan profile increment for ooi: %s [org_id=%s, scheduler_id=%s]",
-                    latest_ooi,
+                    "Received scan level mutation: %s [org_id=%s, scheduler_id=%s]",
+                    mutation,
                     self.organisation.id,
                     self.scheduler_id,
                 )
 
+                # Create, Update or Delete in OOI store with checked_at
+                if mutation.operation == "delete":
+                    self.ctx.ooi_store.delete_ooi(mutation.primary_key)
+                    self.logger.debug(
+                        "Deleted OOI from OOI store: %s [org_id=%s, scheduler_id=%s]",
+                        mutation.primary_key,
+                        self.organisation.id,
+                        self.scheduler_id,
+                    )
+                    return
+                else:
+                    if mutation.value is None:
+                        self.logger.debug(
+                            "Scan level mutation is None, skipping [org_id=%s, scheduler_id=%s]",
+                            self.organisation.id,
+                            self.scheduler_id,
+                        )
+                        return
+
+                    ooi = mutation.value
+                    ooi.checked_at = datetime.utcnow()
+                    self.ctx.ooi_store.create_or_update_ooi(ooi)
+                    self.logger.debug(
+                        "Created or updated OOI in OOI store: %s [org_id=%s, scheduler_id=%s]",
+                        mutation.primary_key,
+                        self.organisation.id,
+                        self.scheduler_id,
+                    )
+
                 # From ooi's create prioritized items (tasks) to push onto queue
                 # continue with the next object (when there are more objects)
                 # to see if there are more tasks to add.
-                p_items = self.create_tasks_for_oois([latest_ooi])
+                p_items = self.create_tasks_for_oois([ooi])
                 if not p_items:
                     continue
 
@@ -108,9 +146,6 @@ class BoefjeScheduler(Scheduler):
                     time.sleep(1)
 
                 self.push_items_to_queue(p_items)
-
-                # Create or update in OOI store with checked_at
-                self.ctx.ooi_store.create_or_update_ooi(latest_ooi)
             else:
                 # Stop the loop when we've processed everything from the
                 # messaging queue, so we can continue to the next step.
@@ -130,6 +165,7 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
+    # TODO: more debug logging
     def create_tasks_new_boefje(self) -> None:
         """Create tasks for the ooi's that are associated with a new added boefjes."""
         if self.queue.full():
@@ -185,6 +221,7 @@ class BoefjeScheduler(Scheduler):
 
         # Create or update in OOI store with checked_at
         for ooi in oois:
+            ooi.checked_at = datetime.utcnow()
             self.ctx.ooi_store.create_or_update_ooi(ooi)
 
     def create_tasks_reschedule_ooi(self) -> None:
@@ -198,7 +235,11 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
-        oois = self.reschedule_oois()
+        # Get oois that need to be rescheduled. We only consider oois
+        # that have been processed by the scheduler after the set grace period.
+        oois = self.ctx.ooi_store.get_oois_last_checked_since(
+            datetime.now(timezone.utc) - timedelta(seconds=self.ctx.config.pq_populate_grace_period)
+        )
         if not oois:
             self.logger.debug(
                 "No oois for organisation to be rescheduled: %s [org_id=%s, scheduler_id=%s]",
@@ -227,6 +268,7 @@ class BoefjeScheduler(Scheduler):
 
         # Create or update in OOI store with checked_at
         for ooi in oois:
+            ooi.checked_at = datetime.utcnow()
             self.ctx.ooi_store.create_or_update_ooi(ooi)
 
     def create_tasks_for_oois(self, oois: List[OOI]) -> List[PrioritizedItem]:
@@ -481,7 +523,7 @@ class BoefjeScheduler(Scheduler):
         # Is boefje still running according to the database?
         if task_db is not None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED):
             self.logger.debug(
-                "Boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                "According to the datastore, boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                 boefje.id,
                 boefje.id,
                 ooi.primary_key,
@@ -493,7 +535,7 @@ class BoefjeScheduler(Scheduler):
         # Is boefje still running according to bytes?
         if last_run_boefje is not None and last_run_boefje.ended_at is None and last_run_boefje.started_at is not None:
             self.logger.debug(
-                "Boefje %s is still running according to bytes [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                "According to Bytes, boefje %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                 boefje.id,
                 boefje.id,
                 ooi.primary_key,
@@ -510,7 +552,7 @@ class BoefjeScheduler(Scheduler):
             < timedelta(seconds=self.ctx.config.pq_populate_grace_period)
         ):
             self.logger.debug(
-                "Grace period for boefje: %s and input_ooi: %s has not yet passed, skipping ... [last_run_boefje=%s, boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                "According to Bytes grace, period for boefje: %s and input_ooi: %s has not yet passed, skipping ... [last_run_boefje=%s, boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                 boefje.id,
                 ooi.primary_key,
                 last_run_boefje,

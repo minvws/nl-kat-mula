@@ -7,10 +7,7 @@ from ..stores import OOIStorer
 from .datastore import SQLAlchemy
 
 
-# TODO: org id!!!!!
 class OOIStore(OOIStorer):
-    """ """
-
     def __init__(self, datastore: SQLAlchemy) -> None:
         super().__init__()
 
@@ -27,7 +24,6 @@ class OOIStore(OOIStorer):
             ooi_orm = session.query(models.OOIORM).filter(models.OOIORM.primary_key == ooi.primary_key).first()
 
             if ooi_orm:
-                ooi.checked_at = datetime.datetime.utcnow()
                 self.update_ooi(ooi)
                 return models.OOI.from_orm(ooi_orm)
             else:

@@ -1,5 +1,6 @@
 import datetime
-from typing import Optional
+from enum import Enum
+from typing import Dict, Optional
 
 import mmh3
 from pydantic import BaseModel
@@ -41,10 +42,10 @@ class OOIORM(Base):
     scan_profile = Column(JSON)
     organisation_id = Column(String)
 
+    # Should allow nullable, because when null it didn't get checked
     checked_at = Column(
         DateTime(timezone=True),
-        nullable=False,
-        default=datetime.datetime.utcnow,
+        nullable=True,
     )
 
     created_at = Column(
@@ -59,3 +60,16 @@ class OOIORM(Base):
         default=datetime.datetime.utcnow,
         onupdate=datetime.datetime.utcnow,
     )
+
+
+# TODO: pydantic is being extra, also update this is the tests
+class MutationOperationType(Enum):
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+
+
+class ScanProfileMutation(BaseModel):
+    operation: str
+    primary_key: str
+    value: Optional[OOI]
