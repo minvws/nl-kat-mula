@@ -3,11 +3,15 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from scheduler import (config, connectors, models, queues, rankers,
-                       repositories, schedulers)
-from tests.factories import (BoefjeFactory, BoefjeMetaFactory, OOIFactory,
-                             OrganisationFactory, PluginFactory,
-                             ScanProfileFactory)
+from scheduler import config, connectors, models, queues, rankers, repositories, schedulers
+from tests.factories import (
+    BoefjeFactory,
+    BoefjeMetaFactory,
+    OOIFactory,
+    OrganisationFactory,
+    PluginFactory,
+    ScanProfileFactory,
+)
 from tests.utils import functions
 
 
@@ -100,17 +104,127 @@ class SchedulerTestCase(unittest.TestCase):
             organization=self.organisation.id,
         )
 
+        p_item = functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=0, data=task)
+
         mock_new_boefje.return_value = []
         mock_reschedule.return_value = []
+        mock_create_tasks_for_oois.return_value = [p_item]
 
-        mock_get_scan_profile_mutation.side_effect = [models.ScanProfileMutation(operation="create", primary_key=ooi.primary_key, value=ooi), None]
-        mock_create_tasks_for_oois.return_value = [
-            functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=0, data=task),
+        mock_get_scan_profile_mutation.side_effect = [
+            models.ScanProfileMutation(operation="create", primary_key=ooi.primary_key, value=ooi),
+            None,
         ]
 
         self.scheduler.populate_queue()
+
+        # Item should be on priority queue
         self.assertEqual(1, self.scheduler.queue.qsize())
         self.assertEqual(task, self.scheduler.queue.peek(0).data)
+
+        # Task should be in datastore
+        task_db = self.mock_ctx.task_store.get_task_by_id(p_item.id)
+        self.assertEqual(task_db.id, p_item.id)
+        self.assertEqual(task_db.status, models.TaskStatus.QUEUED)
+
+        # OOI should be in datastore
+        ooi_db = self.scheduler.ctx.ooi_store.get_ooi(ooi.primary_key)
+        self.assertEqual(ooi_db.primary_key, ooi.primary_key)
+
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_new_boefje")
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_reschedule_ooi")
+    @mock.patch("scheduler.context.AppContext.services.scan_profile_mutation.get_scan_profile_mutation")
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
+    def test_populate_boefjes_queue_scan_level_change_remove(
+        self, mock_create_tasks_for_oois, mock_get_scan_profile_mutation, mock_reschedule, mock_new_boefje
+    ):
+        scan_profile = ScanProfileFactory(level=0)
+        ooi = OOIFactory(scan_profile=scan_profile)
+        task = models.BoefjeTask(
+            id=uuid.uuid4().hex,
+            boefje=BoefjeFactory(),
+            input_ooi=ooi.primary_key,
+            organization=self.organisation.id,
+        )
+
+        p_item = functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=0, data=task)
+
+        mock_new_boefje.return_value = []
+        mock_reschedule.return_value = []
+        mock_create_tasks_for_oois.return_value = [p_item]
+
+        mock_get_scan_profile_mutation.side_effect = [
+            models.ScanProfileMutation(operation="delete", primary_key=ooi.primary_key, value=ooi),
+            None,
+        ]
+
+        self.scheduler.populate_queue()
+
+        # Item should not be on priority queue
+        self.assertEqual(0, self.scheduler.queue.qsize())
+
+        # Task should not be in datastore
+        task_db = self.mock_ctx.task_store.get_task_by_id(p_item.id)
+        self.assertIsNone(task_db)
+
+        # OOI should not be in datastore
+        ooi_db = self.scheduler.ctx.ooi_store.get_ooi(ooi.primary_key)
+        self.assertIsNone(ooi_db)
+
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_new_boefje")
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_reschedule_ooi")
+    @mock.patch("scheduler.context.AppContext.services.scan_profile_mutation.get_scan_profile_mutation")
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
+    def test_populate_boefjes_queue_scan_level_change_update(
+        self, mock_create_tasks_for_oois, mock_get_scan_profile_mutation, mock_reschedule, mock_new_boefje
+    ):
+        # Add OOI to datastore
+        scan_profile = ScanProfileFactory(level=0)
+
+        ooi = OOIFactory(
+            organisation_id=self.organisation.id,
+            scan_profile=scan_profile,
+            object_type="test",
+            created_at=datetime.now(),
+            modified_at=datetime.now(),
+        )
+
+        self.ooi_store.create_ooi(ooi)
+
+        task = models.BoefjeTask(
+            id=uuid.uuid4().hex,
+            boefje=BoefjeFactory(),
+            input_ooi=ooi.primary_key,
+            organization=self.organisation.id,
+        )
+        p_item = functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=1, data=task)
+
+        # Update scan level of OOI
+        ooi.scan_profile.level = 1
+
+        mock_new_boefje.return_value = []
+        mock_reschedule.return_value = []
+        mock_create_tasks_for_oois.return_value = [p_item]
+
+        mock_get_scan_profile_mutation.side_effect = [
+            models.ScanProfileMutation(operation="update", primary_key=ooi.primary_key, value=ooi),
+            None,
+        ]
+
+        self.scheduler.populate_queue()
+
+        # Item should be on priority queue
+        self.assertEqual(1, self.scheduler.queue.qsize())
+        self.assertEqual(task, self.scheduler.queue.peek(0).data)
+
+        # Task should be in datastore
+        task_db = self.mock_ctx.task_store.get_task_by_id(p_item.id)
+        self.assertEqual(task_db.id, p_item.id)
+        self.assertEqual(task_db.status, models.TaskStatus.QUEUED)
+
+        # OOI should be in datastore
+        ooi_db = self.scheduler.ctx.ooi_store.get_ooi(ooi.primary_key)
+        self.assertEqual(ooi_db.primary_key, ooi.primary_key)
+        self.assertEqual(ooi_db.scan_profile.level, 1)
 
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_scan_level_change")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_reschedule_ooi")
@@ -151,17 +265,36 @@ class SchedulerTestCase(unittest.TestCase):
         self.assertEqual(1, self.scheduler.queue.qsize())
         self.assertEqual(task, self.scheduler.queue.peek(0).data)
 
-    def test_populate_boefjes_queue_reschedule(self):
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_scan_level_change")
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_new_boefje")
+    @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
+    def test_populate_boefjes_queue_reschedule(
+        self, mock_create_tasks_for_oois, mock_new_boefje, mock_scan_level_change
+    ):
         """When no oois are available, it should be filled up with oois that
         haven't been scheduled in a long time."""
         # Add ooi's with the have the same type of boefje
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(
-            organisation_id=self.organisation.id, scan_profile=scan_profile,
+            organisation_id=self.organisation.id,
+            scan_profile=scan_profile,
             object_type="test",
-            checked_at=datetime.now() - timedelta(days=1)
+            checked_at=datetime.now() - timedelta(days=1),
         )
         self.ooi_store.create_ooi(ooi)
+
+        task = models.BoefjeTask(
+            id=uuid.uuid4().hex,
+            boefje=BoefjeFactory(),
+            input_ooi=ooi.primary_key,
+            organization=self.organisation.id,
+        )
+
+        mock_new_boefje.return_value = []
+        mock_scan_level_change.return_value = []
+        mock_create_tasks_for_oois.return_value = [
+            functions.create_p_item(scheduler_id=self.scheduler.scheduler_id, priority=0, data=task),
+        ]
 
         self.scheduler.create_tasks_reschedule_ooi()
 
@@ -398,7 +531,9 @@ class SchedulerTestCase(unittest.TestCase):
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_reschedule_ooi")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
     @mock.patch("scheduler.context.AppContext.services.scan_profile_mutation.get_scan_profile_mutation")
-    def test_post_push(self, mock_get_scan_profile_mutation, mock_create_tasks_for_oois, mock_reschedule, mock_new_boefje):
+    def test_post_push(
+        self, mock_get_scan_profile_mutation, mock_create_tasks_for_oois, mock_reschedule, mock_new_boefje
+    ):
         """When a task is added to the queue, it should be added to the database"""
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
@@ -412,7 +547,10 @@ class SchedulerTestCase(unittest.TestCase):
         mock_reschedule.return_value = []
 
         # Mock inside the create_tasks_scan_level_change method
-        mock_get_scan_profile_mutation.side_effect = [models.ScanProfileMutation(operation="create", primary_key=ooi.primary_key, value=ooi), None]
+        mock_get_scan_profile_mutation.side_effect = [
+            models.ScanProfileMutation(operation="create", primary_key=ooi.primary_key, value=ooi),
+            None,
+        ]
         p_item = functions.create_p_item(scheduler_id=self.organisation.id, priority=0, data=task)
         mock_create_tasks_for_oois.side_effect = [
             [p_item],
@@ -430,7 +568,9 @@ class SchedulerTestCase(unittest.TestCase):
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_reschedule_ooi")
     @mock.patch("scheduler.schedulers.BoefjeScheduler.create_tasks_for_oois")
     @mock.patch("scheduler.context.AppContext.services.scan_profile_mutation.get_scan_profile_mutation")
-    def test_post_pop(self, mock_get_scan_profile_mutation, mock_create_tasks_for_oois, mock_reschedule, mock_new_boefje):
+    def test_post_pop(
+        self, mock_get_scan_profile_mutation, mock_create_tasks_for_oois, mock_reschedule, mock_new_boefje
+    ):
         """When a task is removed from the queue, its status should be updated"""
         scan_profile = ScanProfileFactory(level=0)
         ooi = OOIFactory(scan_profile=scan_profile)
@@ -443,7 +583,10 @@ class SchedulerTestCase(unittest.TestCase):
         mock_new_boefje.return_value = []
         mock_reschedule.return_value = []
 
-        mock_get_scan_profile_mutation.side_effect = [models.ScanProfileMutation(operation="create", primary_key=ooi.primary_key, value=ooi), None]
+        mock_get_scan_profile_mutation.side_effect = [
+            models.ScanProfileMutation(operation="create", primary_key=ooi.primary_key, value=ooi),
+            None,
+        ]
         p_item = functions.create_p_item(scheduler_id=self.organisation.id, priority=0, data=task)
         mock_create_tasks_for_oois.side_effect = [
             [p_item],
@@ -462,22 +605,3 @@ class SchedulerTestCase(unittest.TestCase):
         task_db = self.mock_ctx.task_store.get_task_by_id(p_item.id)
         self.assertEqual(task_db.id, p_item.id)
         self.assertEqual(task_db.status, models.TaskStatus.DISPATCHED)
-
-    @mock.patch("scheduler.context.AppContext.services.octopoes.get_object")
-    @mock.patch("scheduler.context.AppContext.ooi_store.get_oois_last_checked_since")
-    def test_reschedule_oois(self, mock_get_oois, mock_get_object):
-        """When ooi's are not present in octopoes anymore, they should be
-        deleted from the datastore.
-        """
-        # Add ooi's to the database
-        scan_profile = ScanProfileFactory(level=0)
-        ooi = OOIFactory(organisation_id=self.organisation.id, scan_profile=scan_profile, object_type="test")
-        self.ooi_store.create_ooi(ooi)
-
-        # We're returning None, to make sure that we would delete all the ooi's
-        mock_get_object.return_value = None
-        mock_get_oois.return_value = [ooi]
-        self.scheduler.reschedule_oois()
-
-        ooi_db = self.scheduler.ctx.ooi_store.get_ooi(ooi.primary_key)
-        self.assertEqual(ooi_db, None)

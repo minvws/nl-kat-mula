@@ -1,10 +1,9 @@
 import datetime
-from enum import Enum
-from typing import Dict, Optional
+from enum import Enum as _Enum
+from typing import Optional
 
-import mmh3
 from pydantic import BaseModel
-from sqlalchemy import JSON, Column, DateTime, Enum, String
+from sqlalchemy import JSON, Column, DateTime, String
 
 from .base import Base
 from .scan_profile import ScanProfile
@@ -62,14 +61,13 @@ class OOIORM(Base):
     )
 
 
-# TODO: pydantic is being extra, also update this is the tests
-class MutationOperationType(Enum):
+class MutationOperationType(_Enum):
     CREATE = "create"
     UPDATE = "update"
     DELETE = "delete"
 
 
 class ScanProfileMutation(BaseModel):
-    operation: str
+    operation: MutationOperationType
     primary_key: str
     value: Optional[OOI]

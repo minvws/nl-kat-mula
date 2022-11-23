@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 from scheduler.connectors.errors import exception_handler
 from scheduler.models import Boefje, Organisation, Plugin

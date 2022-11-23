@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional
 
 from scheduler import models
 
@@ -26,10 +26,10 @@ class OOIStore(OOIStorer):
             if ooi_orm:
                 self.update_ooi(ooi)
                 return models.OOI.from_orm(ooi_orm)
-            else:
-                ooi_orm = models.OOIORM(**ooi.dict())
-                session.add(ooi_orm)
-                return models.OOI.from_orm(ooi_orm)
+
+            ooi_orm = models.OOIORM(**ooi.dict())
+            session.add(ooi_orm)
+            return models.OOI.from_orm(ooi_orm)
 
     def get_ooi(self, ooi_id: str) -> Optional[models.OOI]:
         with self.datastore.session.begin() as session:
@@ -48,7 +48,7 @@ class OOIStore(OOIStorer):
         with self.datastore.session.begin() as session:
             (session.query(models.OOIORM).filter(models.OOIORM.primary_key == ooi_id).delete())
 
-    def get_oois_last_checked_since(self, since: datetime) -> List[models.OOI]:
+    def get_oois_last_checked_since(self, since: datetime.datetime) -> List[models.OOI]:
         with self.datastore.session.begin() as session:
             oois_orm = (
                 session.query(models.OOIORM)
@@ -59,12 +59,12 @@ class OOIStore(OOIStorer):
 
             return [models.OOI.from_orm(ooi_orm) for ooi_orm in oois_orm]
 
-    def get_oois_by_type(self, organisation_id: str, type: str) -> List[models.OOI]:
+    def get_oois_by_type(self, organisation_id: str, ooi_type: str) -> List[models.OOI]:
         with self.datastore.session.begin() as session:
             oois_orm = (
                 session.query(models.OOIORM)
                 .filter(models.OOIORM.organisation_id == organisation_id)
-                .filter(models.OOIORM.object_type == type)
+                .filter(models.OOIORM.object_type == ooi_type)
                 .all()
             )
 

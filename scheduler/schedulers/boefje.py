@@ -1,4 +1,3 @@
-import copy
 import time
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
@@ -9,8 +8,16 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import (OOI, Boefje, BoefjeTask, Organisation, Plugin,
-                              PrioritizedItem, TaskStatus)
+from scheduler.models import (
+    OOI,
+    Boefje,
+    BoefjeTask,
+    MutationOperationType,
+    Organisation,
+    Plugin,
+    PrioritizedItem,
+    TaskStatus,
+)
 
 from .scheduler import Scheduler
 
@@ -100,7 +107,7 @@ class BoefjeScheduler(Scheduler):
                 )
 
                 # Create, Update or Delete in OOI store with checked_at
-                if mutation.operation == "delete":
+                if mutation.operation == MutationOperationType.DELETE:
                     self.ctx.ooi_store.delete_ooi(mutation.primary_key)
                     self.logger.debug(
                         "Deleted OOI from OOI store: %s [org_id=%s, scheduler_id=%s]",
@@ -109,24 +116,24 @@ class BoefjeScheduler(Scheduler):
                         self.scheduler_id,
                     )
                     return
-                else:
-                    if mutation.value is None:
-                        self.logger.debug(
-                            "Scan level mutation is None, skipping [org_id=%s, scheduler_id=%s]",
-                            self.organisation.id,
-                            self.scheduler_id,
-                        )
-                        return
 
-                    ooi = mutation.value
-                    ooi.checked_at = datetime.utcnow()
-                    self.ctx.ooi_store.create_or_update_ooi(ooi)
+                if mutation.value is None:
                     self.logger.debug(
-                        "Created or updated OOI in OOI store: %s [org_id=%s, scheduler_id=%s]",
-                        mutation.primary_key,
+                        "Scan level mutation is None, skipping [org_id=%s, scheduler_id=%s]",
                         self.organisation.id,
                         self.scheduler_id,
                     )
+                    return
+
+                ooi = mutation.value
+                ooi.checked_at = datetime.utcnow()
+                self.ctx.ooi_store.create_or_update_ooi(ooi)
+                self.logger.debug(
+                    "Created or updated OOI in OOI store: %s [org_id=%s, scheduler_id=%s]",
+                    mutation.primary_key,
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
 
                 # From ooi's create prioritized items (tasks) to push onto queue
                 # continue with the next object (when there are more objects)
@@ -177,7 +184,6 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
-        latest_boefje = None
         try:
             new_boefjes = self.ctx.services.katalogus.get_new_boefjes_by_org_id(self.organisation.id)
         except (
@@ -258,6 +264,8 @@ class BoefjeScheduler(Scheduler):
         while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
             self.logger.debug(
                 "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
+                len(p_items),
+                self.queue.qsize(),
                 self.queue.maxsize,
                 self.organisation.id,
                 self.scheduler_id,
@@ -589,30 +597,3 @@ class BoefjeScheduler(Scheduler):
         p_item.hash = mmh3.hash_bytes(f"{boefje.id}-{ooi.primary_key}-{self.organisation.id}").hex()
 
         return p_item
-
-    def reschedule_oois(self) -> List[OOI]:
-        """Get oois that need to be rescheduled. We only consider oois
-        that have been processed by the scheduler after the set grace period.
-
-        Returns:
-            List[OOI]: List of oois that need to be rescheduled
-        """
-        datastore_oois = self.ctx.ooi_store.get_oois_last_checked_since(
-            datetime.now(timezone.utc) - timedelta(seconds=self.ctx.config.pq_populate_grace_period)
-        )
-
-        # Remove oois from the database that are no longer present in the
-        # datastore, we check octopoes if they are still present.
-        oois = {ooi.primary_key: ooi for ooi in datastore_oois}
-        removed_oois = [
-            ooi.primary_key
-            for ooi in datastore_oois
-            if self.ctx.services.octopoes.get_object(self.organisation.id, ooi.primary_key) is None
-        ]
-
-        for removal in removed_oois:
-            self.ctx.ooi_store.delete_ooi(removal)
-            oois.pop(removal)
-            self.logger.debug("Removed ooi: %s from datastore", removal)
-
-        return list(oois.values())

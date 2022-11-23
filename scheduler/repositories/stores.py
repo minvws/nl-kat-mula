@@ -110,3 +110,7 @@ class OOIStorer(abc.ABC):
     @abc.abstractmethod
     def get_oois_last_checked_since(self, since: datetime.datetime) -> List[models.OOI]:
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_oois_by_type(self, organisation_id: str, ooi_type: str) -> List[models.OOI]:
+        raise NotImplementedError

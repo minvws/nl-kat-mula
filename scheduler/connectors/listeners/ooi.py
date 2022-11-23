@@ -10,7 +10,7 @@ class ScanProfileMutation(RabbitMQ):
     name = "scan_profile_mutation"
 
     @exception_handler
-    def get_scan_profile_mutation(self, queue: str) -> Optional[ScanProfileMutationModel]:
+    def get_scan_level_mutation(self, queue: str) -> Optional[ScanProfileMutationModel]:
         response = self.get(queue)
         if response is None:
             return None
