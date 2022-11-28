@@ -8,16 +8,9 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import (
-    OOI,
-    Boefje,
-    BoefjeTask,
-    MutationOperationType,
-    Organisation,
-    Plugin,
-    PrioritizedItem,
-    TaskStatus,
-)
+from scheduler.models import (OOI, Boefje, BoefjeTask, MutationOperationType,
+                              Organisation, Plugin, PrioritizedItem,
+                              TaskStatus)
 
 from .scheduler import Scheduler
 
@@ -146,6 +139,8 @@ class BoefjeScheduler(Scheduler):
                 while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
                     self.logger.debug(
                         "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
+                        len(p_items),
+                        self.queue.qsize(),
                         self.queue.maxsize,
                         self.organisation.id,
                         self.scheduler_id,
@@ -207,7 +202,7 @@ class BoefjeScheduler(Scheduler):
         oois = set()
         for new_boefje in new_boefjes:
             for type_ in new_boefje.consumes:
-                oois.update(self.ctx.ooi_store.get_oois_by_type(organisation_id=self.organisation.id, type=type_))
+                oois.update(self.ctx.ooi_store.get_oois_by_type(organisation_id=self.organisation.id, ooi_type=type_))
 
         p_items = self.create_tasks_for_oois(list(oois))
         if not p_items:
@@ -217,6 +212,8 @@ class BoefjeScheduler(Scheduler):
         while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
             self.logger.debug(
                 "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
+                len(p_items),
+                self.queue.qsize(),
                 self.queue.maxsize,
                 self.organisation.id,
                 self.scheduler_id,

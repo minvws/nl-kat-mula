@@ -22,7 +22,7 @@ jobs:
           cache: 'pip' # caching pip dependencies
 
       - name: Replace version number with release version
-        run: find . -type f -name 'version.py' -exec sed -ibak "s/__version__ = .*/__version__ = \"${RELEASE_VERSION}\"/" {} \;
+        run: find . -type f -name 'version.py' -exec sed -ibak "s/version = .*/version = \"${RELEASE_VERSION}\"/" {} \;
 
       - name: prep
         run: sudo mkdir -p /var/www/html

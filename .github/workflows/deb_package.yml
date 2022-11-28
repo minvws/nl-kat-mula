@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Replace version number with release version
-        run: find . -type f -name 'version.py' -exec sed -ibak "s/__version__ = .*/__version__ = \"${RELEASE_TAG}\"/" {} \;
+        run: find . -type f -name 'version.py' -exec sed -ibak "s/version = .*/version = \"${RELEASE_TAG}\"/" {} \;
 
       - name: Run debian build script
         run: packaging/scripts/build-debian-package.sh

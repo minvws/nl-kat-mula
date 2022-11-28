@@ -2,7 +2,7 @@ import datetime
 from enum import Enum as _Enum
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import JSON, Column, DateTime, String
 
 from .base import Base
@@ -17,9 +17,9 @@ class OOI(BaseModel):
     scan_profile: ScanProfile
     organisation_id: Optional[str]
 
-    checked_at: Optional[datetime.datetime]
-    created_at: Optional[datetime.datetime]
-    modified_at: Optional[datetime.datetime]
+    checked_at: Optional[datetime.datetime] = Field(default=None)
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    modified_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 
     class Config:
         orm_mode = True
