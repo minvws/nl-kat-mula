@@ -88,76 +88,73 @@ class BoefjeScheduler(Scheduler):
                 if self.stop_event.is_set():
                     raise e
 
+            # Stop the loop when we've processed everything from the
+            # messaging queue, so we can continue to the next step.
             if mutation is None:
-                return
-
-            if mutation is not None:
-                self.logger.debug(
-                    "Received scan level mutation: %s [org_id=%s, scheduler_id=%s]",
-                    mutation,
-                    self.organisation.id,
-                    self.scheduler_id,
-                )
-
-                # Create, Update or Delete in OOI store with checked_at
-                if mutation.operation == MutationOperationType.DELETE:
-                    self.ctx.ooi_store.delete_ooi(mutation.primary_key)
-                    self.logger.debug(
-                        "Deleted OOI from OOI store: %s [org_id=%s, scheduler_id=%s]",
-                        mutation.primary_key,
-                        self.organisation.id,
-                        self.scheduler_id,
-                    )
-                    return
-
-                if mutation.value is None:
-                    self.logger.debug(
-                        "Scan level mutation is None, skipping [org_id=%s, scheduler_id=%s]",
-                        self.organisation.id,
-                        self.scheduler_id,
-                    )
-                    return
-
-                ooi = mutation.value
-                ooi.checked_at = datetime.utcnow()
-                self.ctx.ooi_store.create_or_update_ooi(ooi)
-                self.logger.debug(
-                    "Created or updated OOI in OOI store: %s [org_id=%s, scheduler_id=%s]",
-                    mutation.primary_key,
-                    self.organisation.id,
-                    self.scheduler_id,
-                )
-
-                # From ooi's create prioritized items (tasks) to push onto queue
-                # continue with the next object (when there are more objects)
-                # to see if there are more tasks to add.
-                p_items = self.create_tasks_for_oois([ooi])
-                if not p_items:
-                    continue
-
-                # NOTE: maxsize 0 means unlimited
-                while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
-                    self.logger.debug(
-                        "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
-                        len(p_items),
-                        self.queue.qsize(),
-                        self.queue.maxsize,
-                        self.organisation.id,
-                        self.scheduler_id,
-                    )
-                    time.sleep(1)
-
-                self.push_items_to_queue(p_items)
-            else:
-                # Stop the loop when we've processed everything from the
-                # messaging queue, so we can continue to the next step.
                 self.logger.debug(
                     "No latest oois for organisation: %s [org_id=%s, scheduler_id=%s]",
                     self.organisation.name,
                     self.organisation.id,
                     self.scheduler_id,
                 )
-                break
+                return
+
+            self.logger.debug(
+                "Received scan level mutation: %s [org_id=%s, scheduler_id=%s]",
+                mutation,
+                self.organisation.id,
+                self.scheduler_id,
+            )
+
+            # Create, Update or Delete in OOI store with checked_at
+            if mutation.operation == MutationOperationType.DELETE:
+                self.ctx.ooi_store.delete_ooi(mutation.primary_key)
+                self.logger.debug(
+                    "Deleted OOI from OOI store: %s [org_id=%s, scheduler_id=%s]",
+                    mutation.primary_key,
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+                return
+
+            if mutation.value is None:
+                self.logger.debug(
+                    "Scan level mutation is None, skipping [org_id=%s, scheduler_id=%s]",
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+                return
+
+            ooi = mutation.value
+            ooi.checked_at = datetime.utcnow()
+            self.ctx.ooi_store.create_or_update_ooi(ooi)
+            self.logger.debug(
+                "Created or updated OOI in OOI store: %s [org_id=%s, scheduler_id=%s]",
+                mutation.primary_key,
+                self.organisation.id,
+                self.scheduler_id,
+            )
+
+            # From ooi's create prioritized items (tasks) to push onto queue
+            # continue with the next object (when there are more objects)
+            # to see if there are more tasks to add.
+            p_items = self.create_tasks_for_oois([ooi])
+            if not p_items:
+                continue
+
+            # NOTE: maxsize 0 means unlimited
+            while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
+                self.logger.debug(
+                    "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
+                    len(p_items),
+                    self.queue.qsize(),
+                    self.queue.maxsize,
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+                time.sleep(1)
+
+            self.push_items_to_queue(p_items)
         else:
             self.logger.warning(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
@@ -167,7 +164,6 @@ class BoefjeScheduler(Scheduler):
             )
             return
 
-    # TODO: more debug logging
     def create_tasks_new_boefje(self) -> None:
         """Create tasks for the ooi's that are associated with a new added boefjes."""
         if self.queue.full():
@@ -198,6 +194,13 @@ class BoefjeScheduler(Scheduler):
 
         if new_boefjes is None:
             return
+
+        self.logger.debug(
+            "Received new boefjes: %s [org_id=%s, scheduler_id=%s]",
+            new_boefjes,
+            self.organisation.id,
+            self.scheduler_id,
+        )
 
         oois = set()
         for new_boefje in new_boefjes:

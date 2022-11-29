@@ -47,17 +47,17 @@ class OOIORM(Base):
         nullable=True,
     )
 
+    modified_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        default=datetime.datetime.utcnow,
+        onupdate=datetime.datetime.utcnow,
+    )
+
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
         default=datetime.datetime.utcnow,
-    )
-
-    modified_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=datetime.datetime.utcnow,
-        onupdate=datetime.datetime.utcnow,
     )
 
 

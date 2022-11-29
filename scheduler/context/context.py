@@ -52,7 +52,7 @@ class AppContext:
             orgs=svc_katalogus.get_organisations(),
         )
 
-        lst_mutation = listeners.ScanProfileMutation(
+        lst_mutations = listeners.ScanProfileMutation(
             dsn=self.config.host_mutation,
         )
 
@@ -71,7 +71,7 @@ class AppContext:
                 services.Katalogus.name: svc_katalogus,
                 services.Octopoes.name: svc_octopoes,
                 services.Bytes.name: svc_bytes,
-                listeners.ScanProfileMutation.name: lst_mutation,
+                listeners.ScanProfileMutation.name: lst_mutations,
                 listeners.RawData.name: lst_raw_data,
                 listeners.NormalizerMeta.name: lst_normalizer_meta,
             }

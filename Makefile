@@ -51,6 +51,11 @@ fmt: ## Format the code using black.
 		run --rm mula \
 		black .
 
+seed: ## Seed the database with test data.
+	docker-compose -f base.yml -f .ci/docker-compose.yml \
+		run --rm mula \
+		python scripts/ooi_seed.py
+
 done: ## Prepare for a commit.
 	make lint
 	make check

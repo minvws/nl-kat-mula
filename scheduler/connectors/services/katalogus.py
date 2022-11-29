@@ -43,7 +43,7 @@ class Katalogus(HTTPService):
         # }
         self.organisations_new_boefjes_cache: Dict = {}
 
-        # Initialize the cache
+        # Initialize the caches
         self._flush_organisations_plugin_cache()
         self._flush_organisations_normalizer_type_cache()
         self._flush_organisations_boefje_type_cache()
