@@ -10,9 +10,10 @@ from sqlalchemy import JSON, Column, DateTime, Enum, String
 from scheduler.utils import GUID
 
 from .base import Base
-from .boefje import Boefje, BoefjeMeta
+from .boefje import Boefje
 from .normalizer import Normalizer
 from .queue import QueuePrioritizedItem
+from .raw_data import RawData
 
 
 class TaskStatus(_Enum):
@@ -71,7 +72,7 @@ class NormalizerTask(BaseModel):
 
     id: Optional[str]
     normalizer: Normalizer
-    boefje_meta: BoefjeMeta
+    raw_data: RawData
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -67,7 +67,9 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
         task = models.NormalizerTask(
             id=uuid.uuid4().hex,
             normalizer=PluginFactory(type="normalizer"),
-            boefje_meta=boefje_meta,
+            raw_data=RawDataFactory(
+                boefje_meta=boefje_meta, mime_types=[{"value": "text/xml"}]
+            ),
         )
 
         mock_get_latest_raw_data.side_effect = [latest_raw_data, None]

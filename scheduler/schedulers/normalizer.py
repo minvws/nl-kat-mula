@@ -194,7 +194,7 @@ class NormalizerScheduler(Scheduler):
 
                 task = NormalizerTask(
                     normalizer=normalizer,
-                    boefje_meta=raw_data.boefje_meta,
+                    raw_data=raw_data,
                 )
 
                 if self.queue.is_item_on_queue(task):
