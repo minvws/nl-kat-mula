@@ -26,6 +26,38 @@ class TaskStatus(_Enum):
     FAILED = "failed"
 
 
+# TODO: Has many tasks. remove p_item, this should be a blueprint for a task
+class ScheduledJob(BaseModel):
+    id: uuid.UUID
+    status: TaskStatus
+    enabled: bool
+    p_item: PrioritizedItem
+    tasks: List["Task"] = Field(default_factory=list) # 1:many
+    type: str
+    hash: str
+    schedule: str # optional cron tab
+
+    checked_at: Optional[datetime.datetime] = None
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    modified_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+
+    class Config:
+        orm_mode = True
+
+
+class ScheduledJobORM(Base):
+    __tablename__ = "scheduled_jobs"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    status = Column(Enum(TaskStatus), nullable=False)
+    enabled = Column(String, nullable=False)
+    p_item = Column(JSON, nullable=False)
+
+    checked_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False)
+    modified_at = Column(DateTime, nullable=False)
+
+
 class Task(BaseModel):
     id: uuid.UUID
     scheduler_id: str
@@ -45,8 +77,11 @@ class TaskORM(Base):
     __tablename__ = "tasks"
 
     id = Column(GUID, primary_key=True)
+
     scheduler_id = Column(String)
+
     p_item = Column(JSON, nullable=False)
+
     status = Column(
         Enum(TaskStatus),
         nullable=False,
@@ -58,6 +93,7 @@ class TaskORM(Base):
         nullable=False,
         default=datetime.datetime.utcnow,
     )
+
     modified_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -92,9 +128,8 @@ class BoefjeTask(BaseModel):
     """BoefjeTask represent data needed for a Boefje to run."""
 
     id: Optional[str]
-    boefje: Boefje
-    input_ooi: str
     organization: str
+    boefje: Boefje
 
     dispatches: List[Normalizer] = Field(default_factory=list)
 
