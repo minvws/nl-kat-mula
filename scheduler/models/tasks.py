@@ -26,12 +26,11 @@ class TaskStatus(_Enum):
     FAILED = "failed"
 
 
-# TODO: Has many tasks. remove p_item, this should be a blueprint for a task
 class ScheduledJob(BaseModel):
     id: uuid.UUID
     status: TaskStatus
     enabled: bool
-    p_item: PrioritizedItem
+    p_item: PrioritizedItem # is blueprint for tasks
     tasks: List["Task"] = Field(default_factory=list) # 1:many
     type: str
     hash: str
