@@ -8,7 +8,7 @@ import pika
 import requests
 
 from scheduler import context, queues, rankers
-from scheduler.models import OOI, Boefje, BoefjeTask, Organisation, Plugin, TaskStatus
+from scheduler.models import OOI, Boefje, BoefjeTask, Organisation, Plugin, PrioritizedItem, TaskStatus
 
 from .scheduler import Scheduler
 
@@ -89,11 +89,11 @@ class BoefjeScheduler(Scheduler):
                     continue
 
                 # NOTE: maxsize 0 means unlimited
-                while len(p_items) > (self.queue.maxsize - self.queue.pq.qsize()) and self.queue.maxsize != 0:
+                while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
                     self.logger.debug(
                         "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
                         len(p_items),
-                        self.queue.pq.qsize(),
+                        self.queue.qsize(),
                         self.queue.maxsize,
                         self.organisation.id,
                         self.scheduler_id,
@@ -114,7 +114,7 @@ class BoefjeScheduler(Scheduler):
         else:
             self.logger.warning(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
-                self.queue.pq.qsize(),
+                self.queue.qsize(),
                 self.organisation.id,
                 self.scheduler_id,
             )
@@ -156,9 +156,10 @@ class BoefjeScheduler(Scheduler):
             if len(p_items) == 0 and tries < 3:
                 tries += 1
                 continue
-            elif len(p_items) == 0 and tries >= 3:
-                self.logger.warning(
-                    "No random oois for organisation: %s [tries=%d, org_id=%s, scheduler_id=%s]",
+
+            if len(p_items) == 0 and tries >= 3:
+                self.logger.debug(
+                    "No tasks could be created for random oois for organisation: %s [tries=%d, org_id=%s, scheduler_id=%s]",
                     self.organisation.name,
                     tries,
                     self.organisation.id,
@@ -167,11 +168,11 @@ class BoefjeScheduler(Scheduler):
                 break
 
             # NOTE: maxsize 0 means unlimited
-            while len(p_items) > (self.queue.maxsize - self.queue.pq.qsize()) and self.queue.maxsize != 0:
+            while len(p_items) > (self.queue.maxsize - self.queue.qsize()) and self.queue.maxsize != 0:
                 self.logger.debug(
                     "Waiting for queue to have enough space, not adding %d tasks to queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
                     len(p_items),
-                    self.queue.pq.qsize(),
+                    self.queue.qsize(),
                     self.queue.maxsize,
                     self.organisation.id,
                     self.scheduler_id,
@@ -183,13 +184,13 @@ class BoefjeScheduler(Scheduler):
         else:
             self.logger.warning(
                 "Boefjes queue is full, not populating with new tasks [qsize=%d, org_id=%s, scheduler_id=%s]",
-                self.queue.pq.qsize(),
+                self.queue.qsize(),
                 self.organisation.id,
                 self.scheduler_id,
             )
             return
 
-    def create_tasks_for_oois(self, oois: List[OOI]) -> List[queues.PrioritizedItem]:
+    def create_tasks_for_oois(self, oois: List[OOI]) -> List[PrioritizedItem]:
         """For every provided ooi we will create available and enabled boefje
         tasks.
 
@@ -199,14 +200,14 @@ class BoefjeScheduler(Scheduler):
         Returns:
             A list of BoefjeTask of type PrioritizedItem.
         """
-        tasks: List[queues.PrioritizedItem] = []
+        tasks: List[PrioritizedItem] = []
         for ooi in oois:
             tasks_for_ooi = self.create_tasks_for_ooi(ooi)
             tasks.extend(tasks_for_ooi)
 
         return tasks
 
-    def create_tasks_for_ooi(self, ooi: OOI) -> List[queues.PrioritizedItem]:
+    def create_tasks_for_ooi(self, ooi: OOI) -> List[PrioritizedItem]:
         """For an ooi we will create available and enabled boefje tasks.
 
         Args:
@@ -226,6 +227,7 @@ class BoefjeScheduler(Scheduler):
             return []
 
         p_items = self.create_p_items_for_boefjes(boefjes, ooi)
+
         return p_items
 
     def get_boefjes_for_ooi(self, ooi) -> List[Plugin]:
@@ -274,7 +276,7 @@ class BoefjeScheduler(Scheduler):
 
         return boefjes
 
-    def create_p_items_for_boefjes(self, boefjes: List[Plugin], ooi: OOI) -> List[queues.PrioritizedItem]:
+    def create_p_items_for_boefjes(self, boefjes: List[Plugin], ooi: OOI) -> List[PrioritizedItem]:
         """For an ooi and its associated boefjes we will create tasks that
         can be pushed onto the queue.
 
@@ -285,7 +287,7 @@ class BoefjeScheduler(Scheduler):
         Returns:
             A list of Boefje tasks of type PrioritizedItem.
         """
-        p_items: List[queues.PrioritizedItem] = []
+        p_items: List[PrioritizedItem] = []
         for boefje in boefjes:
             p_item = self.create_p_item_for_boefje(boefje, ooi)
             if p_item is None:
@@ -295,7 +297,7 @@ class BoefjeScheduler(Scheduler):
 
         return p_items
 
-    def create_p_item_for_boefje(self, boefje: Plugin, ooi: OOI) -> Optional[queues.PrioritizedItem]:
+    def create_p_item_for_boefje(self, boefje: Plugin, ooi: OOI) -> Optional[PrioritizedItem]:
         """For an ooi and its associated boefjes we will create tasks that
         can be pushed onto the queue. It will check:
 
@@ -386,7 +388,7 @@ class BoefjeScheduler(Scheduler):
         # regardless. When the ranker is updated to correctly rank
         # tasks, we can allow the populator to also update the
         # priority. Then remove the following:
-        if self.queue.is_item_on_queue(task):
+        if self.queue.is_item_on_queue(PrioritizedItem(scheduler_id=self.scheduler_id, data=task)):
             self.logger.debug(
                 "Boefje: %s is already on queue [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                 boefje.id,
@@ -398,7 +400,7 @@ class BoefjeScheduler(Scheduler):
             return None
 
         try:
-            task_db = self.ctx.datastore.get_task_by_hash(
+            task_db = self.ctx.task_store.get_task_by_hash(
                 mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
             )
 
@@ -452,7 +454,7 @@ class BoefjeScheduler(Scheduler):
         # Is boefje still running according to bytes?
         if last_run_boefje is not None and last_run_boefje.ended_at is None and last_run_boefje.started_at is not None:
             self.logger.debug(
-                "Boefje %s is already running [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
+                "Boefje %s is still running according to bytes [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                 boefje.id,
                 boefje.id,
                 ooi.primary_key,
@@ -469,10 +471,12 @@ class BoefjeScheduler(Scheduler):
             < timedelta(seconds=self.ctx.config.pq_populate_grace_period)
         ):
             self.logger.debug(
-                "Boefje: %s already run for input ooi %s [last_run_boefje=%s, org_id=%s, scheduler_id=%s]",
+                "Grace period for boefje: %s and input_ooi: %s has not yet passed, skipping ... [last_run_boefje=%s, boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                 boefje.id,
                 ooi.primary_key,
                 last_run_boefje,
+                boefje.id,
+                ooi.primary_key,
                 self.organisation.id,
                 self.scheduler_id,
             )
@@ -494,4 +498,13 @@ class BoefjeScheduler(Scheduler):
             )
             return None
 
-        return queues.PrioritizedItem(score, task)
+        p_item = PrioritizedItem(
+            id=task.id,
+            scheduler_id=self.scheduler_id,
+            priority=score,
+            data=task,
+        )
+
+        p_item.hash = mmh3.hash_bytes(f"{boefje.id}-{ooi.primary_key}-{self.organisation.id}").hex()
+
+        return p_item

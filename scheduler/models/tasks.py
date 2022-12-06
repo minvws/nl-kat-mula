@@ -12,7 +12,7 @@ from scheduler.utils import GUID
 from .base import Base
 from .boefje import Boefje, BoefjeMeta
 from .normalizer import Normalizer
-from .queue import QueuePrioritizedItem
+from .queue import PrioritizedItem
 
 
 class TaskStatus(_Enum):
@@ -28,12 +28,12 @@ class TaskStatus(_Enum):
 
 class Task(BaseModel):
     id: uuid.UUID
-    hash: str
     scheduler_id: str
-    task: QueuePrioritizedItem  # FIXME: p_item?
+    p_item: PrioritizedItem
     status: TaskStatus
-    created_at: datetime.datetime
-    modified_at: datetime.datetime
+
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    modified_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 
     class Config:
         orm_mode = True
@@ -45,14 +45,14 @@ class TaskORM(Base):
     __tablename__ = "tasks"
 
     id = Column(GUID, primary_key=True)
-    hash = Column(String)
     scheduler_id = Column(String)
-    task = Column(JSON, nullable=False)
+    p_item = Column(JSON, nullable=False)
     status = Column(
         Enum(TaskStatus),
         nullable=False,
         default=TaskStatus.PENDING,
     )
+
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -85,7 +85,7 @@ class NormalizerTask(BaseModel):
         """Make NormalizerTask hashable, so that we can de-duplicate it when
         used in the PriorityQueue. We hash the combination of the attributes
         normalizer.id since this combination is unique."""
-        return mmh3.hash_bytes(f"{self.normalizer.id}-{self.boefje_meta.id}").hex()
+        return mmh3.hash_bytes(f"{self.normalizer.id}-{self.boefje_meta.id}-{self.boefje_meta.organization}").hex()
 
 
 class BoefjeTask(BaseModel):
