@@ -86,7 +86,7 @@ class NormalizerTask(BaseModel):
         """Make NormalizerTask hashable, so that we can de-duplicate it when
         used in the PriorityQueue. We hash the combination of the attributes
         normalizer.id since this combination is unique."""
-        return mmh3.hash_bytes(f"{self.normalizer.id}-{self.boefje_meta.id}").hex()
+        return mmh3.hash_bytes(f"{self.normalizer.id}-{self.raw_data.boefje_meta.id}").hex()
 
 
 class BoefjeTask(BaseModel):
