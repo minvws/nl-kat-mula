@@ -12,15 +12,8 @@ from scheduler.utils import GUID
 from .base import Base
 from .boefje import Boefje
 from .normalizer import Normalizer
-
-<<<<<<< HEAD
-from .queue import QueuePrioritizedItem
-from .raw_data import RawData
-
-=======
 from .queue import PrioritizedItem
-
->>>>>>> develop
+from .raw_data import RawData
 
 
 class TaskStatus(_Enum):
