@@ -51,6 +51,7 @@ $ tree -L 3 --dirsfirst
 │   ├── models/                     # internal model definitions
 │   ├── queues/                     # priority queue
 │   ├── rankers/                    # priority/score calculations
+│   ├── repositories/               # data abstraction layer
 │   ├── schedulers/                 # schedulers
 │   ├── server/                     # scheduler rest api interface
 │   ├── utils/                      # common utility functions
