@@ -49,7 +49,7 @@ class TaskStore(TaskStorer):
 
     def get_task_by_hash(self, task_hash: str) -> Optional[models.Task]:
         with self.datastore.session.begin() as session:
-            task_orm = session.query(models.TaskORM).filter(models.TaskORM.p_item.contains({"hash": task_hash})).first()
+            task_orm = session.query(models.TaskORM).filter(models.TaskORM.p_item["hash"].as_string() == task_hash).first()
 
             if task_orm is None:
                 return None
