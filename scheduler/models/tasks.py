@@ -10,9 +10,10 @@ from sqlalchemy import JSON, Column, DateTime, Enum, String
 from scheduler.utils import GUID
 
 from .base import Base
-from .boefje import Boefje, BoefjeMeta
+from .boefje import Boefje
 from .normalizer import Normalizer
 from .queue import PrioritizedItem
+from .raw_data import RawData
 
 
 class TaskStatus(_Enum):
@@ -69,13 +70,9 @@ class TaskORM(Base):
 class NormalizerTask(BaseModel):
     """NormalizerTask represent data needed for a Normalizer to run."""
 
-    id: Optional[str]
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex)
     normalizer: Normalizer
-    boefje_meta: BoefjeMeta
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.id = uuid.uuid4().hex
+    raw_data: RawData
 
     @property
     def hash(self):
@@ -85,22 +82,20 @@ class NormalizerTask(BaseModel):
         """Make NormalizerTask hashable, so that we can de-duplicate it when
         used in the PriorityQueue. We hash the combination of the attributes
         normalizer.id since this combination is unique."""
-        return mmh3.hash_bytes(f"{self.normalizer.id}-{self.boefje_meta.id}-{self.boefje_meta.organization}").hex()
+        return mmh3.hash_bytes(
+            f"{self.normalizer.id}-{self.raw_data.boefje_meta.id}-{self.raw_data.boefje_meta.organization}"
+        ).hex()
 
 
 class BoefjeTask(BaseModel):
     """BoefjeTask represent data needed for a Boefje to run."""
 
-    id: Optional[str]
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex)
     boefje: Boefje
     input_ooi: str
     organization: str
 
     dispatches: List[Normalizer] = Field(default_factory=list)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.id = uuid.uuid4().hex
 
     @property
     def hash(self):

@@ -401,7 +401,7 @@ class BoefjeScheduler(Scheduler):
 
         try:
             task_db = self.ctx.task_store.get_task_by_hash(
-                mmh3.hash_bytes(f"{ooi.primary_key}-{boefje.id}-{self.organisation.id}").hex()
+                mmh3.hash_bytes(f"{boefje.id}-{ooi.primary_key}-{self.organisation.id}").hex()
             )
 
             last_run_boefje = self.ctx.services.bytes.get_last_run_boefje(

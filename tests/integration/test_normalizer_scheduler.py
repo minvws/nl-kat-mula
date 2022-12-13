@@ -87,7 +87,7 @@ class NormalizerSchedulerTestCase(unittest.TestCase):
 
         normalizer_task = models.NormalizerTask(
             normalizer=PluginFactory(type="normalizer"),
-            boefje_meta=boefje_meta,
+            raw_data=RawDataFactory(boefje_meta=boefje_meta, mime_types=[{"value": "text/xml"}]),
         )
 
         p_item_normalizer = functions.create_p_item(
