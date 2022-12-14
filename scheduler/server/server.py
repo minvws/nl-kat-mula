@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 import fastapi
 import scheduler
 import uvicorn
-from scheduler import context, models, queues, schedulers
+from scheduler import context, models, queues, schedulers, version
 
 from .pagination import PaginatedResponse, paginate
 
@@ -133,7 +133,7 @@ class Server:
         response = models.ServiceHealth(
             service="scheduler",
             healthy=True,
-            version=scheduler.__version__,
+            version=version.__version__,
         )
 
         for service in self.ctx.services.__dict__.values():
