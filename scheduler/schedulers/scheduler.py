@@ -105,6 +105,9 @@ class Scheduler(abc.ABC):
 
         self.ctx.task_store.create_task(task)
 
+
+        # TODO: Create scheduled job
+
     def post_pop(self, p_item: models.PrioritizedItem) -> None:
         """When a boefje task is being removed from the queue. We
         persist a task to the datastore with the status RUNNING

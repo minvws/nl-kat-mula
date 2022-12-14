@@ -83,34 +83,19 @@ class PriorityQueueStorer(abc.ABC):
         raise NotImplementedError
 
 
-class OOIStorer(abc.ABC):
+class JobStorer(abc.ABC):
     def __init__(self) -> None:
         self.logger: logging.Logger = logging.getLogger(__name__)
 
-    @abc.abstractmethod
-    def create_ooi(self, ooi: models.OOI) -> Optional[models.OOI]:
+    # TODO: filters
+    def get_scheduled_jobs(self) -> Tuple[List[models.ScheduledJob], int]:
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def create_or_update_ooi(self, ooi: models.OOI) -> Optional[models.OOI]:
+    def create_scheduled_job(self, job: models.ScheduledJob) -> Optional[models.ScheduledJob]:
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def get_ooi(self, ooi_id: str) -> Optional[models.OOI]:
+    def get_scheduled_job(self, job_id: str) -> Optional[models.ScheduledJob]:
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def update_ooi(self, ooi: models.OOI) -> None:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def delete_ooi(self, ooi_id: str) -> None:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def get_oois_last_checked_since(self, since: datetime.datetime) -> List[models.OOI]:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def get_oois_by_type(self, organisation_id: str, ooi_type: str) -> List[models.OOI]:
+    def update_scheduled_job(self, job: models.ScheduledJob) -> Optional[models.ScheduledJob]:
         raise NotImplementedError

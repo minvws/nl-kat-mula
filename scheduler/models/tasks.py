@@ -5,7 +5,8 @@ from typing import List, Optional
 
 import mmh3
 from pydantic import BaseModel, Field
-from sqlalchemy import JSON, Column, DateTime, Enum, String
+from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, String
+from sqlalchemy.orm import relationship
 
 from scheduler.utils import GUID
 
@@ -27,46 +28,16 @@ class TaskStatus(_Enum):
     FAILED = "failed"
 
 
-# TODO: Has many tasks. remove p_item, this should be a blueprint for a task
-class ScheduledJob(BaseModel):
-    id: uuid.UUID
-    status: TaskStatus
-    enabled: bool
-    p_item: PrioritizedItem
-    tasks: List["Task"] = Field(default_factory=list) # 1:many
-    type: str
-    hash: str
-    schedule: str # optional cron tab
-
-    checked_at: Optional[datetime.datetime] = None
-    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
-    modified_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
-
-    class Config:
-        orm_mode = True
-
-
-class ScheduledJobORM(Base):
-    __tablename__ = "scheduled_jobs"
-
-    id = Column(GUID, primary_key=True, default=uuid.uuid4)
-    status = Column(Enum(TaskStatus), nullable=False)
-    enabled = Column(String, nullable=False)
-    p_item = Column(JSON, nullable=False)
-
-    checked_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, nullable=False)
-    modified_at = Column(DateTime, nullable=False)
-
-
 class Task(BaseModel):
     id: uuid.UUID
     scheduler_id: str
     p_item: PrioritizedItem
     status: TaskStatus
 
-    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
-    modified_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    created_at: datetime.datetime = Field(
+        default_factory=datetime.datetime.utcnow)
+    modified_at: datetime.datetime = Field(
+        default_factory=datetime.datetime.utcnow)
 
     class Config:
         orm_mode = True
