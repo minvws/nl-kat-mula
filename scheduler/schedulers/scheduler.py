@@ -105,7 +105,21 @@ class Scheduler(abc.ABC):
 
         self.ctx.task_store.create_task(task)
 
-        # TODO: Create scheduled job
+        # Determine whether we need to create a recurring scheduled job
+        # FIXME: to get job based on what we know about the task
+        scheduled_job = self.ctx.job_store.get_scheduled_job()
+        if scheduled_job is None:
+            scheduled_job = models.ScheduledJob(
+                task_id=task.id,
+                scheduler_id=self.scheduler_id,
+                created_at=datetime.datetime.now(datetime.timezone.utc),
+                modified_at=datetime.datetime.now(datetime.timezone.utc),
+            )
+            self.ctx.job_store.create_scheduled_job(scheduled_job)
+        else:
+            # TODO: what needs to be updated
+            self.ctx.job_store.update_scheduled_job(scheduled_job)
+
 
     def post_pop(self, p_item: models.PrioritizedItem) -> None:
         """When a boefje task is being removed from the queue. We
