@@ -12,6 +12,14 @@ class ExpiringDictTestCase(unittest.TestCase):
         with self.assertRaises(utils.ExpiredError):
             ed.get("a")
 
+<<<<<<< HEAD
+=======
+        self.assertEqual(ed.cache, {})
+
+        # Should not raise an error
+        self.assertEqual(ed.get("a"), None)
+
+>>>>>>> old/feature/scheduled-jobs
     def test_lifetime_not_expired(self):
         ed = utils.ExpiringDict()
         ed["a"] = 1
