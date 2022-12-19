@@ -15,16 +15,20 @@ from .tasks import Task
 
 class ScheduledJob(BaseModel):
     id: uuid.UUID
-    type: str
     hash: str
     enabled: bool
-    crontab: str
+    crontab: Optional[str]
+    scheduler_id: str
     p_item: PrioritizedItem
     tasks: List[Task] = []
 
+    next_check: Optional[datetime.datetime] = None
+
     checked_at: Optional[datetime.datetime] = None
+
     created_at: datetime.datetime = Field(
         default_factory=datetime.datetime.utcnow)
+
     modified_at: datetime.datetime = Field(
         default_factory=datetime.datetime.utcnow)
 

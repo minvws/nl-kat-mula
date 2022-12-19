@@ -150,10 +150,15 @@ class BoefjeScheduler(Scheduler):
                     )
                     continue
 
+                # Is there an associated scheduled job with this task?
+                scheduled_job = self.get_scheduled_job_by_hash(task.hash)
+
+
                 # TODO: fix last_run_boefje, needs to be factored out
                 score = self.ranker.rank(
                     SimpleNamespace(
-                        last_run_boefje=last_run_boefje, task=task,
+                        scheduled_job=scheduled_job,
+                        task=task,
                     )
                 )
 
@@ -310,16 +315,14 @@ class BoefjeScheduler(Scheduler):
     def push_tasks_for_scheduled_jobs(self):
         """
         """
-        # TODO: Get all scheduled jobs that need to be rescheduled. We only consider
-        # jobs that have been processed by the scheduler after the set grace
-        # period.
-        #
-        # scheduler_id (should enforce the type of task on the queue, so
-        # we don't have to filter on it)
-        #
-        # status = not scheduled
-        # enabled = true
-        scheduled_jobs = self.ctx.job_store.get_scheduled_jobs()
+        # Get all scheduled jobs that need to be rescheduled. We only
+        # consider jobs that have been processed by the scheduler after the set
+        # grace period.
+        scheduled_jobs = self.ctx.job_store.get_scheduled_jobs(
+            scheduler_id=self.scheduler_id,
+            enabled=True,
+            max_checked_at=datetime.utcnow() - timedelta(seconds=self.grace_period),
+        )
 
         # Do we execute the task again?
         for job in scheduled_jobs:
@@ -363,11 +366,10 @@ class BoefjeScheduler(Scheduler):
                 )
                 continue
 
-            score = self.ranker.rank(SimpleNamespace(last_run_boefje=last_run_boefje, task=task))
+            score = self.ranker.rank(SimpleNamespace(scheduled_job=job, task=task))
 
-            # TODO: create_p_item becasue we need to rank
-            # We need to create a PrioritizedItem for this task, to push
-            # it to the priority queue.
+            # We need to create a PrioritizedItem for this task, to rank and to
+            # push it to the priority queue.
             p_item = PrioritizedItem(
                 id=task.id,
                 scheduler_id=self.scheduler_id,
