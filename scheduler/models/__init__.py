@@ -2,6 +2,7 @@ from .base import Base
 from .boefje import Boefje, BoefjeMeta
 from .events import NormalizerMetaReceivedEvent, RawData, RawDataReceivedEvent
 from .health import ServiceHealth
+from .jobs import ScheduledJob, ScheduledJobORM
 from .normalizer import Normalizer
 from .ooi import OOI, OOIORM, MutationOperationType, ScanProfileMutation
 from .organisation import Organisation

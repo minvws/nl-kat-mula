@@ -150,14 +150,11 @@ class BoefjeScheduler(Scheduler):
                     )
                     continue
 
-                # Is there an associated scheduled job with this task?
-                scheduled_job = self.get_scheduled_job_by_hash(task.hash)
+                prior_tasks = self.get_tasks_by_hash(task.hash)
 
-
-                # TODO: fix last_run_boefje, needs to be factored out
                 score = self.ranker.rank(
                     SimpleNamespace(
-                        scheduled_job=scheduled_job,
+                        prior_tasks=prior_tasks,
                         task=task,
                     )
                 )
@@ -300,7 +297,7 @@ class BoefjeScheduler(Scheduler):
                     )
                     return None
 
-                while not self.space_on_queue()
+                while not self.space_on_queue():
                     self.logger.debug(
                         "Waiting for queue to have enough space, not adding tasks queue [qsize=%d, maxsize=%d, org_id=%s, scheduler_id=%s]",
                         self.queue.qsize(),
@@ -366,7 +363,14 @@ class BoefjeScheduler(Scheduler):
                 )
                 continue
 
-            score = self.ranker.rank(SimpleNamespace(scheduled_job=job, task=task))
+            prior_tasks = self.get_tasks_by_hash(task.hash)
+
+            score = self.ranker.rank(
+                SimpleNamespace(
+                    prior_tasks=prior_tasks,
+                    task=task,
+                ),
+            )
 
             # We need to create a PrioritizedItem for this task, to rank and to
             # push it to the priority queue.
@@ -477,8 +481,13 @@ class BoefjeScheduler(Scheduler):
 
         return True
 
+    # FIXME: reconsidere naming this different, since grace period check
+    # and a potential discrepancy between the task in the database and bytes
     def is_task_running(task: BoefjeTask) -> bool:
-        task_db = self.ctx.task_store.get_task_by_hash(task.hash)
+        # Get the last tasks that have run or are running for the hash
+        # of this particular BoefjeTask.
+        prior_tasks = self.ctx.task_store.get_tasks_by_hash(task.hash)
+        task_db = tasks[0] if prior_tasks else None
 
         # Is task still running according to the datastore?
         if task_db is not None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED):
@@ -490,7 +499,7 @@ class BoefjeScheduler(Scheduler):
                 self.organisation.id,
                 self.scheduler_id,
             )
-            continue
+            return True
 
         # Has grace period passed according to datastore?
         if (
@@ -506,7 +515,7 @@ class BoefjeScheduler(Scheduler):
                 self.organisation.id,
                 self.scheduler_id,
             )
-            continue
+            return True
 
         # TODO: exception
         task_bytes = self.ctx.services.bytes.get_last_run_boefje(
@@ -532,7 +541,7 @@ class BoefjeScheduler(Scheduler):
                 self.organisation.id,
                 self.scheduler_id,
             )
-            continue
+            return True
 
         # Is boefje still running according to bytes?
         if (
@@ -548,7 +557,7 @@ class BoefjeScheduler(Scheduler):
                 self.organisation.id,
                 self.scheduler_id,
             )
-            continue
+            return True
 
         # Did the grace period pass, according to bytes?
         if (
@@ -560,7 +569,7 @@ class BoefjeScheduler(Scheduler):
             self.logger.debug(
                 "According to Bytes grace, period for boefje: %s and input_ooi: %s has not yet passed, skipping ... [task_bytes=%s, boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
             )
-            continue
+            return True
 
     def is_space_on_queue(self) -> bool:
         """Check if there is space on the queue.

@@ -33,7 +33,7 @@ class BoefjeRanker(Ranker):
         """
 
         # New tasks that have not yet run before
-        if obj.scheduled_job is None:
+        if obj.prior_tasks is None:
             return 2
 
         max_priority = self.MAX_PRIORITY
@@ -44,7 +44,7 @@ class BoefjeRanker(Ranker):
         max_days = self.MAX_DAYS * (60 * 60 * 24)
 
         # Check how long since the grace period has passed
-        run_since_grace_period = ((datetime.now(timezone.utc) - obj.scheduled_job.checked_at) - grace_period).seconds
+        run_since_grace_period = ((datetime.now(timezone.utc) - obj.prior_tasks[0].modified_at) - grace_period).seconds
 
         # Makes sure that we don't have tasks that are still in the grace
         # period
