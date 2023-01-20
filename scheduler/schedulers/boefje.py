@@ -426,7 +426,7 @@ class BoefjeScheduler(Scheduler):
         if (
             task_db is not None
             and last_run_boefje is None
-            and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED)
+            and task_db.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]
         ):
             self.logger.warning(
                 "Boefje: %s is not in the last run boefjes, but is in the tasks table [task_id=%s, boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
@@ -440,7 +440,7 @@ class BoefjeScheduler(Scheduler):
             return None
 
         # Is boefje still running according to the database?
-        if task_db is not None and (task_db.status != TaskStatus.COMPLETED or task_db.status == TaskStatus.FAILED):
+        if task_db is not None and task_db.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
             self.logger.debug(
                 "Boefje: %s is still being processed [boefje_id=%s, ooi_id=%s, org_id=%s, scheduler_id=%s]",
                 boefje.id,
