@@ -90,8 +90,8 @@ class Scheduler(abc.ABC):
         # lookup.
         task = models.Task(
             id=p_item.id,
-            hash=p_item.hash,
             scheduler_id=self.scheduler_id,
+            type=self.queue.item_type.type,
             p_item=p_item,
             status=models.TaskStatus.QUEUED,
             created_at=datetime.datetime.now(datetime.timezone.utc),
@@ -137,12 +137,6 @@ class Scheduler(abc.ABC):
         try:
             p_item = self.queue.pop(filters)
         except queues.QueueEmptyError as exc:
-            self.logger.warning(
-                "Queue %s is empty, not populating new tasks [queue_id=%s, qsize=%d]",
-                self.queue.pq_id,
-                self.queue.pq_id,
-                self.queue.qsize(),
-            )
             raise exc
 
         if p_item is not None:

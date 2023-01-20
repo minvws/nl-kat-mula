@@ -1,4 +1,5 @@
 import abc
+import datetime
 import logging
 from typing import List, Optional, Tuple, Union
 
@@ -17,8 +18,12 @@ class TaskStorer(abc.ABC):
     @abc.abstractmethod
     def get_tasks(
         self,
-        scheduler_id: Union[str, None],
-        status: Union[str, None],
+        scheduler_id: Optional[str],
+        type: Optional[str],
+        status: Optional[str],
+        min_created_at: Optional[datetime.datetime],
+        max_created_at: Optional[datetime.datetime],
+        filters: Optional[List[models.Filter]],
         offset: int = 0,
         limit: int = 100,
     ) -> Tuple[List[models.Task], int]:
@@ -29,7 +34,11 @@ class TaskStorer(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_task_by_hash(self, task_hash: str) -> Optional[models.Task]:
+    def get_tasks_by_hash(self, task_hash: str) -> Optional[List[models.Task]]:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_latest_task_by_hash(self, task_hash: str) -> Optional[models.Task]:
         raise NotImplementedError
 
     @abc.abstractmethod
