@@ -105,6 +105,28 @@ class Scheduler(abc.ABC):
 
         self.ctx.task_store.create_task(task)
 
+        item_hash = p_item.hash
+        if item_hash is None:
+            return
+
+        # Determine whether we need to create a recurring scheduled job
+        scheduled_job = self.ctx.job_store.get_scheduled_job_by_hash(item_hash)
+        if scheduled_job is not None:
+            scheduled_job.checked_at = datetime.datetime.now(datetime.timezone.utc)
+            self.ctx.job_store.update_scheduled_job(scheduled_job)
+            return
+
+        scheduled_job = models.ScheduledJob(
+            hash=item_hash,
+            enabled=True,
+            scheduler_id=self.scheduler_id,
+            p_item=p_item,
+            checked_at=datetime.datetime.now(datetime.timezone.utc),
+            created_at=datetime.datetime.now(datetime.timezone.utc),
+            modified_at=datetime.datetime.now(datetime.timezone.utc),
+        )
+        scheduled_job_db = self.ctx.job_store.create_scheduled_job(scheduled_job)
+
     def post_pop(self, p_item: models.PrioritizedItem) -> None:
         """When a boefje task is being removed from the queue. We
         persist a task to the datastore with the status RUNNING

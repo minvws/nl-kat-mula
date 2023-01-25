@@ -5,7 +5,8 @@ from typing import ClassVar, List, Optional
 
 import mmh3
 from pydantic import BaseModel, Field
-from sqlalchemy import JSON, Column, DateTime, Enum, String
+from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, ForeignKey, String
+from sqlalchemy.orm import relationship
 
 from scheduler.utils import GUID
 
@@ -47,9 +48,11 @@ class TaskORM(Base):
     __tablename__ = "tasks"
 
     id = Column(GUID, primary_key=True)
+
     scheduler_id = Column(String)
     type = Column(String)
     p_item = Column(JSON, nullable=False)
+
     status = Column(
         Enum(TaskStatus),
         nullable=False,
@@ -61,12 +64,16 @@ class TaskORM(Base):
         nullable=False,
         default=datetime.datetime.utcnow,
     )
+
     modified_at = Column(
         DateTime(timezone=True),
         nullable=False,
         default=datetime.datetime.utcnow,
         onupdate=datetime.datetime.utcnow,
     )
+
+    scheduled_job_id = Column(GUID, ForeignKey("scheduled_jobs.id"))
+    scheduled_job = relationship("ScheduledJobORM", back_populates="tasks")
 
 
 class NormalizerTask(BaseModel):
@@ -97,9 +104,9 @@ class BoefjeTask(BaseModel):
     type: ClassVar[str] = "boefje"
 
     id: str = Field(default_factory=lambda: uuid.uuid4().hex)
-    boefje: Boefje
     input_ooi: Optional[str]
     organization: str
+    boefje: Boefje
 
     dispatches: List[Normalizer] = Field(default_factory=list)
 

@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 import factory
 from factory import Factory, Faker, LazyFunction, PostGenerationMethodCall, Sequence, fuzzy
