@@ -87,7 +87,7 @@ class PriorityQueue(abc.ABC):
         self.allow_priority_updates: bool = allow_priority_updates
         self.pq_store: repositories.stores.PriorityQueueStorer = pq_store
 
-    def pop(self, filters: List[models.Filter] = None) -> Optional[models.PrioritizedItem]:
+    def pop(self, filters: Optional[List[models.Filter]] = None) -> Optional[models.PrioritizedItem]:
         """Remove and return the highest priority item from the queue.
 
         Raises:

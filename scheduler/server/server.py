@@ -194,7 +194,7 @@ class Server:
         limit: int = 10,
         min_created_at: Union[datetime.datetime, None] = None,
         max_created_at: Union[datetime.datetime, None] = None,
-        filters: List[models.Filter] = None,
+        filters: Optional[List[models.Filter]] = None,
     ) -> Any:
         try:
             if (min_created_at is not None and max_created_at is not None) and min_created_at > max_created_at:
@@ -314,7 +314,7 @@ class Server:
 
         return models.Queue(**q.dict())
 
-    def pop_queue(self, queue_id: str, filters: List[models.Filter] = None) -> Any:
+    def pop_queue(self, queue_id: str, filters: Optional[List[models.Filter]] = None) -> Any:
         s = self.schedulers.get(queue_id)
         if s is None:
             raise fastapi.HTTPException(
