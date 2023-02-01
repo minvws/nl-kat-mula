@@ -1,10 +1,8 @@
 import datetime
 import logging
-import queue as _queue
 from typing import Any, Dict, List, Optional, Union
 
 import fastapi
-import scheduler
 import uvicorn
 from scheduler import context, models, queues, schedulers, version
 
@@ -326,7 +324,7 @@ class Server:
 
         try:
             p_item = s.pop_item_from_queue(filters)
-        except queues.QueueEmptyError as exc_empty:
+        except queues.QueueEmptyError:
             return None
 
         if p_item is None:

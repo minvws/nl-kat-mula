@@ -1,4 +1,3 @@
-import sys
 from logging.config import fileConfig
 
 from scheduler.config import settings

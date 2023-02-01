@@ -1,7 +1,7 @@
 import abc
 import datetime
 import logging
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 from scheduler import models
 

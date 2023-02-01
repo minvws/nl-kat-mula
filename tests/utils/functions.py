@@ -1,6 +1,6 @@
 import datetime
 import uuid
-from typing import Any, ClassVar, Dict, Optional
+from typing import Any, ClassVar
 
 import pydantic
 from scheduler import models
