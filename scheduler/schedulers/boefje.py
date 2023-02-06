@@ -382,7 +382,6 @@ class BoefjeScheduler(Scheduler):
                             task=task,
                         )
                     )
-
                     # We need to create a PrioritizedItem for this task, to
                     # push it to the priority queue.
                     p_item = PrioritizedItem(
