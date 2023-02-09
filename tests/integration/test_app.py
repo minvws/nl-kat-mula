@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 
 import scheduler
+from fastapi.testclient import TestClient
 from scheduler import config, models, repositories
 from tests.factories import OrganisationFactory
 
@@ -27,6 +28,8 @@ class AppTestCase(unittest.TestCase):
 
         self.app = scheduler.App(self.mock_ctx)
 
+        self.client = TestClient(self.app.server.api)
+
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_organisations")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_organisation")
     def test_monitor_orgs_add(self, mock_get_organisation, mock_get_organisations):
@@ -42,6 +45,9 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(2, len(self.app.schedulers.keys()))
         self.assertEqual(2, len(self.app.server.schedulers.keys()))
 
+        response = self.client.get("/schedulers")
+        self.assertEqual(2, len(response.json()))
+
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_organisations")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_organisation")
     def test_monitor_orgs_remove(self, mock_get_organisation, mock_get_organisations):
@@ -56,6 +62,12 @@ class AppTestCase(unittest.TestCase):
         # Assert: two schedulers should have been created
         self.assertEqual(2, len(self.app.schedulers.keys()))
 
+        response = self.client.get("/schedulers")
+        self.assertEqual(2, len(response.json()))
+
+        response = self.client.get("/queues")
+        self.assertEqual(2, len(response.json()))
+
         # Arrange
         mock_get_organisations.return_value = []
         mock_get_organisation.return_value = None
@@ -66,3 +78,11 @@ class AppTestCase(unittest.TestCase):
         # Assert
         self.assertEqual(0, len(self.app.schedulers.keys()))
         self.assertEqual(0, len(self.app.server.schedulers.keys()))
+
+        response = self.client.get("/schedulers")
+        self.assertEqual(0, len(response.json()))
+        self.assertEqual([], response.json())
+
+        response = self.client.get("/queues")
+        self.assertEqual(0, len(response.json()))
+        self.assertEqual([], response.json())
