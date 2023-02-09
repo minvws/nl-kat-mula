@@ -31,28 +31,38 @@ class AppTestCase(unittest.TestCase):
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_organisation")
     def test_monitor_orgs_add(self, mock_get_organisation, mock_get_organisations):
         """Test that when a new organisation is added, a new scheduler is created"""
+        # Arrange
         mock_get_organisations.return_value = [self.organisation]
         mock_get_organisation.return_value = self.organisation
 
-        # Two schedulers should have been created
+        # Act
         self.app.monitor_organisations()
+
+        # Assert: two schedulers should have been created
         self.assertEqual(2, len(self.app.schedulers.keys()))
+        self.assertEqual(2, len(self.app.server.schedulers.keys()))
 
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_organisations")
     @mock.patch("scheduler.context.AppContext.services.katalogus.get_organisation")
     def test_monitor_orgs_remove(self, mock_get_organisation, mock_get_organisations):
         """Test that when an organisation is removed, the scheduler is removed"""
-
+        # Arrange
         mock_get_organisations.return_value = [self.organisation]
         mock_get_organisation.return_value = self.organisation
 
-        # Two schedulers should have been created
+        # Act
         self.app.monitor_organisations()
+
+        # Assert: two schedulers should have been created
         self.assertEqual(2, len(self.app.schedulers.keys()))
 
+        # Arrange
         mock_get_organisations.return_value = []
         mock_get_organisation.return_value = None
 
-        # Two schedulers should have been removed
+        # Act
         self.app.monitor_organisations()
+
+        # Assert
         self.assertEqual(0, len(self.app.schedulers.keys()))
+        self.assertEqual(0, len(self.app.server.schedulers.keys()))
