@@ -590,9 +590,9 @@ class BoefjeScheduler(Scheduler):
             raise exc_db
 
         # Has grace period passed according to datastore?
-        if task_db is not None and datetime.utcnow() - task_db.modified_at < timedelta(
-            seconds=self.ctx.config.pq_populate_grace_period
-        ):
+        if task_db is not None and datetime.now(timezone.utc) - task_db.modified_at.replace(
+            tzinfo=timezone.utc
+        ) < timedelta(seconds=self.ctx.config.pq_populate_grace_period):
             self.logger.debug(
                 "Task has not passed grace period, according to the datastore [task.id=%s, task.hash=%s, organisation.id=%s, scheduler_id=%s]",
                 task_db.id,
